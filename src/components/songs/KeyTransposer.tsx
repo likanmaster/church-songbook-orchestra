@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { ArrowUp, ArrowDown, Refresh } from "lucide-react";
+import { ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Song } from "@/types";
 
@@ -74,7 +74,7 @@ const KeyTransposer: React.FC<KeyTransposerProps> = ({ songKey, onKeyChange }) =
         className="flex items-center gap-1 text-xs py-1"
         onClick={resetTransposition}
       >
-        <Refresh className="h-3 w-3" />
+        <RefreshCw className="h-3 w-3" />
         <span>{semitones === 0 ? "Original" : `${semitones > 0 ? "+" : ""}${semitones}`}</span>
       </Button>
       
