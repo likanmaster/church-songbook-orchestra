@@ -1,13 +1,25 @@
+
 import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Song } from "@/types";
+import { useState } from "react";
+import KeyTransposer from "./KeyTransposer";
 
 interface SongViewProps {
   song: Song;
 }
 
 const SongView = ({ song }: SongViewProps) => {
+  const [currentKey, setCurrentKey] = useState<string>(song.key || "");
+  
+  // Function to transpose chord in lyrics if needed
+  const transposeLyrics = (lyrics: string | undefined): string => {
+    // In a real implementation, we would add logic here to detect and transpose chords in the lyrics
+    // For now, we'll just return the original lyrics
+    return lyrics || "";
+  };
+  
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between bg-gradient-to-r from-song-100 to-song-200 dark:from-song-800 dark:to-song-700 p-6 rounded-xl shadow-md">
@@ -50,10 +62,16 @@ const SongView = ({ song }: SongViewProps) => {
               {song.key && (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Tonalidad</p>
-                  <p className="font-medium flex items-center gap-2">
-                    <Music2 className="h-4 w-4 text-song-500" />
-                    {song.key}
-                  </p>
+                  <div className="font-medium flex flex-col gap-2">
+                    <p className="flex items-center gap-2">
+                      <Music2 className="h-4 w-4 text-song-500" />
+                      {currentKey || song.key}
+                    </p>
+                    <KeyTransposer 
+                      songKey={song.key} 
+                      onKeyChange={setCurrentKey}
+                    />
+                  </div>
                 </div>
               )}
               
@@ -130,7 +148,7 @@ const SongView = ({ song }: SongViewProps) => {
           </CardHeader>
           <CardContent className="p-6">
             <pre className="whitespace-pre-wrap font-sans bg-background p-4 rounded-md border border-song-100 dark:border-song-800">
-              {song.lyrics}
+              {transposeLyrics(song.lyrics)}
             </pre>
           </CardContent>
         </Card>

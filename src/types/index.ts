@@ -1,4 +1,3 @@
-
 export interface Song {
   id: string;
   title: string;
@@ -15,6 +14,9 @@ export interface Song {
   isFavorite: boolean;
   createdAt: string;
   updatedAt: string;
+  audioUrl?: string;
+  videoUrl?: string;
+  usageCount?: number;
 }
 
 export interface Attachment {
