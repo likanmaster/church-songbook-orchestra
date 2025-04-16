@@ -1,7 +1,6 @@
-
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Calendar, Save, Plus, X, Clock, Music, ChevronUp, ChevronDown, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Calendar, Save, Plus, X, Clock, Music, ChevronUp, ChevronDown, Search, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +30,10 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/layout/Navbar";
-import { Song } from "@/types";
+import { Song, Service } from "@/types";
 import { useForm } from "react-hook-form";
 import { toast } from "@/components/ui/use-toast";
 
-// Define the form values interface
 interface ServiceFormValues {
   title: string;
   date: Date | undefined;
@@ -46,10 +44,12 @@ interface ServiceFormValues {
 
 const ServiceForm = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = !!id;
+  const [isLoading, setIsLoading] = useState(isEditMode);
   const [selectedSongs, setSelectedSongs] = useState<(Song & { order: number; serviceNotes?: string })[]>([]);
   const [songDialogOpen, setSongDialogOpen] = useState(false);
   
-  // Initialize the form
   const form = useForm<ServiceFormValues>({
     defaultValues: {
       title: "",
@@ -59,8 +59,52 @@ const ServiceForm = () => {
       notes: "",
     },
   });
-  
-  // Datos de ejemplo para las canciones disponibles
+
+  const servicesData: Service[] = [
+    {
+      id: "1",
+      title: "Servicio Dominical",
+      date: "2023-12-17",
+      theme: "La Gracia de Dios",
+      preacher: "Pastor Juan García",
+      notes: "Especial de Navidad",
+      songs: [
+        { id: "s1", songId: "1", order: 1, notes: "Inicio" },
+        { id: "s2", songId: "3", order: 2 },
+        { id: "s3", songId: "2", order: 3 },
+        { id: "s4", songId: "4", order: 4, notes: "Final" },
+      ],
+      createdAt: "2023-12-10T14:30:00Z",
+      updatedAt: "2023-12-14T09:15:00Z",
+    },
+    {
+      id: "2",
+      title: "Reunión de Jóvenes",
+      date: "2023-12-15",
+      theme: "Fe en Acción",
+      preacher: "Líder de Jóvenes",
+      songs: [
+        { id: "s5", songId: "2", order: 1 },
+        { id: "s6", songId: "3", order: 2 },
+        { id: "s7", songId: "1", order: 3 },
+      ],
+      createdAt: "2023-12-08T10:20:00Z",
+      updatedAt: "2023-12-08T10:20:00Z",
+    },
+    {
+      id: "3",
+      title: "Culto de Oración",
+      date: "2023-12-13",
+      theme: "Intercesión",
+      songs: [
+        { id: "s8", songId: "4", order: 1 },
+        { id: "s9", songId: "1", order: 2 },
+      ],
+      createdAt: "2023-12-11T16:45:00Z",
+      updatedAt: "2023-12-12T08:30:00Z",
+    },
+  ];
+
   const [availableSongs] = useState<Song[]>([
     {
       id: "1",
@@ -119,27 +163,84 @@ const ServiceForm = () => {
       updatedAt: "2023-04-20T16:30:00Z"
     },
   ]);
-  
+
+  useEffect(() => {
+    if (isEditMode) {
+      const loadService = async () => {
+        setIsLoading(true);
+        try {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const service = servicesData.find(s => s.id === id);
+          if (!service) {
+            toast({
+              title: "Error",
+              description: "Servicio no encontrado",
+              variant: "destructive",
+            });
+            navigate("/services");
+            return;
+          }
+          
+          form.reset({
+            title: service.title,
+            date: new Date(service.date),
+            theme: service.theme || "",
+            preacher: service.preacher || "",
+            notes: service.notes || "",
+          });
+          
+          const serviceSongs = service.songs.map(serviceSong => {
+            const songDetails = availableSongs.find(s => s.id === serviceSong.songId);
+            if (!songDetails) return null;
+            
+            return {
+              ...songDetails,
+              order: serviceSong.order,
+              serviceNotes: serviceSong.notes,
+            };
+          }).filter(Boolean) as (Song & { order: number; serviceNotes?: string })[];
+          
+          serviceSongs.sort((a, b) => a.order - b.order);
+          setSelectedSongs(serviceSongs);
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Error al cargar los datos del servicio",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      loadService();
+    }
+  }, [id, isEditMode, form, navigate]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [notesInput, setNotesInput] = useState("");
   const [songBeingEdited, setSongBeingEdited] = useState<string | null>(null);
-  
+
   const handleSave = (data: ServiceFormValues) => {
-    // En una implementación real, aquí guardaríamos el servicio
-    // con los datos del formulario y las canciones seleccionadas
     console.log("Form data:", data);
     console.log("Selected songs:", selectedSongs);
     
-    // Mostrar una notificación de éxito
-    toast({
-      title: "Servicio guardado",
-      description: "El servicio ha sido guardado exitosamente.",
-    });
-    
-    // Redirigir a la página de servicios
-    navigate("/services");
+    if (isEditMode) {
+      toast({
+        title: "Servicio actualizado",
+        description: "El servicio ha sido actualizado exitosamente.",
+      });
+      navigate(`/services/${id}`);
+    } else {
+      toast({
+        title: "Servicio guardado",
+        description: "El servicio ha sido guardado exitosamente.",
+      });
+      navigate("/services");
+    }
   };
-  
+
   const handleAddSong = (song: Song) => {
     setSelectedSongs([
       ...selectedSongs, 
@@ -152,17 +253,16 @@ const ServiceForm = () => {
     setNotesInput("");
     setSongDialogOpen(false);
   };
-  
+
   const handleRemoveSong = (songId: string) => {
     const newSongs = selectedSongs.filter(s => s.id !== songId);
-    // Reordenar las canciones restantes
     const reorderedSongs = newSongs.map((song, index) => ({
       ...song,
       order: index + 1
     }));
     setSelectedSongs(reorderedSongs);
   };
-  
+
   const handleMoveSong = (index: number, direction: 'up' | 'down') => {
     if (
       (direction === 'up' && index === 0) ||
@@ -174,10 +274,8 @@ const ServiceForm = () => {
     const newSongs = [...selectedSongs];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     
-    // Intercambiar posiciones
     [newSongs[index], newSongs[newIndex]] = [newSongs[newIndex], newSongs[index]];
     
-    // Actualizar orden
     const reorderedSongs = newSongs.map((song, idx) => ({
       ...song,
       order: idx + 1
@@ -185,7 +283,7 @@ const ServiceForm = () => {
     
     setSelectedSongs(reorderedSongs);
   };
-  
+
   const handleUpdateSongNotes = (songId: string, notes: string) => {
     const updatedSongs = selectedSongs.map(song => 
       song.id === songId ? { ...song, serviceNotes: notes } : song
@@ -193,8 +291,7 @@ const ServiceForm = () => {
     setSelectedSongs(updatedSongs);
     setSongBeingEdited(null);
   };
-  
-  // Filtrar canciones disponibles basadas en búsqueda
+
   const filteredSongs = availableSongs.filter((song) => {
     const isAlreadySelected = selectedSongs.some(s => s.id === song.id);
     if (isAlreadySelected) return false;
@@ -205,13 +302,29 @@ const ServiceForm = () => {
     
     return matchesSearch;
   });
-  
+
   const calculateTotalDuration = () => {
     const totalSeconds = selectedSongs.reduce((acc, song) => acc + (song.duration || 0), 0);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Cargando servicio...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -220,12 +333,25 @@ const ServiceForm = () => {
       <main className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="mr-2"
+              onClick={() => isEditMode ? navigate(`/services/${id}`) : navigate("/services")}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
             <Calendar className="h-8 w-8 mr-3 text-primary" />
-            <h1 className="text-3xl font-bold">Nuevo Servicio</h1>
+            <h1 className="text-3xl font-bold">
+              {isEditMode ? "Editar Servicio" : "Nuevo Servicio"}
+            </h1>
           </div>
           
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => navigate("/services")}>
+            <Button 
+              variant="ghost" 
+              onClick={() => isEditMode ? navigate(`/services/${id}`) : navigate("/services")}
+            >
               Cancelar
             </Button>
             <Button 
