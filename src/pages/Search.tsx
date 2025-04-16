@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Search as SearchIcon, Filter, Clock, Music, Sliders, X } from "lucide-react";
@@ -217,22 +216,17 @@ const SearchPage = () => {
     setDurationRange([0, 600]);
   };
   
-  // Filtrar canciones basadas en filtros
   const filteredSongs = songs.filter((song) => {
-    // Filtrar por búsqueda de texto
     const matchesSearch = !filters.search || 
       song.title.toLowerCase().includes(filters.search.toLowerCase()) || 
       (song.author?.toLowerCase().includes(filters.search.toLowerCase()) || false) ||
       song.tags.some(tag => tag.toLowerCase().includes(filters.search.toLowerCase()));
       
-    // Filtrar por categorías
     const matchesCategories = !filters.categories?.length || 
       filters.categories.some(cat => song.categories.includes(cat));
       
-    // Filtrar por tonalidad
     const matchesKey = !filters.key || song.key === filters.key;
     
-    // Filtrar por tempo
     let matchesTempo = true;
     if (filters.tempo) {
       if (filters.tempo === "slow") {
@@ -244,15 +238,12 @@ const SearchPage = () => {
       }
     }
     
-    // Filtrar por estilo
     const matchesStyle = !filters.style || song.style === filters.style;
     
-    // Filtrar por duración
     const duration = song.duration || 0;
     const matchesDuration = duration >= (filters.minDuration || 0) && 
                           duration <= (filters.maxDuration || 999);
     
-    // Filtrar por favoritos
     const matchesFavorite = !filters.favorite || song.isFavorite;
     
     return matchesSearch && matchesCategories && matchesKey && 
@@ -318,7 +309,6 @@ const SearchPage = () => {
               </SheetHeader>
               
               <div className="mt-6 space-y-6">
-                {/* Categorías */}
                 <div>
                   <h3 className="text-sm font-medium mb-3">Categorías</h3>
                   <div className="flex flex-wrap gap-2">
@@ -335,7 +325,6 @@ const SearchPage = () => {
                   </div>
                 </div>
                 
-                {/* Tonalidad */}
                 <div>
                   <h3 className="text-sm font-medium mb-3">Tonalidad</h3>
                   <Select value={selectedKey} onValueChange={setSelectedKey}>
@@ -343,7 +332,7 @@ const SearchPage = () => {
                       <SelectValue placeholder="Cualquier tonalidad" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Cualquier tonalidad</SelectItem>
+                      <SelectItem value="any">Cualquier tonalidad</SelectItem>
                       {keyOptions.map((key) => (
                         <SelectItem key={key} value={key}>{key}</SelectItem>
                       ))}
@@ -351,7 +340,6 @@ const SearchPage = () => {
                   </Select>
                 </div>
                 
-                {/* Tempo */}
                 <div>
                   <h3 className="text-sm font-medium mb-3">Tempo</h3>
                   <Select value={selectedTempo} onValueChange={setSelectedTempo}>
@@ -359,7 +347,7 @@ const SearchPage = () => {
                       <SelectValue placeholder="Cualquier tempo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Cualquier tempo</SelectItem>
+                      <SelectItem value="any">Cualquier tempo</SelectItem>
                       {tempoOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                       ))}
@@ -367,7 +355,6 @@ const SearchPage = () => {
                   </Select>
                 </div>
                 
-                {/* Estilo Musical */}
                 <div>
                   <h3 className="text-sm font-medium mb-3">Estilo Musical</h3>
                   <Select value={selectedStyle} onValueChange={setSelectedStyle}>
@@ -375,7 +362,7 @@ const SearchPage = () => {
                       <SelectValue placeholder="Cualquier estilo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Cualquier estilo</SelectItem>
+                      <SelectItem value="any">Cualquier estilo</SelectItem>
                       {styleOptions.map((style) => (
                         <SelectItem key={style} value={style}>{style}</SelectItem>
                       ))}
@@ -383,25 +370,21 @@ const SearchPage = () => {
                   </Select>
                 </div>
                 
-                {/* Duración */}
-                <div>
-                  <div className="flex justify-between mb-3">
-                    <h3 className="text-sm font-medium">Duración</h3>
-                    <span className="text-sm text-muted-foreground">
-                      {formatDuration(durationRange[0])} - {formatDuration(durationRange[1])}
-                    </span>
-                  </div>
-                  <Slider
-                    value={durationRange}
-                    min={0}
-                    max={600}
-                    step={30}
-                    onValueChange={(val) => setDurationRange(val as [number, number])}
-                    className="my-6"
-                  />
+                <div className="flex justify-between mb-3">
+                  <h3 className="text-sm font-medium">Duración</h3>
+                  <span className="text-sm text-muted-foreground">
+                    {formatDuration(durationRange[0])} - {formatDuration(durationRange[1])}
+                  </span>
                 </div>
+                <Slider
+                  value={durationRange}
+                  min={0}
+                  max={600}
+                  step={30}
+                  onValueChange={(val) => setDurationRange(val as [number, number])}
+                  className="my-6"
+                />
                 
-                {/* Solo Favoritos */}
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-medium">Solo Favoritos</h3>
