@@ -32,16 +32,33 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/layout/Navbar";
 import { Song } from "@/types";
+import { useForm } from "react-hook-form";
+import { toast } from "@/components/ui/use-toast";
+
+// Define the form values interface
+interface ServiceFormValues {
+  title: string;
+  date: Date | undefined;
+  theme: string;
+  preacher: string;
+  notes: string;
+}
 
 const ServiceForm = () => {
   const navigate = useNavigate();
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  const [theme, setTheme] = useState("");
-  const [preacher, setPreacher] = useState("");
-  const [notes, setNotes] = useState("");
   const [selectedSongs, setSelectedSongs] = useState<(Song & { order: number; serviceNotes?: string })[]>([]);
   const [songDialogOpen, setSongDialogOpen] = useState(false);
+  
+  // Initialize the form
+  const form = useForm<ServiceFormValues>({
+    defaultValues: {
+      title: "",
+      date: new Date(),
+      theme: "",
+      preacher: "",
+      notes: "",
+    },
+  });
   
   // Datos de ejemplo para las canciones disponibles
   const [availableSongs] = useState<Song[]>([
@@ -107,9 +124,19 @@ const ServiceForm = () => {
   const [notesInput, setNotesInput] = useState("");
   const [songBeingEdited, setSongBeingEdited] = useState<string | null>(null);
   
-  const handleSave = () => {
+  const handleSave = (data: ServiceFormValues) => {
     // En una implementación real, aquí guardaríamos el servicio
-    // Por ahora solo redirigimos a la página de servicios
+    // con los datos del formulario y las canciones seleccionadas
+    console.log("Form data:", data);
+    console.log("Selected songs:", selectedSongs);
+    
+    // Mostrar una notificación de éxito
+    toast({
+      title: "Servicio guardado",
+      description: "El servicio ha sido guardado exitosamente.",
+    });
+    
+    // Redirigir a la página de servicios
     navigate("/services");
   };
   
@@ -201,7 +228,10 @@ const ServiceForm = () => {
             <Button variant="ghost" onClick={() => navigate("/services")}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={!title || !date || selectedSongs.length === 0}>
+            <Button 
+              onClick={form.handleSubmit(handleSave)} 
+              disabled={!form.watch("title") || !form.watch("date") || selectedSongs.length === 0}
+            >
               <Save className="mr-2 h-4 w-4" />
               Guardar
             </Button>
@@ -212,17 +242,18 @@ const ServiceForm = () => {
           <div className="lg:col-span-2">
             <Card className="mb-6">
               <CardContent className="pt-6">
-                <div className="space-y-4">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
                     <FormField
+                      control={form.control}
                       name="title"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Título del Servicio *</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="Ej: Servicio Dominical" 
-                              value={title}
-                              onChange={(e) => setTitle(e.target.value)}
+                              {...field}
                               required
                             />
                           </FormControl>
@@ -231,8 +262,9 @@ const ServiceForm = () => {
                     />
                     
                     <FormField
+                      control={form.control}
                       name="date"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel>Fecha *</FormLabel>
                           <Popover>
@@ -242,11 +274,11 @@ const ServiceForm = () => {
                                   variant={"outline"}
                                   className={cn(
                                     "w-full pl-3 text-left font-normal",
-                                    !date && "text-muted-foreground"
+                                    !field.value && "text-muted-foreground"
                                   )}
                                 >
-                                  {date ? (
-                                    format(date, "PPP")
+                                  {field.value ? (
+                                    format(field.value, "PPP")
                                   ) : (
                                     <span>Selecciona una fecha</span>
                                   )}
@@ -257,8 +289,8 @@ const ServiceForm = () => {
                             <PopoverContent className="w-auto p-0" align="start">
                               <CalendarComponent
                                 mode="single"
-                                selected={date}
-                                onSelect={setDate}
+                                selected={field.value}
+                                onSelect={field.onChange}
                                 initialFocus
                                 className="p-3 pointer-events-auto"
                               />
@@ -269,15 +301,15 @@ const ServiceForm = () => {
                     />
                     
                     <FormField
+                      control={form.control}
                       name="theme"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Tema del Servicio</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="Ej: La Gracia de Dios" 
-                              value={theme}
-                              onChange={(e) => setTheme(e.target.value)}
+                              {...field}
                             />
                           </FormControl>
                         </FormItem>
@@ -285,15 +317,15 @@ const ServiceForm = () => {
                     />
                     
                     <FormField
+                      control={form.control}
                       name="preacher"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Predicador</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="Nombre del predicador" 
-                              value={preacher}
-                              onChange={(e) => setPreacher(e.target.value)}
+                              {...field}
                             />
                           </FormControl>
                         </FormItem>
@@ -301,22 +333,23 @@ const ServiceForm = () => {
                     />
                     
                     <FormField
+                      control={form.control}
                       name="notes"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Notas Adicionales</FormLabel>
                           <FormControl>
                             <Textarea 
                               placeholder="Notas sobre el servicio" 
                               rows={4}
-                              value={notes}
-                              onChange={(e) => setNotes(e.target.value)}
+                              {...field}
                             />
                           </FormControl>
                         </FormItem>
                       )}
                     />
-                  </div>
+                  </form>
+                </Form>
               </CardContent>
             </Card>
             
@@ -537,20 +570,20 @@ const ServiceForm = () => {
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-muted-foreground">Título</p>
-                    <p className="font-medium">{title || "No definido"}</p>
+                    <p className="font-medium">{form.watch("title") || "No definido"}</p>
                   </div>
                   
                   <div>
                     <p className="text-sm text-muted-foreground">Fecha</p>
                     <p className="font-medium">
-                      {date ? format(date, "PPP") : "No definido"}
+                      {form.watch("date") ? format(form.watch("date"), "PPP") : "No definido"}
                     </p>
                   </div>
                   
-                  {theme && (
+                  {form.watch("theme") && (
                     <div>
                       <p className="text-sm text-muted-foreground">Tema</p>
-                      <p className="font-medium">{theme}</p>
+                      <p className="font-medium">{form.watch("theme")}</p>
                     </div>
                   )}
                   
@@ -569,8 +602,8 @@ const ServiceForm = () => {
                   <div className="pt-2">
                     <Button 
                       className="w-full" 
-                      onClick={handleSave}
-                      disabled={!title || !date || selectedSongs.length === 0}
+                      onClick={form.handleSubmit(handleSave)}
+                      disabled={!form.watch("title") || !form.watch("date") || selectedSongs.length === 0}
                     >
                       <Save className="mr-2 h-4 w-4" />
                       Guardar Servicio
