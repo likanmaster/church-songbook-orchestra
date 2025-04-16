@@ -1,5 +1,4 @@
-
-import { Music, Heart, Clock, User, Brush, Music2, FileText, Sticky, Tag } from "lucide-react";
+import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Song } from "@/types";
@@ -141,7 +140,7 @@ const SongView = ({ song }: SongViewProps) => {
         <Card className="border-song-200 dark:border-song-800 shadow-sm hover:shadow-md transition-shadow duration-300">
           <CardHeader className="bg-song-50/50 dark:bg-song-900/30 border-b border-song-100 dark:border-song-800">
             <CardTitle className="text-lg flex items-center gap-2">
-              <Sticky className="h-5 w-5 text-primary" />
+              <StickyNote className="h-5 w-5 text-primary" />
               Notas Adicionales
             </CardTitle>
           </CardHeader>
