@@ -52,6 +52,17 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+                song: {
+                    100: '#f3e8ff', // Very light purple
+                    200: '#e9d5ff', // Light purple
+                    300: '#d8b4fe', // Light medium purple
+                    400: '#c084fc', // Medium purple
+                    500: '#a855f7', // Primary purple
+                    600: '#9333ea', // Dark medium purple
+                    700: '#7e22ce', // Dark purple
+                    800: '#6b21a8', // Very dark purple
+                    900: '#581c87', // Ultra dark purple
+                },
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
