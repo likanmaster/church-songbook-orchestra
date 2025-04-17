@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Calendar, Save, Plus, X, Clock, Music, ChevronUp, ChevronDown, Search, ArrowLeft, FileText } from "lucide-react";
@@ -32,7 +31,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/layout/Navbar";
-import { Song, Service } from "@/types";
+import { Song, Service, ServiceItemType, ServiceSongItem, ServiceSectionItem } from "@/types";
 import { useForm } from "react-hook-form";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -49,10 +48,6 @@ interface ServiceFormValues {
   preacher: string;
   notes: string;
 }
-
-type ServiceItemType = 
-  | { type: 'song'; data: Song & { order: number; serviceNotes?: string } }
-  | { type: 'section'; data: { id: string; text: string; order: number } };
 
 const ServiceForm = () => {
   const navigate = useNavigate();
@@ -209,14 +204,15 @@ const ServiceForm = () => {
             const songDetails = availableSongs.find(s => s.id === serviceSong.songId);
             if (!songDetails) return null;
             
-            return {
-              type: 'song' as const,
+            const songItem: ServiceSongItem = {
+              type: 'song',
               data: {
                 ...songDetails,
                 order: serviceSong.order,
                 serviceNotes: serviceSong.notes,
               }
             };
+            return songItem;
           }).filter(Boolean) as ServiceItemType[];
           
           serviceSongs.sort((a, b) => a.data.order - b.data.order);
@@ -260,7 +256,7 @@ const ServiceForm = () => {
   };
 
   const handleAddSong = (song: Song) => {
-    const newItem: ServiceItemType = {
+    const newItem: ServiceSongItem = {
       type: 'song',
       data: { 
         ...song, 
@@ -293,7 +289,7 @@ const ServiceForm = () => {
       setServiceItems(updatedItems);
       setEditingSectionId(null);
     } else {
-      const newItem: ServiceItemType = {
+      const newItem: ServiceSectionItem = {
         type: 'section',
         data: {
           id: `section-${Date.now()}`,
@@ -326,7 +322,7 @@ const ServiceForm = () => {
         ...item.data,
         order: index + 1
       }
-    }));
+    })) as ServiceItemType[];
     
     setServiceItems(reorderedItems);
   };
@@ -350,7 +346,7 @@ const ServiceForm = () => {
         ...item.data,
         order: idx + 1
       }
-    }));
+    })) as ServiceItemType[];
     
     setServiceItems(reorderedItems);
   };
@@ -360,7 +356,7 @@ const ServiceForm = () => {
       (item.type === 'song' && item.data.id === songId)
         ? { ...item, data: { ...item.data, serviceNotes: notes } }
         : item
-    );
+    ) as ServiceItemType[];
     
     setServiceItems(updatedItems);
     setSongBeingEdited(null);

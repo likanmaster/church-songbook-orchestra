@@ -1,4 +1,5 @@
 
+
 export interface Song {
   id: string;
   title: string;
@@ -69,4 +70,21 @@ export interface SongFilter {
   style?: string;
   favorite?: boolean;
 }
+
+// Extended types for UI components
+export type ServiceSongItem = {
+  type: 'song';
+  data: Song & { order: number; serviceNotes?: string };
+}
+
+export type ServiceSectionItem = {
+  type: 'section';
+  data: {
+    id: string;
+    text: string;
+    order: number;
+  };
+}
+
+export type ServiceItemType = ServiceSongItem | ServiceSectionItem;
 
