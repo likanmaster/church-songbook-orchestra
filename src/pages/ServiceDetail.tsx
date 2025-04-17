@@ -10,11 +10,17 @@ import { toast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import { Service, Song } from "@/types";
 
+// Extended Song type with service-specific properties
+interface ServiceSongDetails extends Song {
+  order: number;
+  serviceNotes?: string;
+}
+
 const ServiceDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [service, setService] = useState<Service | null>(null);
-  const [songs, setSongs] = useState<Song[]>([]);
+  const [songs, setSongs] = useState<ServiceSongDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Datos de ejemplo para canciones disponibles (en una app real, esto vendría de una API)
@@ -155,7 +161,7 @@ const ServiceDetail = () => {
             serviceNotes: serviceSong.notes,
             order: serviceSong.order,
           };
-        }).filter(Boolean) as (Song & { serviceNotes?: string, order: number })[];
+        }).filter(Boolean) as ServiceSongDetails[];
         
         // Ordenar las canciones según el orden definido en el servicio
         serviceSongs.sort((a, b) => a.order - b.order);
