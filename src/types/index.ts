@@ -1,3 +1,4 @@
+
 export interface Song {
   id: string;
   title: string;
@@ -36,6 +37,7 @@ export interface Service {
   songs: ServiceSong[];
   createdAt: string;
   updatedAt: string;
+  sections?: ServiceSection[];
 }
 
 export interface ServiceSong {
@@ -43,6 +45,12 @@ export interface ServiceSong {
   songId: string;
   order: number;
   notes?: string;
+}
+
+export interface ServiceSection {
+  id: string;
+  text: string;
+  order: number;
 }
 
 export interface Category {
@@ -61,3 +69,4 @@ export interface SongFilter {
   style?: string;
   favorite?: boolean;
 }
+
