@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
+import { AuthProvider } from "@/hooks/use-auth-context";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Songs from "./pages/Songs";
@@ -13,30 +14,114 @@ import Services from "./pages/Services";
 import ServiceForm from "./pages/ServiceForm";
 import ServiceDetail from "./pages/ServiceDetail";
 import Search from "./pages/Search";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import { AuthGuard } from "./components/auth/AuthGuard";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="system">
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/songs" element={<Songs />} />
-            <Route path="/songs/new" element={<SongForm />} />
-            <Route path="/songs/:id" element={<SongForm />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/services/new" element={<ServiceForm />} />
-            <Route path="/services/:id" element={<ServiceDetail />} />
-            <Route path="/services/:id/edit" element={<ServiceForm />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route 
+                path="/" 
+                element={
+                  <AuthGuard>
+                    <Index />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/songs" 
+                element={
+                  <AuthGuard>
+                    <Songs />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/songs/new" 
+                element={
+                  <AuthGuard>
+                    <SongForm />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/songs/:id" 
+                element={
+                  <AuthGuard>
+                    <SongForm />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/services" 
+                element={
+                  <AuthGuard>
+                    <Services />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/services/new" 
+                element={
+                  <AuthGuard>
+                    <ServiceForm />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/services/:id" 
+                element={
+                  <AuthGuard>
+                    <ServiceDetail />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/services/:id/edit" 
+                element={
+                  <AuthGuard>
+                    <ServiceForm />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/search" 
+                element={
+                  <AuthGuard>
+                    <Search />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/login" 
+                element={
+                  <AuthGuard requireAuth={false}>
+                    <Login />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/register" 
+                element={
+                  <AuthGuard requireAuth={false}>
+                    <Register />
+                  </AuthGuard>
+                } 
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );
