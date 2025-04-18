@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,7 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Groups from "./pages/Groups";
 import { AuthGuard } from "./components/auth/AuthGuard";
+import GroupDetail from "./pages/GroupDetail";
 
 const queryClient = new QueryClient();
 
@@ -132,6 +132,14 @@ const App = () => (
                 element={
                   <AuthGuard>
                     <Groups />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/groups/:id" 
+                element={
+                  <AuthGuard>
+                    <GroupDetail />
                   </AuthGuard>
                 } 
               />
