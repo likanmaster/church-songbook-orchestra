@@ -1,10 +1,10 @@
-
 import { useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Group } from "@/types";
 import Navbar from "@/components/layout/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Music, Users, BookOpen } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Music, Users, BookOpen, Clock, Calendar } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
@@ -67,75 +67,69 @@ const GroupDetail = () => {
           </TabsList>
 
           <TabsContent value="members" className="space-y-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Usuario</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Fecha de Ingreso</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {group.members.map((member) => (
-                  <TableRow key={member.id}>
-                    <TableCell className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {group.members.map((member) => (
+                <Card key={member.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-12 w-12">
                         <AvatarFallback>
                           {member.username.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      {member.username}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={member.role === 'admin' ? 'default' : 'secondary'}>
-                        {member.role === 'admin' ? 'Administrador' : 'Miembro'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(member.joinedAt).toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{member.username}</h3>
+                        <Badge variant={member.role === 'admin' ? 'default' : 'secondary'} className="mt-1">
+                          {member.role === 'admin' ? 'Administrador' : 'Miembro'}
+                        </Badge>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Miembro desde {new Date(member.joinedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
           <TabsContent value="songs" className="space-y-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Autor</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {songs.map((song) => (
-                  <TableRow key={song.id}>
-                    <TableCell>{song.title}</TableCell>
-                    <TableCell>{song.author}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {songs.map((song) => (
+                <Link to={`/songs/${song.id}`} key={song.id}>
+                  <Card className="h-full hover:bg-accent/50 transition-colors">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Music className="h-4 w-4" />
+                        {song.title}
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">{song.author}</p>
+                    </CardHeader>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </TabsContent>
 
           <TabsContent value="services" className="space-y-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Fecha</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {services.map((service) => (
-                  <TableRow key={service.id}>
-                    <TableCell>{service.title}</TableCell>
-                    <TableCell>{service.date}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {services.map((service) => (
+                <Link to={`/services/${service.id}`} key={service.id}>
+                  <Card className="h-full hover:bg-accent/50 transition-colors">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {service.title}
+                      </CardTitle>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                        <Clock className="h-4 w-4" />
+                        {service.date}
+                      </div>
+                    </CardHeader>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </TabsContent>
         </Tabs>
       </main>
