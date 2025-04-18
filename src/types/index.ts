@@ -1,5 +1,3 @@
-
-
 export interface Song {
   id: string;
   title: string;
@@ -71,7 +69,6 @@ export interface SongFilter {
   favorite?: boolean;
 }
 
-// Extended types for UI components
 export type ServiceSongItem = {
   type: 'song';
   data: Song & { order: number; serviceNotes?: string };
@@ -88,3 +85,22 @@ export type ServiceSectionItem = {
 
 export type ServiceItemType = ServiceSongItem | ServiceSectionItem;
 
+export interface Group {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  members: GroupMember[];
+  sharedSongs: string[]; // IDs de canciones compartidas
+  sharedServices: string[]; // IDs de servicios compartidos
+}
+
+export interface GroupMember {
+  id: string;
+  userId: string;
+  username: string;
+  role: 'admin' | 'member';
+  joinedAt: string;
+}

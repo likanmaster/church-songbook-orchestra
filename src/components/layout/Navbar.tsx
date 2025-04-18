@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Music, Search, Settings, Home, BookOpen } from "lucide-react";
+import { Menu, X, Music, Search, Settings, Home, BookOpen, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -16,6 +16,7 @@ const Navbar = () => {
     { title: "Inicio", path: "/", icon: <Home className="h-5 w-5 mr-2" /> },
     { title: "Canciones", path: "/songs", icon: <Music className="h-5 w-5 mr-2" /> },
     { title: "Servicios", path: "/services", icon: <BookOpen className="h-5 w-5 mr-2" /> },
+    { title: "Grupos", path: "/groups", icon: <Users className="h-5 w-5 mr-2" /> },
     { title: "Buscar", path: "/search", icon: <Search className="h-5 w-5 mr-2" /> },
     { title: "Ajustes", path: "/settings", icon: <Settings className="h-5 w-5 mr-2" /> },
   ];
