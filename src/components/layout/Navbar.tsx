@@ -1,12 +1,12 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Music, Search, Settings, Home, BookOpen, Users } from "lucide-react";
+import { Menu, Music, Search, Settings, Home, BookOpen, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ModeToggle } from "@/components/ModeToggle";
 import { ProfileButton } from "@/components/auth/ProfileButton";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const Navbar = () => {
   const isMobile = useIsMobile();
@@ -31,6 +31,7 @@ const Navbar = () => {
 
         {isMobile ? (
           <div className="flex items-center gap-2">
+            <NotificationBell />
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" className="p-1">
@@ -77,6 +78,7 @@ const Navbar = () => {
               </Link>
             ))}
             <div className="flex items-center gap-2">
+              <NotificationBell />
               <ModeToggle />
               <ProfileButton />
             </div>
