@@ -1,3 +1,4 @@
+
 import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,13 @@ const SongView = ({ song }: SongViewProps) => {
       title: "Canción compartida",
       description: `La canción ha sido compartida con el grupo exitosamente.`,
     });
+  };
+
+  // Add the missing transposeLyrics function
+  const transposeLyrics = (lyrics: string): string => {
+    // For now, we're just returning the original lyrics
+    // In a full implementation, this would transform chord notations based on the current key
+    return lyrics;
   };
 
   return (
