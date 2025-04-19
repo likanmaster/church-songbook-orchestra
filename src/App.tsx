@@ -20,6 +20,7 @@ import Groups from "./pages/Groups";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import GroupDetail from "./pages/GroupDetail";
 import GroupInvite from "./pages/GroupInvite";
+import GroupCreate from "./pages/GroupCreate";
 
 const queryClient = new QueryClient();
 
@@ -149,6 +150,14 @@ const App = () => (
                 element={
                   <AuthGuard>
                     <GroupInvite />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/groups/new" 
+                element={
+                  <AuthGuard>
+                    <GroupCreate />
                   </AuthGuard>
                 } 
               />
