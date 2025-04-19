@@ -17,8 +17,9 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Groups from "./pages/Groups";
-import { AuthGuard } from "./components/auth/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import GroupDetail from "./pages/GroupDetail";
+import GroupInvite from "./pages/GroupInvite";
 
 const queryClient = new QueryClient();
 
@@ -140,6 +141,14 @@ const App = () => (
                 element={
                   <AuthGuard>
                     <GroupDetail />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/groups/:id/invite" 
+                element={
+                  <AuthGuard>
+                    <GroupInvite />
                   </AuthGuard>
                 } 
               />
