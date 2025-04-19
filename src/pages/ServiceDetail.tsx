@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Calendar, Music, Clock, Edit, ArrowLeft } from "lucide-react";
+import { Calendar, Music, Clock, Edit, ArrowLeft, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +8,13 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import { Service, Song } from "@/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Share } from "lucide-react";
 
 // Extended Song type with service-specific properties
 interface ServiceSongDetails extends Song {
@@ -129,6 +135,21 @@ const ServiceDetail = () => {
     },
   ];
 
+    // Datos de ejemplo para grupos
+    const userGroups = [
+      { id: "1", name: "Equipo de Alabanza" },
+      { id: "2", name: "Grupo de Jóvenes" },
+      { id: "3", name: "Coro Principal" },
+    ];
+  
+    const handleShareWithGroup = (groupId: string) => {
+      // Aquí iría la lógica para compartir el servicio con el grupo
+      toast({
+        title: "Servicio compartido",
+        description: `El servicio ha sido compartido con el grupo exitosamente.`,
+      });
+    };
+
   useEffect(() => {
     // En una app real, aquí haríamos una petición a la API
     // Simulamos una carga de datos asíncrona
@@ -239,10 +260,32 @@ const ServiceDetail = () => {
             </div>
           </div>
           
-          <Button onClick={() => navigate(`/services/${id}/edit`)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Editar
-          </Button>
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Share className="mr-2 h-4 w-4" />
+                  Compartir
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {userGroups.map((group) => (
+                  <DropdownMenuItem
+                    key={group.id}
+                    onClick={() => handleShareWithGroup(group.id)}
+                  >
+                    <Users className="mr-2 h-4 w-4" />
+                    {group.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <Button onClick={() => navigate(`/services/${id}/edit`)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Editar
+            </Button>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

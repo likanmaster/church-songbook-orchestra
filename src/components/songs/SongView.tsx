@@ -1,10 +1,18 @@
-
 import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Song } from "@/types";
 import { useState } from "react";
 import KeyTransposer from "./KeyTransposer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Share, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface SongViewProps {
   song: Song;
@@ -12,14 +20,23 @@ interface SongViewProps {
 
 const SongView = ({ song }: SongViewProps) => {
   const [currentKey, setCurrentKey] = useState<string>(song.key || "");
+  const { toast } = useToast();
   
-  // Function to transpose chord in lyrics if needed
-  const transposeLyrics = (lyrics: string | undefined): string => {
-    // In a real implementation, we would add logic here to detect and transpose chords in the lyrics
-    // For now, we'll just return the original lyrics
-    return lyrics || "";
+  // Datos de ejemplo para grupos
+  const userGroups = [
+    { id: "1", name: "Equipo de Alabanza" },
+    { id: "2", name: "Grupo de Jóvenes" },
+    { id: "3", name: "Coro Principal" },
+  ];
+
+  const handleShareWithGroup = (groupId: string) => {
+    // Aquí iría la lógica para compartir la canción con el grupo
+    toast({
+      title: "Canción compartida",
+      description: `La canción ha sido compartida con el grupo exitosamente.`,
+    });
   };
-  
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between bg-gradient-to-r from-song-100 to-song-200 dark:from-song-800 dark:to-song-700 p-6 rounded-xl shadow-md">
@@ -34,9 +51,32 @@ const SongView = ({ song }: SongViewProps) => {
             </p>}
           </div>
         </div>
-        {song.isFavorite && <div className="bg-song-100 dark:bg-song-800 p-2 rounded-full">
-          <Heart className="h-6 w-6 text-song-500 fill-song-500" />
-        </div>}
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary">
+                <Share className="mr-2 h-4 w-4" />
+                Compartir
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {userGroups.map((group) => (
+                <DropdownMenuItem
+                  key={group.id}
+                  onClick={() => handleShareWithGroup(group.id)}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  {group.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {song.isFavorite && (
+            <div className="bg-song-100 dark:bg-song-800 p-2 rounded-full">
+              <Heart className="h-6 w-6 text-song-500 fill-song-500" />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
