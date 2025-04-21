@@ -21,6 +21,7 @@ import { AuthGuard } from "@/components/auth/AuthGuard";
 import GroupDetail from "./pages/GroupDetail";
 import GroupInvite from "./pages/GroupInvite";
 import GroupCreate from "./pages/GroupCreate";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -158,6 +159,14 @@ const App = () => (
                 element={
                   <AuthGuard>
                     <GroupCreate />
+                  </AuthGuard>
+                } 
+              />
+              <Route 
+                path="/settings" 
+                element={
+                  <AuthGuard>
+                    <Settings />
                   </AuthGuard>
                 } 
               />
