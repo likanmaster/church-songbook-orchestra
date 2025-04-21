@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Calendar, Music, Clock, Edit, ArrowLeft, Users } from "lucide-react";
+import { Calendar, Music, Clock, Edit, ArrowLeft, Users, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Share } from "lucide-react";
 
-// Extended Song type with service-specific properties
 interface ServiceSongDetails extends Song {
   order: number;
   serviceNotes?: string;
@@ -29,7 +28,6 @@ const ServiceDetail = () => {
   const [songs, setSongs] = useState<ServiceSongDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Datos de ejemplo para canciones disponibles (en una app real, esto vendría de una API)
   const availableSongs: Song[] = [
     {
       id: "1",
@@ -89,7 +87,6 @@ const ServiceDetail = () => {
     },
   ];
 
-  // Datos de ejemplo para servicios
   const servicesData: Service[] = [
     {
       id: "1",
@@ -135,28 +132,125 @@ const ServiceDetail = () => {
     },
   ];
 
-    // Datos de ejemplo para grupos
-    const userGroups = [
-      { id: "1", name: "Equipo de Alabanza" },
-      { id: "2", name: "Grupo de Jóvenes" },
-      { id: "3", name: "Coro Principal" },
-    ];
-  
-    const handleShareWithGroup = (groupId: string) => {
-      // Aquí iría la lógica para compartir el servicio con el grupo
-      toast({
-        title: "Servicio compartido",
-        description: `El servicio ha sido compartido con el grupo exitosamente.`,
-      });
-    };
+  const userGroups = [
+    { id: "1", name: "Equipo de Alabanza" },
+    { id: "2", name: "Grupo de Jóvenes" },
+    { id: "3", name: "Coro Principal" },
+  ];
+
+  const handleShareWithGroup = (groupId: string) => {
+    toast({
+      title: "Servicio compartido",
+      description: `El servicio ha sido compartido con el grupo exitosamente.`,
+    });
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const content = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${service?.title || 'Servicio Musical'}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              max-width: 800px;
+              margin: 20px auto;
+              padding: 20px;
+              color: #333;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 2px solid #eee;
+              padding-bottom: 20px;
+            }
+            .section {
+              margin-bottom: 20px;
+            }
+            .song {
+              border: 1px solid #eee;
+              padding: 15px;
+              margin-bottom: 15px;
+              border-radius: 5px;
+            }
+            .song-header {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 10px;
+            }
+            .song-title {
+              font-weight: bold;
+              font-size: 1.1em;
+            }
+            .song-meta {
+              color: #666;
+              font-size: 0.9em;
+            }
+            .notes {
+              font-style: italic;
+              color: #666;
+              margin-top: 10px;
+            }
+            @media print {
+              body { margin: 0; padding: 20px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${service?.title || 'Servicio Musical'}</h1>
+            <p>${formatDate(service?.date || '')}</p>
+            ${service?.theme ? `<p>Tema: ${service.theme}</p>` : ''}
+            ${service?.preacher ? `<p>Predicador: ${service.preacher}</p>` : ''}
+          </div>
+          
+          <div class="section">
+            <h2>Lista de Canciones</h2>
+            ${songs.map(song => `
+              <div class="song">
+                <div class="song-header">
+                  <span class="song-title">${song.title}</span>
+                  <span class="song-meta">Tonalidad: ${song.key}</span>
+                </div>
+                <div class="song-meta">
+                  Autor: ${song.author}
+                  ${song.tempo ? ` • Tempo: ${song.tempo} BPM` : ''}
+                  ${song.style ? ` • Estilo: ${song.style}` : ''}
+                </div>
+                ${song.serviceNotes ? `
+                  <div class="notes">
+                    Notas: ${song.serviceNotes}
+                  </div>
+                ` : ''}
+              </div>
+            `).join('')}
+          </div>
+          
+          ${service?.notes ? `
+            <div class="section">
+              <h2>Notas Adicionales</h2>
+              <p>${service.notes}</p>
+            </div>
+          ` : ''}
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.addEventListener('load', () => {
+      printWindow.print();
+    });
+  };
 
   useEffect(() => {
-    // En una app real, aquí haríamos una petición a la API
-    // Simulamos una carga de datos asíncrona
     const loadService = async () => {
       setIsLoading(true);
       try {
-        // Simulamos un retraso de red
         await new Promise((resolve) => setTimeout(resolve, 500));
         
         const foundService = servicesData.find(s => s.id === id);
@@ -172,7 +266,6 @@ const ServiceDetail = () => {
         
         setService(foundService);
         
-        // Obtener detalles de las canciones asociadas al servicio
         const serviceSongs = foundService.songs.map(serviceSong => {
           const songDetails = availableSongs.find(song => song.id === serviceSong.songId);
           if (!songDetails) return null;
@@ -184,7 +277,6 @@ const ServiceDetail = () => {
           };
         }).filter(Boolean) as ServiceSongDetails[];
         
-        // Ordenar las canciones según el orden definido en el servicio
         serviceSongs.sort((a, b) => a.order - b.order);
         
         setSongs(serviceSongs);
@@ -261,6 +353,11 @@ const ServiceDetail = () => {
           </div>
           
           <div className="flex gap-2">
+            <Button onClick={handlePrint} variant="outline">
+              <Printer className="mr-2 h-4 w-4" />
+              Exportar
+            </Button>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
