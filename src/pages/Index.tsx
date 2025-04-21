@@ -44,9 +44,9 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-gradient-to-br from-song-100 to-song-200 dark:from-song-900 dark:to-song-800 border-none shadow-md">
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/20 dark:from-primary/20 dark:to-primary/30 border-none shadow-md">
               <CardHeader className="pb-2">
-                <Music className="h-12 w-12 text-song-500 mb-2" />
+                <Music className="h-12 w-12 text-primary mb-2" />
                 <CardTitle>Biblioteca de Canciones</CardTitle>
                 <CardDescription>Organiza todas tus canciones con detalles completos</CardDescription>
               </CardHeader>
@@ -57,9 +57,9 @@ const Index = () => {
               </CardFooter>
             </Card>
             
-            <Card className="bg-gradient-to-br from-song-100 to-song-200 dark:from-song-900 dark:to-song-800 border-none shadow-md">
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/20 dark:from-primary/20 dark:to-primary/30 border-none shadow-md">
               <CardHeader className="pb-2">
-                <FileText className="h-12 w-12 text-song-500 mb-2" />
+                <FileText className="h-12 w-12 text-primary mb-2" />
                 <CardTitle>Generador de Servicios</CardTitle>
                 <CardDescription>Crea listas de canciones para tus servicios</CardDescription>
               </CardHeader>
@@ -70,9 +70,9 @@ const Index = () => {
               </CardFooter>
             </Card>
             
-            <Card className="bg-gradient-to-br from-song-100 to-song-200 dark:from-song-900 dark:to-song-800 border-none shadow-md">
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/20 dark:from-primary/20 dark:to-primary/30 border-none shadow-md">
               <CardHeader className="pb-2">
-                <Search className="h-12 w-12 text-song-500 mb-2" />
+                <Search className="h-12 w-12 text-primary mb-2" />
                 <CardTitle>Búsqueda Avanzada</CardTitle>
                 <CardDescription>Encuentra canciones por tonalidad, tempo, estilo y más</CardDescription>
               </CardHeader>
