@@ -172,28 +172,26 @@ const ServiceDetail = () => {
               margin-bottom: 20px;
             }
             .song {
-              border: 1px solid #eee;
               padding: 15px;
               margin-bottom: 15px;
-              border-radius: 5px;
+              border-bottom: 1px solid #eee;
             }
             .song-header {
               display: flex;
               justify-content: space-between;
-              margin-bottom: 10px;
+              align-items: center;
+            }
+            .song-number {
+              font-weight: bold;
+              margin-right: 10px;
+              color: #666;
             }
             .song-title {
               font-weight: bold;
               font-size: 1.1em;
             }
-            .song-meta {
+            .song-key {
               color: #666;
-              font-size: 0.9em;
-            }
-            .notes {
-              font-style: italic;
-              color: #666;
-              margin-top: 10px;
             }
             @media print {
               body { margin: 0; padding: 20px; }
@@ -210,22 +208,15 @@ const ServiceDetail = () => {
           
           <div class="section">
             <h2>Lista de Canciones</h2>
-            ${songs.map(song => `
+            ${songs.map((song, index) => `
               <div class="song">
                 <div class="song-header">
-                  <span class="song-title">${song.title}</span>
-                  <span class="song-meta">Tonalidad: ${song.key}</span>
-                </div>
-                <div class="song-meta">
-                  Autor: ${song.author}
-                  ${song.tempo ? ` • Tempo: ${song.tempo} BPM` : ''}
-                  ${song.style ? ` • Estilo: ${song.style}` : ''}
-                </div>
-                ${song.serviceNotes ? `
-                  <div class="notes">
-                    Notas: ${song.serviceNotes}
+                  <div>
+                    <span class="song-number">${index + 1}.</span>
+                    <span class="song-title">${song.title}</span>
                   </div>
-                ` : ''}
+                  <span class="song-key">Tonalidad: ${song.key}</span>
+                </div>
               </div>
             `).join('')}
           </div>
