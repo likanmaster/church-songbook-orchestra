@@ -67,15 +67,13 @@ function generateRandomService(): Service {
   const theme = getRandomItem(THEMES);
   const preacher = Math.random() > 0.3 ? getRandomItem(PREACHERS) : undefined;
   const songCount = 2 + Math.floor(Math.random()*3);
-  const songs = shuffle(SONG_LIBRARY)
+  const songs: ServiceSong[] = shuffle(SONG_LIBRARY)
     .slice(0, songCount)
     .map((song, idx) => ({
       id: "s" + (1000*Math.random()).toFixed(0),
       songId: song.id,
       order: idx + 1,
-      title: song.title,
-      key: song.key,
-    } as ExtendedServiceSong));
+    }));
   const notes = Math.random() > 0.6 ? "Servicio especial de alabanza" : undefined;
 
   return {
@@ -85,7 +83,7 @@ function generateRandomService(): Service {
     theme,
     preacher,
     notes,
-    songs: songs,
+    songs,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -102,10 +100,10 @@ const Services = () => {
       preacher: "Pastor Juan García",
       notes: "Especial de Navidad",
       songs: [
-        { id: "s1", songId: "1", order: 1, title: "Cuan Grande es Él", key: "Sol" } as ExtendedServiceSong,
-        { id: "s2", songId: "3", order: 2, title: "Te Doy Gloria", key: "Re" } as ExtendedServiceSong,
-        { id: "s3", songId: "2", order: 3, title: "Sublime Gracia", key: "La" } as ExtendedServiceSong,
-        { id: "s4", songId: "4", order: 4, title: "Dios de Pactos", key: "Mi" } as ExtendedServiceSong,
+        { id: "s1", songId: "1", order: 1 },
+        { id: "s2", songId: "3", order: 2 },
+        { id: "s3", songId: "2", order: 3 },
+        { id: "s4", songId: "4", order: 4 },
       ],
       createdAt: "2023-12-10T14:30:00Z",
       updatedAt: "2023-12-14T09:15:00Z",
@@ -117,9 +115,9 @@ const Services = () => {
       theme: "Fe en Acción",
       preacher: "Líder de Jóvenes",
       songs: [
-        { id: "s5", songId: "2", order: 1, title: "Sublime Gracia", key: "La" } as ExtendedServiceSong,
-        { id: "s6", songId: "3", order: 2, title: "Te Doy Gloria", key: "Re" } as ExtendedServiceSong,
-        { id: "s7", songId: "1", order: 3, title: "Cuan Grande es Él", key: "Sol" } as ExtendedServiceSong,
+        { id: "s5", songId: "2", order: 1 },
+        { id: "s6", songId: "3", order: 2 },
+        { id: "s7", songId: "1", order: 3 },
       ],
       createdAt: "2023-12-08T10:20:00Z",
       updatedAt: "2023-12-08T10:20:00Z",
@@ -130,8 +128,8 @@ const Services = () => {
       date: "2023-12-13",
       theme: "Intercesión",
       songs: [
-        { id: "s8", songId: "4", order: 1, title: "Dios de Pactos", key: "Mi" } as ExtendedServiceSong,
-        { id: "s9", songId: "1", order: 2, title: "Cuan Grande es Él", key: "Sol" } as ExtendedServiceSong,
+        { id: "s8", songId: "4", order: 1 },
+        { id: "s9", songId: "1", order: 2 },
       ],
       createdAt: "2023-12-11T16:45:00Z",
       updatedAt: "2023-12-12T08:30:00Z",
@@ -280,6 +278,7 @@ const Services = () => {
           onClose={handleCloseModal}
           onSave={handleSaveGenerated}
           service={serviceCandidate}
+          songLibrary={SONG_LIBRARY}
         />
       </main>
     </div>

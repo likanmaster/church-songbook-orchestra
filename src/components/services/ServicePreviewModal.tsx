@@ -2,13 +2,16 @@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar, X } from "lucide-react";
-import type { Service } from "@/types";
+import type { Service, ServiceSong } from "@/types";
+
+type SongOption = { id: string; title: string; key: string };
 
 type ServicePreviewModalProps = {
   open: boolean;
   onClose: () => void;
   onSave: () => void;
   service: Service | null;
+  songLibrary: SongOption[];
 };
 
 export default function ServicePreviewModal({
@@ -16,8 +19,14 @@ export default function ServicePreviewModal({
   onClose,
   onSave,
   service,
+  songLibrary,
 }: ServicePreviewModalProps) {
   if (!service) return null;
+
+  function getSongDetails(songId: string) {
+    return songLibrary.find((s) => s.id === songId);
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
@@ -41,13 +50,15 @@ export default function ServicePreviewModal({
           <div>
             <span className="font-medium">Canciones:</span>
             <ul className="mt-1 ml-4 list-disc">
-              {service.songs.map((s, idx) => (
-                <li key={s.id || idx}>
-                  {/* Access title and key properties that are added to the ServiceSong objects in Services.tsx */}
-                  <span className="font-semibold">{(s as any).title}</span>
-                  {(s as any).key && <span className="ml-2 text-sm text-muted-foreground">(Tonalidad: {(s as any).key})</span>}
-                </li>
-              ))}
+              {service.songs.map((s, idx) => {
+                const song = getSongDetails(s.songId);
+                return (
+                  <li key={s.id || idx}>
+                    <span className="font-semibold">{song ? song.title : "Canción desconocida"}</span>
+                    {song?.key && <span className="ml-2 text-sm text-muted-foreground">(Tonalidad: {song.key})</span>}
+                  </li>
+                );
+              })}
             </ul>
           </div>
           {service.notes && (
