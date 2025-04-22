@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Calendar, Search, Music, Clock, Sparkles } from "lucide-react";
@@ -13,10 +12,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
-import { Service } from "@/types";
+import { Service, ServiceSong } from "@/types";
 import ServicePreviewModal from "@/components/services/ServicePreviewModal";
 
 type SongOption = { id: string; title: string; key: string };
+
+type ExtendedServiceSong = ServiceSong & {
+  title?: string;
+  key?: string;
+};
 
 const SONG_LIBRARY: SongOption[] = [
   { id: "1", title: "Cuan Grande es Él", key: "Sol" },
@@ -55,28 +59,23 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 function generateRandomService(): Service {
-  // Generar id único simple
   const id = String(Math.random()).slice(2);
-  // Fecha random +/- 7 días
   const now = new Date();
   const offset = Math.floor(Math.random() * 14) - 7;
   now.setDate(now.getDate() + offset);
-  // Seleccionar tema, título y predicador
   const title = getRandomItem(TITLES);
   const theme = getRandomItem(THEMES);
   const preacher = Math.random() > 0.3 ? getRandomItem(PREACHERS) : undefined;
-  // Seleccionar canciones únicas y aleatorias
   const songCount = 2 + Math.floor(Math.random()*3);
   const songs = shuffle(SONG_LIBRARY)
     .slice(0, songCount)
     .map((song, idx) => ({
       id: "s" + (1000*Math.random()).toFixed(0),
-      order: idx + 1,
       songId: song.id,
+      order: idx + 1,
       title: song.title,
       key: song.key,
-    }));
-  // Notas random
+    } as ExtendedServiceSong));
   const notes = Math.random() > 0.6 ? "Servicio especial de alabanza" : undefined;
 
   return {
@@ -103,10 +102,10 @@ const Services = () => {
       preacher: "Pastor Juan García",
       notes: "Especial de Navidad",
       songs: [
-        { id: "s1", songId: "1", order: 1, title: "Cuan Grande es Él", key: "Sol" },
-        { id: "s2", songId: "3", order: 2, title: "Te Doy Gloria", key: "Re" },
-        { id: "s3", songId: "2", order: 3, title: "Sublime Gracia", key: "La" },
-        { id: "s4", songId: "4", order: 4, title: "Dios de Pactos", key: "Mi" },
+        { id: "s1", songId: "1", order: 1, title: "Cuan Grande es Él", key: "Sol" } as ExtendedServiceSong,
+        { id: "s2", songId: "3", order: 2, title: "Te Doy Gloria", key: "Re" } as ExtendedServiceSong,
+        { id: "s3", songId: "2", order: 3, title: "Sublime Gracia", key: "La" } as ExtendedServiceSong,
+        { id: "s4", songId: "4", order: 4, title: "Dios de Pactos", key: "Mi" } as ExtendedServiceSong,
       ],
       createdAt: "2023-12-10T14:30:00Z",
       updatedAt: "2023-12-14T09:15:00Z",
@@ -118,9 +117,9 @@ const Services = () => {
       theme: "Fe en Acción",
       preacher: "Líder de Jóvenes",
       songs: [
-        { id: "s5", songId: "2", order: 1, title: "Sublime Gracia", key: "La" },
-        { id: "s6", songId: "3", order: 2, title: "Te Doy Gloria", key: "Re" },
-        { id: "s7", songId: "1", order: 3, title: "Cuan Grande es Él", key: "Sol" },
+        { id: "s5", songId: "2", order: 1, title: "Sublime Gracia", key: "La" } as ExtendedServiceSong,
+        { id: "s6", songId: "3", order: 2, title: "Te Doy Gloria", key: "Re" } as ExtendedServiceSong,
+        { id: "s7", songId: "1", order: 3, title: "Cuan Grande es Él", key: "Sol" } as ExtendedServiceSong,
       ],
       createdAt: "2023-12-08T10:20:00Z",
       updatedAt: "2023-12-08T10:20:00Z",
@@ -131,8 +130,8 @@ const Services = () => {
       date: "2023-12-13",
       theme: "Intercesión",
       songs: [
-        { id: "s8", songId: "4", order: 1, title: "Dios de Pactos", key: "Mi" },
-        { id: "s9", songId: "1", order: 2, title: "Cuan Grande es Él", key: "Sol" },
+        { id: "s8", songId: "4", order: 1, title: "Dios de Pactos", key: "Mi" } as ExtendedServiceSong,
+        { id: "s9", songId: "1", order: 2, title: "Cuan Grande es Él", key: "Sol" } as ExtendedServiceSong,
       ],
       createdAt: "2023-12-11T16:45:00Z",
       updatedAt: "2023-12-12T08:30:00Z",
@@ -141,14 +140,12 @@ const Services = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [serviceCandidate, setServiceCandidate] = useState<Service | null>(null);
 
-  // Filtrar servicios basados en búsqueda
   const filteredServices = services.filter((service) => {
     return service.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
            (service.theme?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
            (service.preacher?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
   });
 
-  // Ordenar servicios por fecha (más reciente primero)
   const sortedServices = [...filteredServices].sort((a, b) => {
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });

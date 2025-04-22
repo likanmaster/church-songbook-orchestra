@@ -43,8 +43,9 @@ export default function ServicePreviewModal({
             <ul className="mt-1 ml-4 list-disc">
               {service.songs.map((s, idx) => (
                 <li key={s.id || idx}>
-                  <span className="font-semibold">{s.title}</span>
-                  {s.key && <span className="ml-2 text-sm text-muted-foreground">(Tonalidad: {s.key})</span>}
+                  {/* Access title and key properties that are added to the ServiceSong objects in Services.tsx */}
+                  <span className="font-semibold">{(s as any).title}</span>
+                  {(s as any).key && <span className="ml-2 text-sm text-muted-foreground">(Tonalidad: {(s as any).key})</span>}
                 </li>
               ))}
             </ul>
