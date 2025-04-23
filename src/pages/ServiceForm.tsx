@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Calendar, Save, Plus, X, Clock, Music, ChevronUp, ChevronDown, Search, ArrowLeft, FileText } from "lucide-react";
+import { Calendar, Save, Plus, X, Clock, Music, ChevronUp, ChevronDown, Search, ArrowLeft, FileText, Move } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import {
   Form,
   FormControl,
@@ -31,9 +32,9 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/layout/Navbar";
+import { toast } from "@/components/ui/use-toast";
 import { Song, Service, ServiceItemType, ServiceSongItem, ServiceSectionItem } from "@/types";
 import { useForm } from "react-hook-form";
-import { toast } from "@/components/ui/use-toast";
 import {
   Tooltip,
   TooltipContent,
@@ -360,6 +361,29 @@ const ServiceForm = () => {
     
     setServiceItems(updatedItems);
     setSongBeingEdited(null);
+  };
+
+  const handleDragEnd = (result: any) => {
+    if (!result.destination) return;
+    
+    const items = Array.from(serviceItems);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    
+    const reorderedItems = items.map((item, index) => ({
+      ...item,
+      data: {
+        ...item.data,
+        order: index + 1
+      }
+    })) as ServiceItemType[];
+    
+    setServiceItems(reorderedItems);
+    
+    toast({
+      title: "Orden actualizado",
+      description: "El orden de las canciones ha sido actualizado.",
+    });
   };
 
   const filteredSongs = availableSongs.filter((song) => {
@@ -714,165 +738,171 @@ const ServiceForm = () => {
               </Card>
             ) : (
               <div className="space-y-3">
-                {serviceItems.map((item, index) => (
-                  <Card key={item.type === 'song' ? `song-${item.data.id}` : `section-${item.data.id}`}>
-                    <CardContent className="p-4">
-                      {item.type === 'song' ? (
-                        <>
-                          <div className="flex justify-between items-start">
-                            <div className="flex items-center">
-                              <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center mr-3">
-                                {item.data.order}
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  <Droppable droppableId="service-items">
+                    {(provided) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className="space-y-3"
+                      >
+                        {serviceItems.map((item, index) => (
+                          <Draggable 
+                            key={item.type === 'song' ? `song-${item.data.id}` : `section-${item.data.id}`}
+                            draggableId={item.type === 'song' ? `song-${item.data.id}` : `section-${item.data.id}`}
+                            index={index}
+                          >
+                            {(provided) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                              >
+                                <Card>
+                                  <CardContent className="p-4">
+                                    {item.type === 'song' ? (
+                                      <>
+                                        <div className="flex justify-between items-start">
+                                          <div className="flex items-center">
+                                            <div 
+                                              {...provided.dragHandleProps}
+                                              className="mr-2 cursor-grab active:cursor-grabbing"
+                                            >
+                                              <Move className="h-5 w-5 text-muted-foreground" />
+                                            </div>
+                                            <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center mr-3">
+                                              {item.data.order}
+                                            </div>
+                                            <div>
+                                              <h3 className="font-medium">{item.data.title}</h3>
+                                              <p className="text-sm text-muted-foreground">{item.data.author}</p>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="flex gap-1">
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="text-destructive hover:text-destructive"
+                                              onClick={() => handleRemoveItem('song', item.data.id)}
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                          <Badge variant="outline" className="bg-secondary">
+                                            {item.data.key}
+                                          </Badge>
+                                          {item.data.duration && (
+                                            <Badge variant="outline" className="bg-secondary">
+                                              <Clock className="h-3 w-3 mr-1" />
+                                              {Math.floor(item.data.duration / 60)}:{String(item.data.duration % 60).padStart(2, "0")} min
+                                            </Badge>
+                                          )}
+                                          {item.data.categories.map((category, idx) => (
+                                            <Badge key={idx} variant="secondary" className="text-xs">{category}</Badge>
+                                          ))}
+                                        </div>
+                                        
+                                        {songBeingEdited === item.data.id ? (
+                                          <div className="mt-2">
+                                            <Textarea
+                                              placeholder="Notas para esta canción"
+                                              value={notesInput}
+                                              onChange={(e) => setNotesInput(e.target.value)}
+                                              className="text-sm mb-2"
+                                            />
+                                            <div className="flex justify-end gap-2">
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                  setNotesInput("");
+                                                  setSongBeingEdited(null);
+                                                }}
+                                              >
+                                                Cancelar
+                                              </Button>
+                                              <Button
+                                                size="sm"
+                                                onClick={() => handleUpdateSongNotes(item.data.id, notesInput)}
+                                              >
+                                                Guardar
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            {item.data.serviceNotes && (
+                                              <div className="mt-2 text-sm italic border-l-2 border-primary pl-2">
+                                                {item.data.serviceNotes}
+                                              </div>
+                                            )}
+                                            <Button
+                                              variant="link"
+                                              size="sm"
+                                              className="mt-1 p-0 h-auto"
+                                              onClick={() => {
+                                                setSongBeingEdited(item.data.id);
+                                                setNotesInput(item.data.serviceNotes || "");
+                                              }}
+                                            >
+                                              {item.data.serviceNotes ? "Editar notas" : "Añadir notas"}
+                                            </Button>
+                                          </>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex items-start w-full">
+                                          <div 
+                                            {...provided.dragHandleProps}
+                                            className="mr-2 cursor-grab active:cursor-grabbing mt-1"
+                                          >
+                                            <Move className="h-5 w-5 text-muted-foreground" />
+                                          </div>
+                                          <div className="bg-secondary text-secondary-foreground rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1">
+                                            {item.data.order}
+                                          </div>
+                                          <div className="w-full">
+                                            <div className="bg-muted p-3 rounded-md">
+                                              <p className="whitespace-pre-wrap">{item.data.text}</p>
+                                            </div>
+                                            <Button
+                                              variant="link"
+                                              size="sm"
+                                              className="mt-1 p-0 h-auto"
+                                              onClick={() => handleEditSection(item.data.id, item.data.text)}
+                                            >
+                                              Editar texto
+                                            </Button>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="flex gap-1 ml-2">
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-destructive hover:text-destructive"
+                                            onClick={() => handleRemoveItem('section', item.data.id)}
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
                               </div>
-                              <div>
-                                <h3 className="font-medium">{item.data.title}</h3>
-                                <p className="text-sm text-muted-foreground">{item.data.author}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleMoveItem(index, 'up')}
-                                disabled={index === 0}
-                              >
-                                <ChevronUp className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleMoveItem(index, 'down')}
-                                disabled={index === serviceItems.length - 1}
-                              >
-                                <ChevronDown className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => handleRemoveItem('song', item.data.id)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            <Badge variant="outline" className="bg-secondary">
-                              {item.data.key}
-                            </Badge>
-                            {item.data.duration && (
-                              <Badge variant="outline" className="bg-secondary">
-                                <Clock className="h-3 w-3 mr-1" />
-                                {Math.floor(item.data.duration / 60)}:{String(item.data.duration % 60).padStart(2, "0")} min
-                              </Badge>
                             )}
-                            {item.data.categories.map((category, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-xs">{category}</Badge>
-                            ))}
-                          </div>
-                          
-                          {songBeingEdited === item.data.id ? (
-                            <div className="mt-2">
-                              <Textarea
-                                placeholder="Notas para esta canción"
-                                value={notesInput}
-                                onChange={(e) => setNotesInput(e.target.value)}
-                                className="text-sm mb-2"
-                              />
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setNotesInput("");
-                                    setSongBeingEdited(null);
-                                  }}
-                                >
-                                  Cancelar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleUpdateSongNotes(item.data.id, notesInput)}
-                                >
-                                  Guardar
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              {item.data.serviceNotes && (
-                                <div className="mt-2 text-sm italic border-l-2 border-primary pl-2">
-                                  {item.data.serviceNotes}
-                                </div>
-                              )}
-                              <Button
-                                variant="link"
-                                size="sm"
-                                className="mt-1 p-0 h-auto"
-                                onClick={() => {
-                                  setSongBeingEdited(item.data.id);
-                                  setNotesInput(item.data.serviceNotes || "");
-                                }}
-                              >
-                                {item.data.serviceNotes ? "Editar notas" : "Añadir notas"}
-                              </Button>
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-start w-full">
-                            <div className="bg-secondary text-secondary-foreground rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1">
-                              {item.data.order}
-                            </div>
-                            <div className="w-full">
-                              <div className="bg-muted p-3 rounded-md">
-                                <p className="whitespace-pre-wrap">{item.data.text}</p>
-                              </div>
-                              <Button
-                                variant="link"
-                                size="sm"
-                                className="mt-1 p-0 h-auto"
-                                onClick={() => handleEditSection(item.data.id, item.data.text)}
-                              >
-                                Editar texto
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          <div className="flex gap-1 ml-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleMoveItem(index, 'up')}
-                              disabled={index === 0}
-                            >
-                              <ChevronUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleMoveItem(index, 'down')}
-                              disabled={index === serviceItems.length - 1}
-                            >
-                              <ChevronDown className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => handleRemoveItem('section', item.data.id)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
                 
                 <div className="flex gap-2">
                   <Button
@@ -902,54 +932,4 @@ const ServiceForm = () => {
                 
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-muted-foreground">Título</p>
-                    <p className="font-medium">{form.watch("title") || "No definido"}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Fecha</p>
-                    <p className="font-medium">
-                      {form.watch("date") ? format(form.watch("date"), "PPP") : "No definido"}
-                    </p>
-                  </div>
-                  
-                  {form.watch("theme") && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Tema</p>
-                      <p className="font-medium">{form.watch("theme")}</p>
-                    </div>
-                  )}
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Canciones</p>
-                    <p className="font-medium">{getSongCount()} canciones seleccionadas</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Duración Total</p>
-                    <p className="font-medium">{calculateTotalDuration()} minutos</p>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="pt-2">
-                    <Button 
-                      className="w-full" 
-                      onClick={form.handleSubmit(handleSave)}
-                      disabled={!form.watch("title") || !form.watch("date") || serviceItems.length === 0}
-                    >
-                      <Save className="mr-2 h-4 w-4" />
-                      Guardar Servicio
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-};
-
-export default ServiceForm;
+                    <p className="text-sm text-muted-

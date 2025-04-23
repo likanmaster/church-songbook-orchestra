@@ -27,6 +27,9 @@ export default function ServicePreviewModal({
     return songLibrary.find((s) => s.id === songId);
   }
 
+  // Sort songs by order
+  const sortedSongs = [...service.songs].sort((a, b) => a.order - b.order);
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
@@ -50,7 +53,7 @@ export default function ServicePreviewModal({
           <div>
             <span className="font-medium">Canciones:</span>
             <ul className="mt-1 ml-4 list-disc">
-              {service.songs.map((s, idx) => {
+              {sortedSongs.map((s, idx) => {
                 const song = getSongDetails(s.songId);
                 return (
                   <li key={s.id || idx}>
