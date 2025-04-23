@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Calendar, Save, Plus, X, Clock, Music, ChevronUp, ChevronDown, Search, ArrowLeft, FileText, Move } from "lucide-react";
@@ -932,4 +933,41 @@ const ServiceForm = () => {
                 
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-muted-
+                    <p className="text-sm text-muted-foreground">Duración total aproximada:</p>
+                    <p className="text-xl font-semibold">{calculateTotalDuration()}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-muted-foreground">Canciones:</p>
+                    <p className="text-xl font-semibold">{getSongCount()}</p>
+                  </div>
+                  
+                  <Separator />
+                  
+                  {form.watch("title") && (
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">{form.watch("title")}</p>
+                      {form.watch("date") && (
+                        <p className="text-sm text-muted-foreground">
+                          {format(form.watch("date") as Date, "PPP")}
+                        </p>
+                      )}
+                      {form.watch("theme") && (
+                        <p className="text-sm">Tema: {form.watch("theme")}</p>
+                      )}
+                      {form.watch("preacher") && (
+                        <p className="text-sm">Predicador: {form.watch("preacher")}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default ServiceForm;
