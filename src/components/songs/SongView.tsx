@@ -1,5 +1,5 @@
 
-import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag } from "lucide-react";
+import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag, Eye, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Song } from "@/types";
@@ -14,6 +14,8 @@ import {
 import { Share, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+import ChordLyrics from "./ChordLyrics";
 
 interface SongViewProps {
   song: Song;
@@ -22,6 +24,7 @@ interface SongViewProps {
 const SongView = ({ song }: SongViewProps) => {
   const [currentKey, setCurrentKey] = useState<string>(song.key || "");
   const { toast } = useToast();
+  const [showChords, setShowChords] = useState<boolean>(true);
   
   // Datos de ejemplo para grupos
   const userGroups = [
@@ -38,11 +41,66 @@ const SongView = ({ song }: SongViewProps) => {
     });
   };
 
-  // Add the missing transposeLyrics function
+  // Transponemos las letras con acordes si es necesario
   const transposeLyrics = (lyrics: string): string => {
-    // For now, we're just returning the original lyrics
-    // In a full implementation, this would transform chord notations based on the current key
-    return lyrics;
+    if (!song.key || !currentKey || currentKey === song.key || !lyrics) {
+      return lyrics;
+    }
+
+    const chordPattern = /\[(.*?)\]/g;
+    const chords = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    
+    const transposeChord = (chord: string, semitones: number) => {
+      // Separamos la nota base del modificador (m, 7, maj7, etc)
+      const match = chord.match(/^([A-G][#b]?)(.*)$/);
+      if (!match) return chord;
+      
+      const baseChord = match[1];
+      const modifier = match[2] || '';
+      
+      // Encontramos la posición en el array de acordes
+      let index = -1;
+      
+      // Manejar acordes con bemoles
+      if (baseChord.includes('b')) {
+        const flatToSharp: Record<string, string> = {
+          "Db": "C#", "Eb": "D#", "Gb": "F#", "Ab": "G#", "Bb": "A#"
+        };
+        const sharpEquivalent = flatToSharp[baseChord];
+        if (sharpEquivalent) {
+          index = chords.indexOf(sharpEquivalent);
+        }
+      } else {
+        index = chords.indexOf(baseChord);
+      }
+      
+      if (index === -1) return chord;
+      
+      // Calculamos la nueva posición con transposición
+      let newIndex = (index + semitones) % 12;
+      if (newIndex < 0) newIndex += 12;
+      
+      return chords[newIndex] + modifier;
+    };
+    
+    // Calcular cuántos semitonos transponer
+    const fromIndex = chords.indexOf(song.key);
+    const toIndex = chords.indexOf(currentKey);
+    
+    if (fromIndex === -1 || toIndex === -1) {
+      return lyrics;
+    }
+    
+    let semitones = toIndex - fromIndex;
+    // Ajustar si estamos dando la vuelta al círculo de quintas
+    if (semitones > 6) semitones -= 12;
+    if (semitones < -6) semitones += 12;
+    
+    // Reemplazamos cada acorde en la letra
+    return lyrics.replace(chordPattern, (match, chord) => {
+      const transposedChord = transposeChord(chord, semitones);
+      return `[${transposedChord}]`;
+    });
   };
 
   return (
@@ -189,15 +247,34 @@ const SongView = ({ song }: SongViewProps) => {
       {song.lyrics && (
         <Card className="border-song-200 dark:border-song-800 shadow-sm hover:shadow-md transition-shadow duration-300">
           <CardHeader className="bg-song-50/50 dark:bg-song-900/30 border-b border-song-100 dark:border-song-800">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              Letra
-            </CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Letra
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Mostrar acordes</span>
+                <Switch 
+                  checked={showChords}
+                  onCheckedChange={setShowChords}
+                />
+                {showChords ? (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-6">
-            <pre className="whitespace-pre-wrap font-sans bg-background p-4 rounded-md border border-song-100 dark:border-song-800">
-              {transposeLyrics(song.lyrics)}
-            </pre>
+            <div className="whitespace-pre-wrap font-sans bg-background p-4 rounded-md border border-song-100 dark:border-song-800">
+              <ChordLyrics 
+                lyrics={transposeLyrics(song.lyrics)}
+                showChords={showChords}
+                transposedKey={currentKey}
+                originalKey={song.key}
+              />
+            </div>
           </CardContent>
         </Card>
       )}

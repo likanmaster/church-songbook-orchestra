@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Music, X, Plus, Save, Pencil, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +30,7 @@ import { toast } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import SongView from "@/components/songs/SongView";
 import { Song } from "@/types";
+import ChordButtonGroup from "@/components/songs/ChordButtonGroup";
 
 const SongForm = () => {
   const navigate = useNavigate();
@@ -41,6 +41,7 @@ const SongForm = () => {
   const [tags, setTags] = useState<string[]>([]);
   const [song, setSong] = useState<Song | null>(null);
   const isNewSong = !id;
+  const lyricsTextareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Crear el form usando useForm
   const form = useForm({
@@ -57,6 +58,31 @@ const SongForm = () => {
     }
   });
 
+  // Función para insertar acordes en la posición del cursor
+  const insertChordAtCursor = (chord: string) => {
+    const textarea = lyricsTextareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    
+    const textBefore = text.substring(0, start);
+    const textAfter = text.substring(end);
+    
+    const newText = `${textBefore}[${chord}]${textAfter}`;
+    
+    // Actualizamos el valor en el formulario
+    form.setValue("lyrics", newText);
+    
+    // Colocamos el cursor después del acorde insertado
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = start + chord.length + 2; // +2 por los corchetes
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 10);
+  };
+
   // Cargar datos de ejemplo para demostración
   useEffect(() => {
     if (id) {
@@ -66,7 +92,7 @@ const SongForm = () => {
           id: "1",
           title: "Amazing Grace",
           author: "John Newton",
-          lyrics: "Amazing grace how sweet the sound\nThat saved a wretch like me\nI once was lost but now am found\nWas blind but now I see",
+          lyrics: "Amazing [G] grace how [D] sweet the [Em] sound\nThat [G] saved a [D] wretch like [C] me\nI [G] once was [D] lost but [Em] now am [D] found\nWas [G] blind but [D] now I [G] see",
           key: "G",
           tempo: 70,
           style: "Himno",
@@ -82,7 +108,7 @@ const SongForm = () => {
           id: "2",
           title: "How Great is Our God",
           author: "Chris Tomlin",
-          lyrics: "The splendor of the King\nClothed in majesty\nLet all the earth rejoice\nAll the earth rejoice",
+          lyrics: "The [C] splendor of the [G] King\n[Am] Clothed in [F] majesty\nLet [C] all the earth [G] rejoice\n[Am] All the earth [F] rejoice",
           key: "C",
           tempo: 80,
           style: "Contemporáneo",
@@ -273,14 +299,25 @@ const SongForm = () => {
                             name="lyrics"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Letra</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Ingresa la letra de la canción" 
-                                    rows={10}
-                                    {...field}
-                                  />
-                                </FormControl>
+                                <div className="flex items-center justify-between">
+                                  <FormLabel>Letra</FormLabel>
+                                  <div className="text-xs text-muted-foreground">
+                                    Usa [acorde] para insertar acordes
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  <ChordButtonGroup onInsertChord={insertChordAtCursor} />
+                                  
+                                  <FormControl>
+                                    <Textarea 
+                                      placeholder="Ingresa la letra de la canción con acordes entre corchetes: [C] [G] [Am]" 
+                                      rows={10}
+                                      {...field}
+                                      ref={lyricsTextareaRef}
+                                    />
+                                  </FormControl>
+                                </div>
                               </FormItem>
                             )}
                           />
