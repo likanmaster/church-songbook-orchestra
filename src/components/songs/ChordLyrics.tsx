@@ -81,7 +81,7 @@ const ChordLyrics: React.FC<ChordLyricsProps> = ({ lyrics, showChords, transpose
             {line.segments.map((segment, segmentIndex) => (
               <div key={segmentIndex} className="relative">
                 {segment.type === 'chord' && showChords && (
-                  <div className="absolute bottom-full text-primary font-bold text-sm">
+                  <div className="absolute -bottom-3 text-primary font-bold text-sm">
                     {segment.content}
                   </div>
                 )}
