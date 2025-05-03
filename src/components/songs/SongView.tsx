@@ -1,5 +1,4 @@
-
-import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag, Eye, EyeOff } from "lucide-react";
+import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag, Eye, EyeOff, Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Song } from "@/types";
@@ -16,6 +15,19 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import ChordLyrics from "./ChordLyrics";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { deleteSong } from "@/services/song-service";
+import { useNavigate } from "react-router-dom";
 
 interface SongViewProps {
   song: Song;
@@ -25,6 +37,8 @@ const SongView = ({ song }: SongViewProps) => {
   const [currentKey, setCurrentKey] = useState<string>(song.key || "");
   const { toast } = useToast();
   const [showChords, setShowChords] = useState<boolean>(true);
+  const navigate = useNavigate();
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Datos de ejemplo para grupos
   const userGroups = [
@@ -39,6 +53,29 @@ const SongView = ({ song }: SongViewProps) => {
       title: "Canción compartida",
       description: `La canción ha sido compartida con el grupo exitosamente.`,
     });
+  };
+  
+  const handleDeleteSong = async () => {
+    if (!song.id) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteSong(song.id);
+      toast({
+        title: "Canción eliminada",
+        description: "La canción ha sido eliminada exitosamente."
+      });
+      navigate("/songs");
+    } catch (error) {
+      console.error("Error al eliminar la canción:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la canción. Intente nuevamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // Transponemos las letras con acordes si es necesario
@@ -118,6 +155,33 @@ const SongView = ({ song }: SongViewProps) => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">
+                <Trash className="mr-2 h-4 w-4" />
+                Eliminar
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción no se puede deshacer. Esta acción eliminará permanentemente la canción "{song.title}" y sus datos asociados.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDeleteSong} 
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="secondary">
@@ -137,6 +201,7 @@ const SongView = ({ song }: SongViewProps) => {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          
           {song.isFavorite && (
             <div className="bg-song-100 dark:bg-song-800 p-2 rounded-full">
               <Heart className="h-6 w-6 text-song-500 fill-song-500" />

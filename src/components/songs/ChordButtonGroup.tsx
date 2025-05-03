@@ -21,7 +21,10 @@ const ChordButtonGroup: React.FC<ChordButtonGroupProps> = ({ onInsertChord }) =>
     other: ['Cmaj7', 'Dm7', 'Em7', 'Fmaj7', 'G7', 'Am7', 'Bm7b5', 'Csus4', 'Dsus2', 'Esus4', 'Fadd9', 'Gadd9']
   };
   
-  const handleInsert = (chord: string) => {
+  const handleInsert = (chord: string, e: React.MouseEvent) => {
+    // Prevenir comportamiento predeterminado para evitar envío del formulario
+    e.preventDefault();
+    e.stopPropagation();
     onInsertChord(chord);
   };
   
@@ -45,8 +48,9 @@ const ChordButtonGroup: React.FC<ChordButtonGroupProps> = ({ onInsertChord }) =>
               key={chord} 
               variant="outline" 
               size="sm" 
-              onClick={() => handleInsert(chord)}
+              onClick={(e) => handleInsert(chord, e)}
               className="min-w-[40px]"
+              type="button" // Importante: definir el tipo como button para evitar que se envíe el formulario
             >
               {chord}
             </Button>
