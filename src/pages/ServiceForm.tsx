@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Calendar, Save, Plus, X, Clock, Music, FileText, Move, ArrowLeft, Search, Loader2 } from "lucide-react";
@@ -199,11 +200,7 @@ const ServiceForm = () => {
 
   const handleAddSection = () => {
     if (!sectionText.trim()) {
-      toast({
-        title: "Texto vacío",
-        description: "Por favor ingrese un texto para la sección",
-        variant: "destructive",
-      });
+      toast.error("Por favor ingrese un texto para la sección");
       return;
     }
     
@@ -306,10 +303,7 @@ const ServiceForm = () => {
     
     setServiceItems(reorderedItems);
     
-    toast({
-      title: "Orden actualizado",
-      description: "El orden de las canciones ha sido actualizado.",
-    });
+    toast.success("El orden de las canciones ha sido actualizado.");
   };
 
   const filteredSongs = availableSongs.filter((song) => {
