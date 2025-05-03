@@ -1,4 +1,3 @@
-
 import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { 
   getAuth, 
@@ -11,6 +10,7 @@ import {
 } from "firebase/auth";
 import { toast } from "sonner";
 import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -26,6 +26,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+export const db = getFirestore(app);
 
 type User = {
   id: string;

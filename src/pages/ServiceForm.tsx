@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Calendar, Save, Plus, X, Clock, Music, ChevronUp, ChevronDown, Search, ArrowLeft, FileText, Move } from "lucide-react";
+import { Calendar, Save, Plus, X, Clock, Music, FileText, Move, ArrowLeft, Search, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +32,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/layout/Navbar";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { Song, Service, ServiceItemType, ServiceSongItem, ServiceSectionItem } from "@/types";
 import { useForm } from "react-hook-form";
 import {
@@ -42,6 +41,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+
+// Importamos los servicios de Firebase
+import { getServiceById, createService, updateService } from "@/services/service-service";
+import { getAllSongs } from "@/services/song-service";
 
 interface ServiceFormValues {
   title: string;
@@ -56,11 +59,13 @@ const ServiceForm = () => {
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
   const [isLoading, setIsLoading] = useState(isEditMode);
+  const [isSaving, setIsSaving] = useState(false);
   const [serviceItems, setServiceItems] = useState<ServiceItemType[]>([]);
   const [songDialogOpen, setSongDialogOpen] = useState(false);
   const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
   const [sectionText, setSectionText] = useState("");
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [availableSongs, setAvailableSongs] = useState<Song[]>([]);
   
   const form = useForm<ServiceFormValues>({
     defaultValues: {
@@ -72,124 +77,20 @@ const ServiceForm = () => {
     },
   });
 
-  const servicesData: Service[] = [
-    {
-      id: "1",
-      title: "Servicio Dominical",
-      date: "2023-12-17",
-      theme: "La Gracia de Dios",
-      preacher: "Pastor Juan García",
-      notes: "Especial de Navidad",
-      songs: [
-        { id: "s1", songId: "1", order: 1, notes: "Inicio" },
-        { id: "s2", songId: "3", order: 2 },
-        { id: "s3", songId: "2", order: 3 },
-        { id: "s4", songId: "4", order: 4, notes: "Final" },
-      ],
-      createdAt: "2023-12-10T14:30:00Z",
-      updatedAt: "2023-12-14T09:15:00Z",
-    },
-    {
-      id: "2",
-      title: "Reunión de Jóvenes",
-      date: "2023-12-15",
-      theme: "Fe en Acción",
-      preacher: "Líder de Jóvenes",
-      songs: [
-        { id: "s5", songId: "2", order: 1 },
-        { id: "s6", songId: "3", order: 2 },
-        { id: "s7", songId: "1", order: 3 },
-      ],
-      createdAt: "2023-12-08T10:20:00Z",
-      updatedAt: "2023-12-08T10:20:00Z",
-    },
-    {
-      id: "3",
-      title: "Culto de Oración",
-      date: "2023-12-13",
-      theme: "Intercesión",
-      songs: [
-        { id: "s8", songId: "4", order: 1 },
-        { id: "s9", songId: "1", order: 2 },
-      ],
-      createdAt: "2023-12-11T16:45:00Z",
-      updatedAt: "2023-12-12T08:30:00Z",
-    },
-  ];
-
-  const [availableSongs] = useState<Song[]>([
-    {
-      id: "1",
-      title: "Amazing Grace",
-      author: "John Newton",
-      key: "G",
-      tempo: 70,
-      style: "Himno",
-      duration: 240,
-      categories: ["Adoración", "Clásicos"],
-      tags: ["gracia", "redención"],
-      isFavorite: true,
-      createdAt: "2023-01-15T10:30:00Z",
-      updatedAt: "2023-01-15T10:30:00Z"
-    },
-    {
-      id: "2",
-      title: "How Great is Our God",
-      author: "Chris Tomlin",
-      key: "C",
-      tempo: 80,
-      style: "Contemporáneo",
-      duration: 300,
-      categories: ["Alabanza"],
-      tags: ["adoración", "majestad"],
-      isFavorite: false,
-      createdAt: "2023-02-10T14:45:00Z",
-      updatedAt: "2023-02-10T14:45:00Z"
-    },
-    {
-      id: "3",
-      title: "10,000 Reasons",
-      author: "Matt Redman",
-      key: "E",
-      tempo: 72,
-      style: "Contemporáneo",
-      duration: 330,
-      categories: ["Adoración", "Contemporáneo"],
-      tags: ["alabanza", "adoración"],
-      isFavorite: true,
-      createdAt: "2023-03-05T09:20:00Z",
-      updatedAt: "2023-03-05T09:20:00Z"
-    },
-    {
-      id: "4",
-      title: "Dios Incomparable",
-      author: "Marcos Witt",
-      key: "D",
-      tempo: 65,
-      style: "Alabanza",
-      duration: 270,
-      categories: ["Alabanza", "Español"],
-      tags: ["adoración", "majestad"],
-      isFavorite: false,
-      createdAt: "2023-04-20T16:30:00Z",
-      updatedAt: "2023-04-20T16:30:00Z"
-    },
-  ]);
-
   useEffect(() => {
-    if (isEditMode) {
-      const loadService = async () => {
-        setIsLoading(true);
-        try {
-          await new Promise(resolve => setTimeout(resolve, 500));
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Cargar todas las canciones
+        const songs = await getAllSongs();
+        setAvailableSongs(songs);
+        
+        // Si estamos editando, cargar el servicio
+        if (isEditMode && id) {
+          const service = await getServiceById(id);
           
-          const service = servicesData.find(s => s.id === id);
           if (!service) {
-            toast({
-              title: "Error",
-              description: "Servicio no encontrado",
-              variant: "destructive",
-            });
+            toast.error("Servicio no encontrado");
             navigate("/services");
             return;
           }
@@ -202,58 +103,82 @@ const ServiceForm = () => {
             notes: service.notes || "",
           });
           
-          const serviceSongs = service.songs.map(serviceSong => {
-            const songDetails = availableSongs.find(s => s.id === serviceSong.songId);
-            if (!songDetails) return null;
-            
-            const songItem: ServiceSongItem = {
-              type: 'song',
-              data: {
-                ...songDetails,
-                order: serviceSong.order,
-                serviceNotes: serviceSong.notes,
-              }
-            };
-            return songItem;
-          }).filter(Boolean) as ServiceItemType[];
+          // Convertir servicios a elementos para el UI
+          const serviceItemsList: ServiceItemType[] = [];
           
-          serviceSongs.sort((a, b) => a.data.order - b.data.order);
-          setServiceItems(serviceSongs);
-        } catch (error) {
-          toast({
-            title: "Error",
-            description: "Error al cargar los datos del servicio",
-            variant: "destructive",
+          // Añadir canciones
+          service.songs.forEach(serviceSong => {
+            const songDetails = songs.find(s => s.id === serviceSong.songId);
+            
+            if (songDetails) {
+              const songItem: ServiceSongItem = {
+                type: 'song',
+                data: {
+                  ...songDetails,
+                  order: serviceSong.order,
+                  serviceNotes: serviceSong.notes,
+                }
+              };
+              serviceItemsList.push(songItem);
+            }
           });
-        } finally {
-          setIsLoading(false);
+          
+          // Ordenar por el campo order
+          serviceItemsList.sort((a, b) => a.data.order - b.data.order);
+          setServiceItems(serviceItemsList);
         }
-      };
-      
-      loadService();
-    }
-  }, [id, isEditMode, form, navigate, availableSongs]);
+      } catch (error) {
+        console.error("Error al cargar datos:", error);
+        toast.error("Error al cargar los datos del servicio");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [id, isEditMode, navigate, form]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [notesInput, setNotesInput] = useState("");
   const [songBeingEdited, setSongBeingEdited] = useState<string | null>(null);
 
-  const handleSave = (data: ServiceFormValues) => {
-    console.log("Form data:", data);
-    console.log("Service items:", serviceItems);
+  const handleSave = async (data: ServiceFormValues) => {
+    setIsSaving(true);
     
-    if (isEditMode) {
-      toast({
-        title: "Servicio actualizado",
-        description: "El servicio ha sido actualizado exitosamente.",
-      });
-      navigate(`/services/${id}`);
-    } else {
-      toast({
-        title: "Servicio guardado",
-        description: "El servicio ha sido guardado exitosamente.",
-      });
-      navigate("/services");
+    try {
+      // Recolectar todas las canciones y secciones de serviceItems
+      const songs = serviceItems
+        .filter(item => item.type === 'song')
+        .map(item => ({
+          id: `song-${item.data.id}`,
+          songId: item.data.id,
+          order: item.data.order,
+          notes: item.type === 'song' ? item.data.serviceNotes : undefined
+        }));
+      
+      const serviceData = {
+        title: data.title,
+        date: data.date ? format(data.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        theme: data.theme,
+        preacher: data.preacher,
+        notes: data.notes,
+        songs
+      };
+      
+      if (isEditMode && id) {
+        await updateService(id, serviceData);
+        toast.success("Servicio actualizado exitosamente");
+        navigate(`/services/${id}`);
+      } else {
+        await createService(serviceData);
+        toast.success("Servicio creado exitosamente");
+        navigate("/services");
+      }
+    } catch (error) {
+      console.error("Error al guardar el servicio:", error);
+      toast.error("Error al guardar el servicio");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -459,15 +384,25 @@ const ServiceForm = () => {
             <Button 
               variant="ghost" 
               onClick={() => isEditMode ? navigate(`/services/${id}`) : navigate("/services")}
+              disabled={isSaving}
             >
               Cancelar
             </Button>
             <Button 
               onClick={form.handleSubmit(handleSave)} 
-              disabled={!form.watch("title") || !form.watch("date") || serviceItems.length === 0}
+              disabled={isSaving || !form.watch("title") || !form.watch("date") || serviceItems.length === 0}
             >
-              <Save className="mr-2 h-4 w-4" />
-              Guardar
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Guardar
+                </>
+              )}
             </Button>
           </div>
         </div>

@@ -1,6 +1,7 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Calendar, Search, Music, Clock, Sparkles } from "lucide-react";
+import { Plus, Calendar, Search, Music, Clock, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,131 +13,55 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
-import { Service, ServiceSong } from "@/types";
+import { Service } from "@/types";
 import ServicePreviewModal from "@/components/services/ServicePreviewModal";
+import { getAllServices, createService } from "@/services/service-service";
+import { getAllSongs } from "@/services/song-service";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth-context";
 
 type SongOption = { id: string; title: string; key: string };
 
-type ExtendedServiceSong = ServiceSong & {
-  title?: string;
-  key?: string;
-};
-
-const SONG_LIBRARY: SongOption[] = [
-  { id: "1", title: "Cuan Grande es Él", key: "Sol" },
-  { id: "2", title: "Sublime Gracia", key: "La" },
-  { id: "3", title: "Te Doy Gloria", key: "Re" },
-  { id: "4", title: "Dios de Pactos", key: "Mi" },
-  { id: "5", title: "Eres Mi Respirar", key: "Do" },
-  { id: "6", title: "Ven, Ahora es el Tiempo", key: "Fa" },
-  { id: "7", title: "Eres Fiel", key: "Si♭" },
-  { id: "8", title: "Me Has Mirado a los Ojos", key: "Mi" },
-  { id: "9", title: "Me Rindo a Ti", key: "Re" },
-];
-
-const PREACHERS = [
-  "Pastor Juan García", "Líder de Jóvenes", "Hermana María", "Invitado Especial", "Hermano Pedro"
-];
-
-const THEMES = [
-  "La Gracia de Dios", "Fe en Acción", "Intercesión", "Esperanza Viva", "Amor Inagotable"
-];
-
-const TITLES = [
-  "Servicio Dominical",
-  "Reunión de Oración",
-  "Culto de Jóvenes",
-  "Servicio de Celebración",
-  "Culto Familiar"
-];
-
-function getRandomItem<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  return [...arr].sort(() => 0.5 - Math.random());
-}
-
-function generateRandomService(): Service {
-  const id = String(Math.random()).slice(2);
-  const now = new Date();
-  const offset = Math.floor(Math.random() * 14) - 7;
-  now.setDate(now.getDate() + offset);
-  const title = getRandomItem(TITLES);
-  const theme = getRandomItem(THEMES);
-  const preacher = Math.random() > 0.3 ? getRandomItem(PREACHERS) : undefined;
-  const songCount = 2 + Math.floor(Math.random()*3);
-  const songs: ServiceSong[] = shuffle(SONG_LIBRARY)
-    .slice(0, songCount)
-    .map((song, idx) => ({
-      id: "s" + (1000*Math.random()).toFixed(0),
-      songId: song.id,
-      order: idx + 1,
-    }));
-  const notes = Math.random() > 0.6 ? "Servicio especial de alabanza" : undefined;
-
-  return {
-    id,
-    title,
-    date: now.toISOString().slice(0, 10),
-    theme,
-    preacher,
-    notes,
-    songs,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-}
-
 const Services = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [services, setServices] = useState<Service[]>([
-    {
-      id: "1",
-      title: "Servicio Dominical",
-      date: "2023-12-17",
-      theme: "La Gracia de Dios",
-      preacher: "Pastor Juan García",
-      notes: "Especial de Navidad",
-      songs: [
-        { id: "s1", songId: "1", order: 1 },
-        { id: "s2", songId: "3", order: 2 },
-        { id: "s3", songId: "2", order: 3 },
-        { id: "s4", songId: "4", order: 4 },
-      ],
-      createdAt: "2023-12-10T14:30:00Z",
-      updatedAt: "2023-12-14T09:15:00Z",
-    },
-    {
-      id: "2",
-      title: "Reunión de Jóvenes",
-      date: "2023-12-15",
-      theme: "Fe en Acción",
-      preacher: "Líder de Jóvenes",
-      songs: [
-        { id: "s5", songId: "2", order: 1 },
-        { id: "s6", songId: "3", order: 2 },
-        { id: "s7", songId: "1", order: 3 },
-      ],
-      createdAt: "2023-12-08T10:20:00Z",
-      updatedAt: "2023-12-08T10:20:00Z",
-    },
-    {
-      id: "3",
-      title: "Culto de Oración",
-      date: "2023-12-13",
-      theme: "Intercesión",
-      songs: [
-        { id: "s8", songId: "4", order: 1 },
-        { id: "s9", songId: "1", order: 2 },
-      ],
-      createdAt: "2023-12-11T16:45:00Z",
-      updatedAt: "2023-12-12T08:30:00Z",
-    },
-  ]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [songs, setSongs] = useState<SongOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [serviceCandidate, setServiceCandidate] = useState<Service | null>(null);
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [fetchedServices, fetchedSongs] = await Promise.all([
+          getAllServices(),
+          getAllSongs()
+        ]);
+        
+        setServices(fetchedServices);
+        
+        // Convertimos las canciones al formato necesario para las opciones
+        const songOptions: SongOption[] = fetchedSongs.map(song => ({
+          id: song.id,
+          title: song.title,
+          key: song.key || ""
+        }));
+        
+        setSongs(songOptions);
+      } catch (error) {
+        console.error("Error al cargar servicios:", error);
+        toast.error("Error al cargar los servicios");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (isAuthenticated) {
+      fetchData();
+    }
+  }, [isAuthenticated]);
 
   const filteredServices = services.filter((service) => {
     return service.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -157,20 +82,93 @@ const Services = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  const generateRandomService = (): Service => {
+    const PREACHERS = [
+      "Pastor Juan García", "Líder de Jóvenes", "Hermana María", "Invitado Especial", "Hermano Pedro"
+    ];
+
+    const THEMES = [
+      "La Gracia de Dios", "Fe en Acción", "Intercesión", "Esperanza Viva", "Amor Inagotable"
+    ];
+
+    const TITLES = [
+      "Servicio Dominical",
+      "Reunión de Oración",
+      "Culto de Jóvenes",
+      "Servicio de Celebración",
+      "Culto Familiar"
+    ];
+
+    function getRandomItem<T>(arr: T[]): T {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function shuffle<T>(arr: T[]): T[] {
+      return [...arr].sort(() => 0.5 - Math.random());
+    }
+
+    const now = new Date();
+    const offset = Math.floor(Math.random() * 14) - 7;
+    now.setDate(now.getDate() + offset);
+    
+    const title = getRandomItem(TITLES);
+    const theme = getRandomItem(THEMES);
+    const preacher = Math.random() > 0.3 ? getRandomItem(PREACHERS) : undefined;
+    const songCount = Math.min(songs.length, 2 + Math.floor(Math.random()*3));
+    const serviceSongs = shuffle(songs)
+      .slice(0, songCount)
+      .map((song, idx) => ({
+        id: "s" + Math.floor(Math.random() * 10000),
+        songId: song.id,
+        order: idx + 1,
+      }));
+    const notes = Math.random() > 0.6 ? "Servicio especial de alabanza" : undefined;
+
+    return {
+      id: String(Math.random()).slice(2),
+      title,
+      date: now.toISOString().slice(0, 10),
+      theme,
+      preacher,
+      notes,
+      songs: serviceSongs,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  };
+
   const handleGenerate = () => {
+    if (songs.length === 0) {
+      toast.error("No hay canciones disponibles para generar un servicio");
+      return;
+    }
+    
     const generated = generateRandomService();
     setServiceCandidate(generated);
     setModalOpen(true);
   };
 
-  const handleSaveGenerated = () => {
+  const handleSaveGenerated = async () => {
     if (serviceCandidate) {
-      setServices((prev) => [
-        { ...serviceCandidate },
-        ...prev
-      ]);
-      setServiceCandidate(null);
-      setModalOpen(false);
+      setIsLoading(true);
+      
+      try {
+        // Guardar en Firebase
+        const { id, createdAt, updatedAt, ...serviceData } = serviceCandidate;
+        const newService = await createService(serviceData);
+        
+        // Actualizar el estado local
+        setServices((prev) => [newService, ...prev]);
+        
+        toast.success("Servicio generado y guardado exitosamente");
+      } catch (error) {
+        console.error("Error al guardar el servicio:", error);
+        toast.error("Error al guardar el servicio generado");
+      } finally {
+        setIsLoading(false);
+        setServiceCandidate(null);
+        setModalOpen(false);
+      }
     }
   };
 
@@ -178,6 +176,22 @@ const Services = () => {
     setServiceCandidate(null);
     setModalOpen(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Cargando servicios...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -264,7 +278,12 @@ const Services = () => {
           <div className="text-center py-12">
             <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-xl font-medium mb-2">No se encontraron servicios</h3>
-            <p className="text-muted-foreground mb-6">Intenta con otra búsqueda o crea un nuevo servicio musical.</p>
+            <p className="text-muted-foreground mb-6">
+              {services.length > 0 
+                ? "Intenta con otra búsqueda o crea un nuevo servicio musical."
+                : "No hay servicios guardados todavía. Crea tu primer servicio musical."
+              }
+            </p>
             <Button asChild>
               <Link to="/services/new">
                 <Plus className="mr-2 h-4 w-4" /> Crear Servicio
@@ -278,7 +297,7 @@ const Services = () => {
           onClose={handleCloseModal}
           onSave={handleSaveGenerated}
           service={serviceCandidate}
-          songLibrary={SONG_LIBRARY}
+          songLibrary={songs}
         />
       </main>
     </div>

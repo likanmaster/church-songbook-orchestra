@@ -25,114 +25,42 @@ import {
 import { Song, Category } from "@/types";
 import Navbar from "@/components/layout/Navbar";
 import { RandomSongButton } from "@/components/songs/RandomSongButton";
-
-// Dummy data
-const songsData: Song[] = [
-  {
-    id: "1",
-    title: "Amazing Grace",
-    author: "John Newton",
-    key: "G",
-    tempo: 70,
-    style: "Himno",
-    duration: 240,
-    categories: ["Adoración", "Clásicos"],
-    tags: ["gracia", "redención"],
-    isFavorite: true,
-    createdAt: "2023-01-15T10:30:00Z",
-    updatedAt: "2023-01-15T10:30:00Z"
-  },
-  {
-    id: "2",
-    title: "How Great is Our God",
-    author: "Chris Tomlin",
-    key: "C",
-    tempo: 80,
-    style: "Contemporáneo",
-    duration: 300,
-    categories: ["Alabanza"],
-    tags: ["adoración", "majestad"],
-    isFavorite: false,
-    createdAt: "2023-02-10T14:45:00Z",
-    updatedAt: "2023-02-10T14:45:00Z"
-  },
-  {
-    id: "3",
-    title: "10,000 Reasons",
-    author: "Matt Redman",
-    key: "E",
-    tempo: 72,
-    style: "Contemporáneo",
-    duration: 330,
-    categories: ["Adoración", "Contemporáneo"],
-    tags: ["alabanza", "adoración"],
-    isFavorite: true,
-    createdAt: "2023-03-05T09:20:00Z",
-    updatedAt: "2023-03-05T09:20:00Z"
-  },
-  {
-    id: "4",
-    title: "Dios Incomparable",
-    author: "Marcos Witt",
-    key: "D",
-    tempo: 65,
-    style: "Alabanza",
-    duration: 270,
-    categories: ["Alabanza", "Español"],
-    tags: ["adoración", "majestad"],
-    isFavorite: false,
-    createdAt: "2023-04-20T16:30:00Z",
-    updatedAt: "2023-04-20T16:30:00Z"
-  },
-  {
-    id: "5",
-    title: "Your Love Never Fails",
-    author: "Jesus Culture",
-    key: "Bb",
-    tempo: 68,
-    style: "Contemplativo",
-    duration: 360,
-    categories: ["Adoración", "Contemporáneo"],
-    tags: ["amor", "fidelidad"],
-    isFavorite: true,
-    createdAt: "2023-05-12T11:15:00Z",
-    updatedAt: "2023-05-12T11:15:00Z"
-  },
-  {
-    id: "6",
-    title: "Mighty to Save",
-    author: "Hillsong",
-    key: "G",
-    tempo: 75,
-    style: "Alabanza",
-    duration: 315,
-    categories: ["Alabanza", "Contemporáneo"],
-    tags: ["salvación", "poder"],
-    isFavorite: false,
-    createdAt: "2023-06-01T08:00:00Z",
-    updatedAt: "2023-06-01T08:00:00Z"
-  },
-];
-
-// Dummy categories data
-const categoriesData: Category[] = [
-  { id: "1", name: "Adoración", color: "bg-blue-500" },
-  { id: "2", name: "Alabanza", color: "bg-green-500" },
-  { id: "3", name: "Clásicos", color: "bg-red-500" },
-  { id: "4", name: "Contemporáneo", color: "bg-purple-500" },
-  { id: "5", name: "Español", color: "bg-yellow-500" }
-];
+import { getAllSongs, getAllCategories, toggleSongFavorite } from "@/services/song-service";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth-context";
 
 const Songs = () => {
   const [songs, setSongs] = useState<Song[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [showFavorites, setShowFavorites] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated } = useAuth();
   
   useEffect(() => {
-    // In a real app, we would fetch data from an API here
-    setSongs(songsData);
-  }, []);
+    const fetchSongs = async () => {
+      setIsLoading(true);
+      try {
+        const [fetchedSongs, fetchedCategories] = await Promise.all([
+          getAllSongs(),
+          getAllCategories()
+        ]);
+        
+        setSongs(fetchedSongs);
+        setCategories(fetchedCategories);
+      } catch (error) {
+        console.error("Error al cargar canciones:", error);
+        toast.error("Error al cargar las canciones");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (isAuthenticated) {
+      fetchSongs();
+    }
+  }, [isAuthenticated]);
   
   const filteredSongs = songs.filter(song => {
     // Filter by search query (title or author)
@@ -162,6 +90,48 @@ const Songs = () => {
     setShowFavorites(false);
     setSearchQuery("");
   };
+  
+  const handleToggleFavorite = async (songId: string, isFavorite: boolean, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      await toggleSongFavorite(songId, !isFavorite);
+      
+      // Actualizar el estado local
+      setSongs(currentSongs => 
+        currentSongs.map(song => 
+          song.id === songId 
+            ? { ...song, isFavorite: !isFavorite } 
+            : song
+        )
+      );
+      
+      toast.success(isFavorite 
+        ? "Canción eliminada de favoritos" 
+        : "Canción añadida a favoritos"
+      );
+    } catch (error) {
+      console.error("Error al cambiar favorito:", error);
+      toast.error("Error al actualizar favorito");
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Cargando canciones...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-background">
@@ -202,7 +172,7 @@ const Songs = () => {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Categorías</DropdownMenuLabel>
-                {categoriesData.map(category => (
+                {categories.map(category => (
                   <DropdownMenuItem 
                     key={category.id} 
                     onClick={() => handleCategoryToggle(category.name)}
@@ -228,7 +198,6 @@ const Songs = () => {
           </div>
         </div>
         
-        {/* Active filters */}
         {(selectedCategories.length > 0 || showFavorites || searchQuery) && (
           <div className="flex flex-wrap gap-2 mb-6">
             {selectedCategories.map(category => (
@@ -267,11 +236,24 @@ const Songs = () => {
             <Music className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">No se encontraron canciones</h2>
             <p className="text-muted-foreground">
-              Intenta cambiar o eliminar algunos filtros.
+              {songs.length > 0 
+                ? "Intenta cambiar o eliminar algunos filtros."
+                : "No hay canciones agregadas todavía."
+              }
             </p>
-            <Button variant="outline" className="mt-4" onClick={handleResetFilters}>
-              Quitar todos los filtros
-            </Button>
+            <div className="flex gap-2 justify-center mt-4">
+              {songs.length > 0 && (
+                <Button variant="outline" onClick={handleResetFilters}>
+                  Quitar todos los filtros
+                </Button>
+              )}
+              <Button asChild>
+                <Link to="/songs/new">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Añadir canción
+                </Link>
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -284,9 +266,14 @@ const Songs = () => {
                         <h2 className="text-lg font-semibold">{song.title}</h2>
                         <p className="text-sm text-muted-foreground">{song.author || "Sin autor"}</p>
                       </div>
-                      {song.isFavorite && (
-                        <Heart className="h-4 w-4 text-destructive fill-destructive" />
-                      )}
+                      <button 
+                        onClick={(e) => handleToggleFavorite(song.id, song.isFavorite, e)}
+                        className="focus:outline-none"
+                      >
+                        <Heart 
+                          className={`h-4 w-4 ${song.isFavorite ? 'text-destructive fill-destructive' : 'text-gray-400 hover:text-destructive'}`} 
+                        />
+                      </button>
                     </div>
                     
                     <div className="flex flex-wrap gap-2 mt-3">
@@ -306,7 +293,7 @@ const Songs = () => {
                     
                     <div className="flex flex-wrap gap-1 mt-3">
                       {song.categories.map((cat, idx) => {
-                        const category = categoriesData.find(c => c.name === cat);
+                        const category = categories.find(c => c.name === cat);
                         return (
                           <Badge key={idx} variant="secondary" className={category?.color}>
                             {cat}

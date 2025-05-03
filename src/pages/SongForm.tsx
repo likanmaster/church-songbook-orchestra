@@ -1,6 +1,7 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Music, X, Plus, Save, Pencil, BookOpen } from "lucide-react";
+import { Music, X, Plus, Save, Pencil, BookOpen, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +32,7 @@ import Navbar from "@/components/layout/Navbar";
 import SongView from "@/components/songs/SongView";
 import { Song } from "@/types";
 import ChordButtonGroup from "@/components/songs/ChordButtonGroup";
+import { getSongById, createSong, updateSong, getAllCategories } from "@/services/song-service";
 
 const SongForm = () => {
   const navigate = useNavigate();
@@ -40,6 +42,9 @@ const SongForm = () => {
   const [newTagInput, setNewTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [song, setSong] = useState<Song | null>(null);
+  const [isLoading, setIsLoading] = useState(id ? true : false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<{id: string, name: string}[]>([]);
   const isNewSong = !id;
   const lyricsTextareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -57,6 +62,50 @@ const SongForm = () => {
       isFavorite: false
     }
   });
+  
+  // Cargar datos de Firebase
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Cargar categorías disponibles
+        const categories = await getAllCategories();
+        setAvailableCategories(categories);
+        
+        // Cargar canción si estamos editando
+        if (id) {
+          setIsLoading(true);
+          const fetchedSong = await getSongById(id);
+          
+          if (fetchedSong) {
+            setSong(fetchedSong);
+            form.reset({
+              title: fetchedSong.title,
+              author: fetchedSong.author || "",
+              lyrics: fetchedSong.lyrics || "",
+              key: fetchedSong.key || "",
+              tempo: fetchedSong.tempo?.toString() || "",
+              style: fetchedSong.style || "",
+              duration: fetchedSong.duration?.toString() || "",
+              notes: fetchedSong.notes || "",
+              isFavorite: fetchedSong.isFavorite
+            });
+            setSelectedCategories(fetchedSong.categories || []);
+            setTags(fetchedSong.tags || []);
+          } else {
+            toast.error("No se encontró la canción");
+            navigate("/songs");
+          }
+        }
+      } catch (error) {
+        console.error("Error al cargar datos:", error);
+        toast.error("Error al cargar los datos");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [id, navigate, form]);
 
   // Función para insertar acordes en la posición del cursor
   const insertChordAtCursor = (chord: string) => {
@@ -82,95 +131,38 @@ const SongForm = () => {
       textarea.setSelectionRange(newCursorPos, newCursorPos);
     }, 10);
   };
-
-  // Cargar datos de ejemplo para demostración
-  useEffect(() => {
-    if (id) {
-      // En una aplicación real, aquí obtendrías los datos de la canción desde una API
-      const demoSongs: Song[] = [
-        {
-          id: "1",
-          title: "Amazing Grace",
-          author: "John Newton",
-          lyrics: "Amazing [G] grace how [D] sweet the [Em] sound\nThat [G] saved a [D] wretch like [C] me\nI [G] once was [D] lost but [Em] now am [D] found\nWas [G] blind but [D] now I [G] see",
-          key: "G",
-          tempo: 70,
-          style: "Himno",
-          duration: 240,
-          notes: "Cantar con reverencia",
-          categories: ["Adoración", "Clásicos"],
-          tags: ["gracia", "redención"],
-          isFavorite: true,
-          createdAt: "2023-01-15T10:30:00Z",
-          updatedAt: "2023-01-15T10:30:00Z"
-        },
-        {
-          id: "2",
-          title: "How Great is Our God",
-          author: "Chris Tomlin",
-          lyrics: "The [C] splendor of the [G] King\n[Am] Clothed in [F] majesty\nLet [C] all the earth [G] rejoice\n[Am] All the earth [F] rejoice",
-          key: "C",
-          tempo: 80,
-          style: "Contemporáneo",
-          duration: 300,
-          categories: ["Alabanza"],
-          tags: ["adoración", "majestad"],
-          isFavorite: false,
-          createdAt: "2023-02-10T14:45:00Z",
-          updatedAt: "2023-02-10T14:45:00Z"
-        },
-      ];
-
-      const foundSong = demoSongs.find(s => s.id === id);
-      if (foundSong) {
-        setSong(foundSong);
-        form.reset({
-          title: foundSong.title,
-          author: foundSong.author || "",
-          lyrics: foundSong.lyrics || "",
-          key: foundSong.key || "",
-          tempo: foundSong.tempo?.toString() || "",
-          style: foundSong.style || "",
-          duration: foundSong.duration?.toString() || "",
-          notes: foundSong.notes || "",
-          isFavorite: foundSong.isFavorite
-        });
-        setSelectedCategories(foundSong.categories || []);
-        setTags(foundSong.tags || []);
-      }
-    }
-  }, [id, form]);
-  
-  // Datos de ejemplo
-  const categories = [
-    { id: "1", name: "Alabanza" },
-    { id: "2", name: "Adoración" },
-    { id: "3", name: "Contemporáneo" },
-    { id: "4", name: "Clásicos" },
-    { id: "5", name: "Español" },
-    { id: "6", name: "Juventud" },
-  ];
   
   const keyOptions = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   const styleOptions = ["Contemporáneo", "Himno", "Gospel", "Balada", "Rock", "Pop", "Acústico", "Coral"];
   
-  const handleSave = (values: any) => {
-    // Preparar los datos completos de la canción
-    const updatedSong: Partial<Song> = {
-      ...values,
-      categories: selectedCategories,
-      tags,
-      tempo: values.tempo ? parseInt(values.tempo) : undefined,
-      duration: values.duration ? parseInt(values.duration) : undefined,
-    };
-    
-    // En una implementación real, aquí guardaríamos la canción
-    console.log("Form values:", updatedSong);
-    
-    toast.success(isNewSong ? "Canción creada con éxito" : "Canción actualizada con éxito");
-    
-    // Redirigimos a la página de canciones
-    navigate("/songs");
+  const handleSave = async (values: any) => {
+    setIsSaving(true);
+    try {
+      // Preparar los datos completos de la canción
+      const songData: Partial<Song> = {
+        ...values,
+        categories: selectedCategories,
+        tags,
+        tempo: values.tempo ? parseInt(values.tempo) : undefined,
+        duration: values.duration ? parseInt(values.duration) : undefined,
+      };
+      
+      if (isNewSong) {
+        await createSong(songData as Omit<Song, 'id' | 'createdAt' | 'updatedAt'>);
+        toast.success("Canción creada con éxito");
+      } else if (id) {
+        await updateSong(id, songData);
+        toast.success("Canción actualizada con éxito");
+      }
+      
+      // Redirigimos a la página de canciones
+      navigate("/songs");
+    } catch (error) {
+      console.error("Error al guardar:", error);
+      toast.error("Error al guardar la canción");
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   const handleCategoryToggle = (category: string) => {
@@ -206,9 +198,25 @@ const SongForm = () => {
     categories: selectedCategories,
     tags,
     isFavorite: form.getValues("isFavorite"),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: song?.createdAt || new Date().toISOString(),
+    updatedAt: song?.updatedAt || new Date().toISOString()
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Cargando canción...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -464,7 +472,7 @@ const SongForm = () => {
                     <CardContent className="pt-6">
                       <h3 className="text-lg font-medium mb-4">Categorías</h3>
                       <div className="space-y-2">
-                        {categories.map((category) => (
+                        {availableCategories.map((category) => (
                           <div
                             key={category.id}
                             className={`p-2 rounded-md cursor-pointer border transition-colors ${
@@ -528,6 +536,33 @@ const SongForm = () => {
                     </CardContent>
                   </Card>
                 </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate("/songs")} 
+                  className="mr-2" 
+                  type="button"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Guardar
+                    </>
+                  )}
+                </Button>
               </div>
             </form>
           </Form>
