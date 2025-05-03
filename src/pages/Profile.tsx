@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Music, Heart, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { getAuth, updateProfile } from "firebase/auth";
 
 const Profile = () => {
   const { user, isLoading } = useAuth();
@@ -32,6 +34,24 @@ const Profile = () => {
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       setAvatarUrl(imageUrl);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      
+      if (currentUser) {
+        await updateProfile(currentUser, {
+          displayName: username
+        });
+        toast.success("Perfil actualizado correctamente");
+        setIsEditing(false);
+      }
+    } catch (error) {
+      console.error("Error al actualizar perfil:", error);
+      toast.error("Error al actualizar perfil");
     }
   };
 
@@ -106,8 +126,13 @@ const Profile = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={!isEditing}
+                disabled={true} // Email cannot be changed in Firebase without reauthentication
               />
+              {isEditing && (
+                <p className="text-xs text-muted-foreground">
+                  El email no se puede cambiar directamente por razones de seguridad.
+                </p>
+              )}
             </div>
             <div className="pt-4 flex justify-end gap-2">
               {isEditing ? (
@@ -115,7 +140,7 @@ const Profile = () => {
                   <Button variant="outline" onClick={() => setIsEditing(false)}>
                     Cancelar
                   </Button>
-                  <Button onClick={() => setIsEditing(false)}>Guardar</Button>
+                  <Button onClick={handleSaveProfile}>Guardar</Button>
                 </>
               ) : (
                 <Button onClick={() => setIsEditing(true)}>Editar</Button>

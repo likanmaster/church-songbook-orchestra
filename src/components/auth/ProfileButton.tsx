@@ -33,7 +33,7 @@ export const ProfileButton = () => {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="flex items-center gap-2">
           <User className="h-4 w-4" />
-          <span className="hidden md:inline">{user?.username}</span>
+          <span className="hidden md:inline">{user?.username || user?.email}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -45,7 +45,7 @@ export const ProfileButton = () => {
             <span>Perfil</span>
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={logout}>
+        <DropdownMenuItem onClick={() => logout()}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Cerrar sesión</span>
         </DropdownMenuItem>
