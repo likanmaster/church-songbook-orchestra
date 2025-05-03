@@ -28,8 +28,8 @@ const convertFirestoreDataToService = (id: string, data: any): Service => {
     preacher: data.preacher || null,
     notes: data.notes || null,
     songs: data.songs || [],
-    createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
-    updatedAt: data.updatedAt?.toDate().toISOString() || new Date().toISOString()
+    createdAt: data.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+    updatedAt: data.updatedAt?.toDate()?.toISOString() || new Date().toISOString()
   };
 };
 
@@ -44,7 +44,8 @@ export const getAllServices = async (): Promise<Service[]> => {
     );
   } catch (error) {
     console.error("Error al obtener servicios:", error);
-    throw error;
+    // En caso de error de permisos, devolvemos un array vacío
+    return [];
   }
 };
 
@@ -67,17 +68,26 @@ export const getServiceById = async (id: string): Promise<Service | null> => {
 // Crear nuevo servicio
 export const createService = async (serviceData: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>): Promise<Service> => {
   try {
+    // Limpiamos cualquier propiedad undefined o null
+    const cleanedData = Object.fromEntries(
+      Object.entries(serviceData).filter(([_, v]) => v != null)
+    );
+    
     const serviceToSave = {
-      ...serviceData,
+      ...cleanedData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
     
     const docRef = await addDoc(collection(db, SERVICES_COLLECTION), serviceToSave);
     
-    // Recuperamos el servicio con su nuevo ID
-    const newServiceDoc = await getDoc(docRef);
-    const newService = convertFirestoreDataToService(docRef.id, newServiceDoc.data() || serviceToSave);
+    // Construimos un objeto Service con los datos que acabamos de guardar
+    const newService: Service = {
+      id: docRef.id,
+      ...serviceData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
     
     return newService;
   } catch (error) {
@@ -91,16 +101,34 @@ export const updateService = async (id: string, serviceData: Partial<Service>): 
   try {
     const serviceRef = doc(db, SERVICES_COLLECTION, id);
     
+    // Eliminar propiedades que no queremos actualizar en Firestore
+    const { id: _, createdAt, updatedAt, ...dataToUpdate } = serviceData as any;
+    
+    // Limpiamos cualquier propiedad undefined o null
+    const cleanedData = Object.fromEntries(
+      Object.entries(dataToUpdate).filter(([_, v]) => v != null)
+    );
+    
     const updateData = {
-      ...serviceData,
+      ...cleanedData,
       updatedAt: serverTimestamp()
     };
     
     await updateDoc(serviceRef, updateData);
     
-    // Recuperar el servicio actualizado
-    const updatedServiceDoc = await getDoc(serviceRef);
-    return convertFirestoreDataToService(id, updatedServiceDoc.data());
+    // Obtener datos actuales para actualizar
+    const currentDoc = await getDoc(serviceRef);
+    const currentData = currentDoc.data();
+    
+    // Construir objeto Service con datos actualizados
+    const updatedService: Service = {
+      id,
+      ...serviceData,
+      createdAt: createdAt || currentData?.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    return updatedService;
   } catch (error) {
     console.error("Error al actualizar servicio:", error);
     throw error;

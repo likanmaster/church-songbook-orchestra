@@ -1,3 +1,4 @@
+
 import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { 
   getAuth, 
@@ -10,14 +11,14 @@ import {
 } from "firebase/auth";
 import { toast } from "sonner";
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 
 // Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDeVkiKsixEC0ul57riSN7T9j6cbiZQugg",
   authDomain: "cancionero-2eb05.firebaseapp.com",
   projectId: "cancionero-2eb05",
-  storageBucket: "cancionero-2eb05.firebasestorage.app",
+  storageBucket: "cancionero-2eb05.appspot.com",
   messagingSenderId: "687796217784",
   appId: "1:687796217784:web:aa758a409c782237da514d",
   measurementId: "G-3GL2VSH7T5"
@@ -27,6 +28,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Habilitar persistencia offline para mejor experiencia de usuario
+try {
+  enableIndexedDbPersistence(db)
+    .catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Persistencia no habilitada: múltiples pestañas abiertas');
+      } else if (err.code === 'unimplemented') {
+        console.warn('El navegador no soporta persistencia offline');
+      }
+    });
+} catch (error) {
+  console.error("Error al configurar persistencia:", error);
+}
 
 type User = {
   id: string;

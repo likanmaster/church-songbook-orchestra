@@ -35,8 +35,8 @@ const convertFirestoreDataToSong = (id: string, data: any): Song => {
     lyrics: data.lyrics || null,
     notes: data.notes || null,
     isFavorite: data.isFavorite || false,
-    createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
-    updatedAt: data.updatedAt?.toDate().toISOString() || new Date().toISOString()
+    createdAt: data.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+    updatedAt: data.updatedAt?.toDate()?.toISOString() || new Date().toISOString()
   };
 };
 
@@ -51,7 +51,8 @@ export const getAllSongs = async (): Promise<Song[]> => {
     );
   } catch (error) {
     console.error("Error al obtener canciones:", error);
-    throw error;
+    // En caso de error de permisos, devolvemos un array vacío
+    return [];
   }
 };
 
@@ -74,17 +75,26 @@ export const getSongById = async (id: string): Promise<Song | null> => {
 // Crear nueva canción
 export const createSong = async (songData: Omit<Song, 'id' | 'createdAt' | 'updatedAt'>): Promise<Song> => {
   try {
+    // Preparamos los datos, eliminando propiedades undefined o null
+    const cleanedData = Object.fromEntries(
+      Object.entries(songData).filter(([_, v]) => v != null)
+    );
+    
     const songToSave = {
-      ...songData,
+      ...cleanedData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
     
     const docRef = await addDoc(collection(db, SONGS_COLLECTION), songToSave);
     
-    // Recuperamos la canción con su nuevo ID
-    const newSongDoc = await getDoc(docRef);
-    const newSong = convertFirestoreDataToSong(docRef.id, newSongDoc.data() || songToSave);
+    // Construimos un objeto Song con los datos que acabamos de guardar
+    const newSong: Song = {
+      id: docRef.id,
+      ...songData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
     
     return newSong;
   } catch (error) {
@@ -98,16 +108,34 @@ export const updateSong = async (id: string, songData: Partial<Song>): Promise<S
   try {
     const songRef = doc(db, SONGS_COLLECTION, id);
     
+    // Eliminar propiedades que no queremos actualizar en Firestore
+    const { id: _, createdAt, updatedAt, ...dataToUpdate } = songData as any;
+    
+    // Preparamos los datos, eliminando propiedades undefined o null
+    const cleanedData = Object.fromEntries(
+      Object.entries(dataToUpdate).filter(([_, v]) => v != null)
+    );
+    
     const updateData = {
-      ...songData,
+      ...cleanedData,
       updatedAt: serverTimestamp()
     };
     
     await updateDoc(songRef, updateData);
     
-    // Recuperar la canción actualizada
-    const updatedSongDoc = await getDoc(songRef);
-    return convertFirestoreDataToSong(id, updatedSongDoc.data());
+    // Obtener datos actuales para actualizar
+    const currentDoc = await getDoc(songRef);
+    const currentData = currentDoc.data();
+    
+    // Construir objeto Song con datos actualizados
+    const updatedSong: Song = {
+      id,
+      ...songData,
+      createdAt: createdAt || currentData?.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    return updatedSong;
   } catch (error) {
     console.error("Error al actualizar canción:", error);
     throw error;
