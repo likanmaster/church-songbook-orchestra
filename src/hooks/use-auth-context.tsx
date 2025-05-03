@@ -14,12 +14,13 @@ import { initializeApp } from "firebase/app";
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDNGqNyU-MDIATc8U7SFxQIbPwqcsqIcsY",
-  authDomain: "worship-app-demo.firebaseapp.com",
-  projectId: "worship-app-demo",
-  storageBucket: "worship-app-demo.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abc123def456ghi789jkl"
+  apiKey: "AIzaSyDeVkiKsixEC0ul57riSN7T9j6cbiZQugg",
+  authDomain: "cancionero-2eb05.firebaseapp.com",
+  projectId: "cancionero-2eb05",
+  storageBucket: "cancionero-2eb05.firebasestorage.app",
+  messagingSenderId: "687796217784",
+  appId: "1:687796217784:web:aa758a409c782237da514d",
+  measurementId: "G-3GL2VSH7T5"
 };
 
 // Initialize Firebase
