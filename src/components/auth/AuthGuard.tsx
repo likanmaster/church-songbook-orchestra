@@ -1,5 +1,6 @@
+
 import { ReactNode, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth-context";
 
 interface AuthGuardProps {
@@ -7,10 +8,10 @@ interface AuthGuardProps {
   requireAuth?: boolean;
 }
 
-// Modo mock: siempre deja pasar
 export const AuthGuard = ({ children, requireAuth = true }: AuthGuardProps) => {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!isLoading) {

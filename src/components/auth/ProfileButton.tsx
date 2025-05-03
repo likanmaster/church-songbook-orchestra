@@ -1,7 +1,7 @@
 
 import { useAuth } from "@/hooks/use-auth-context";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { LogOut, User } from "lucide-react";
 import {
   DropdownMenu,
@@ -14,16 +14,33 @@ import {
 
 export const ProfileButton = () => {
   const { user, logout, isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  // If we're outside the Router context, don't try to render Link components
+  const isRouterAvailable = location !== null;
 
   if (!isAuthenticated) {
     return (
       <div className="flex items-center gap-2">
-        <Button variant="ghost" asChild size="sm">
-          <Link to="/login">Iniciar sesión</Link>
-        </Button>
-        <Button variant="default" asChild size="sm">
-          <Link to="/register">Registrarse</Link>
-        </Button>
+        {isRouterAvailable ? (
+          <>
+            <Button variant="ghost" asChild size="sm">
+              <Link to="/login">Iniciar sesión</Link>
+            </Button>
+            <Button variant="default" asChild size="sm">
+              <Link to="/register">Registrarse</Link>
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="ghost" size="sm" onClick={() => window.location.href = '/login'}>
+              Iniciar sesión
+            </Button>
+            <Button variant="default" size="sm" onClick={() => window.location.href = '/register'}>
+              Registrarse
+            </Button>
+          </>
+        )}
       </div>
     );
   }
@@ -39,12 +56,19 @@ export const ProfileButton = () => {
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/profile">
+        {isRouterAvailable ? (
+          <DropdownMenuItem asChild>
+            <Link to="/profile">
+              <User className="mr-2 h-4 w-4" />
+              <span>Perfil</span>
+            </Link>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={() => window.location.href = '/profile'}>
             <User className="mr-2 h-4 w-4" />
             <span>Perfil</span>
-          </Link>
-        </DropdownMenuItem>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={() => logout()}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Cerrar sesión</span>

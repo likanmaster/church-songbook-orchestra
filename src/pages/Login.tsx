@@ -40,8 +40,12 @@ const Login = () => {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    await login(data.email, data.password);
-    navigate("/");
+    try {
+      await login(data.email, data.password);
+      navigate("/");
+    } catch (error) {
+      console.error("Login error:", error);
+    }
   };
 
   return (
