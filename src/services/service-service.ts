@@ -22,7 +22,7 @@ const SERVICES_COLLECTION = 'services';
 const convertFirestoreDataToService = (id: string, data: any): Service => {
   return {
     id,
-    title: data.title,
+    title: data.title || "", // Ensure title is always a string
     date: data.date,
     theme: data.theme || null,
     preacher: data.preacher || null,
@@ -84,7 +84,12 @@ export const createService = async (serviceData: Omit<Service, 'id' | 'createdAt
     // Construimos un objeto Service con los datos que acabamos de guardar
     const newService: Service = {
       id: docRef.id,
-      ...serviceData,
+      title: serviceData.title, // Ensure title is included
+      date: serviceData.date,
+      theme: serviceData.theme || null,
+      preacher: serviceData.preacher || null,
+      notes: serviceData.notes || null,
+      songs: serviceData.songs || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -120,10 +125,15 @@ export const updateService = async (id: string, serviceData: Partial<Service>): 
     const currentDoc = await getDoc(serviceRef);
     const currentData = currentDoc.data();
     
-    // Construir objeto Service con datos actualizados
+    // Ensure we have all required fields for the Service type
     const updatedService: Service = {
       id,
-      ...serviceData,
+      title: serviceData.title !== undefined ? serviceData.title : currentData?.title || "",
+      date: serviceData.date !== undefined ? serviceData.date : currentData?.date,
+      theme: serviceData.theme !== undefined ? serviceData.theme : (currentData?.theme || null),
+      preacher: serviceData.preacher !== undefined ? serviceData.preacher : (currentData?.preacher || null),
+      notes: serviceData.notes !== undefined ? serviceData.notes : (currentData?.notes || null),
+      songs: serviceData.songs !== undefined ? serviceData.songs : (currentData?.songs || []),
       createdAt: createdAt || currentData?.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

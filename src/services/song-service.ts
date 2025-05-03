@@ -24,7 +24,7 @@ const CATEGORIES_COLLECTION = 'categories';
 const convertFirestoreDataToSong = (id: string, data: any): Song => {
   return {
     id,
-    title: data.title,
+    title: data.title || "", // Ensure title is always defined
     author: data.author || null,
     key: data.key || null,
     tempo: data.tempo || null,
@@ -91,7 +91,18 @@ export const createSong = async (songData: Omit<Song, 'id' | 'createdAt' | 'upda
     // Construimos un objeto Song con los datos que acabamos de guardar
     const newSong: Song = {
       id: docRef.id,
-      ...songData,
+      title: songData.title, // Ensure required title is included
+      lyrics: songData.lyrics || null,
+      author: songData.author || null,
+      key: songData.key || null,
+      tempo: songData.tempo || null,
+      style: songData.style || null,
+      duration: songData.duration || null,
+      notes: songData.notes || null,
+      attachments: songData.attachments || [],
+      categories: songData.categories || [],
+      tags: songData.tags || [],
+      isFavorite: songData.isFavorite || false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -127,10 +138,21 @@ export const updateSong = async (id: string, songData: Partial<Song>): Promise<S
     const currentDoc = await getDoc(songRef);
     const currentData = currentDoc.data();
     
-    // Construir objeto Song con datos actualizados
+    // Ensure we have all required fields for the Song type
     const updatedSong: Song = {
       id,
-      ...songData,
+      title: songData.title !== undefined ? songData.title : currentData?.title || "",
+      lyrics: songData.lyrics !== undefined ? songData.lyrics : currentData?.lyrics || null,
+      author: songData.author !== undefined ? songData.author : currentData?.author || null,
+      key: songData.key !== undefined ? songData.key : currentData?.key || null,
+      tempo: songData.tempo !== undefined ? songData.tempo : currentData?.tempo || null,
+      style: songData.style !== undefined ? songData.style : currentData?.style || null,
+      duration: songData.duration !== undefined ? songData.duration : currentData?.duration || null,
+      notes: songData.notes !== undefined ? songData.notes : currentData?.notes || null,
+      attachments: songData.attachments !== undefined ? songData.attachments : currentData?.attachments || [],
+      categories: songData.categories !== undefined ? songData.categories : currentData?.categories || [],
+      tags: songData.tags !== undefined ? songData.tags : currentData?.tags || [],
+      isFavorite: songData.isFavorite !== undefined ? songData.isFavorite : currentData?.isFavorite || false,
       createdAt: createdAt || currentData?.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
