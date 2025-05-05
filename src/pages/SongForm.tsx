@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Music, X, Plus, Save, Pencil, BookOpen, Loader2 } from "lucide-react";
@@ -135,23 +134,23 @@ const SongForm = () => {
   const keyOptions = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   const styleOptions = ["Contemporáneo", "Himno", "Gospel", "Balada", "Rock", "Pop", "Acústico", "Coral"];
   
-  const handleSave = async (values: any) => {
+  const handleSubmit = async (data: SongFormData) => {
     setIsSaving(true);
     try {
       // Preparar los datos completos de la canción
       const songData: Partial<Song> = {
-        ...values,
+        ...data,
         categories: selectedCategories,
         tags,
-        tempo: values.tempo ? parseInt(values.tempo) : undefined,
-        duration: values.duration ? parseInt(values.duration) : undefined,
+        tempo: data.tempo ? parseInt(data.tempo) : undefined,
+        duration: data.duration ? parseInt(data.duration) : undefined,
       };
       
       if (isNewSong) {
         await createSong(songData as Omit<Song, 'id' | 'createdAt' | 'updatedAt'>);
         toast.success("Canción creada con éxito");
       } else if (id) {
-        await updateSong(id, songData);
+        await updateSong(id, songData, user?.id || '');
         toast.success("Canción actualizada con éxito");
       }
       

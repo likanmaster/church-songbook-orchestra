@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Calendar, Search, Music, Clock, Sparkles, Loader2 } from "lucide-react";
@@ -29,14 +28,14 @@ const Services = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [serviceCandidate, setServiceCandidate] = useState<Service | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
         const [fetchedServices, fetchedSongs] = await Promise.all([
-          getAllServices(),
+          getAllServices(user?.id || ''),
           getAllSongs()
         ]);
         

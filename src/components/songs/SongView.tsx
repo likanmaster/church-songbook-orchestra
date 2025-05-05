@@ -55,12 +55,9 @@ const SongView = ({ song }: SongViewProps) => {
     });
   };
   
-  const handleDeleteSong = async () => {
-    if (!song.id) return;
-    
-    setIsDeleting(true);
+  const handleDelete = async () => {
     try {
-      await deleteSong(song.id);
+      await deleteSong(song.id, user?.id || ''); // Add userId argument
       toast({
         title: "Canción eliminada",
         description: "La canción ha sido eliminada exitosamente."
@@ -172,7 +169,7 @@ const SongView = ({ song }: SongViewProps) => {
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
                 <AlertDialogAction 
-                  onClick={handleDeleteSong} 
+                  onClick={handleDelete} 
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   disabled={isDeleting}
                 >

@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Share } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth-context";
 
 interface ServiceSongDetails extends Song {
   order: number;
@@ -27,6 +28,8 @@ const ServiceDetail = () => {
   const [service, setService] = useState<Service | null>(null);
   const [songs, setSongs] = useState<ServiceSongDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const currentUserId = user?.id || "default-user";
 
   const availableSongs: Song[] = [
     {
@@ -41,7 +44,8 @@ const ServiceDetail = () => {
       tags: ["gracia", "redención"],
       isFavorite: true,
       createdAt: "2023-01-15T10:30:00Z",
-      updatedAt: "2023-01-15T10:30:00Z"
+      updatedAt: "2023-01-15T10:30:00Z",
+      userId: currentUserId
     },
     {
       id: "2",
@@ -55,7 +59,8 @@ const ServiceDetail = () => {
       tags: ["adoración", "majestad"],
       isFavorite: false,
       createdAt: "2023-02-10T14:45:00Z",
-      updatedAt: "2023-02-10T14:45:00Z"
+      updatedAt: "2023-02-10T14:45:00Z",
+      userId: currentUserId
     },
     {
       id: "3",
@@ -69,7 +74,8 @@ const ServiceDetail = () => {
       tags: ["alabanza", "adoración"],
       isFavorite: true,
       createdAt: "2023-03-05T09:20:00Z",
-      updatedAt: "2023-03-05T09:20:00Z"
+      updatedAt: "2023-03-05T09:20:00Z",
+      userId: currentUserId
     },
     {
       id: "4",
@@ -83,7 +89,8 @@ const ServiceDetail = () => {
       tags: ["adoración", "majestad"],
       isFavorite: false,
       createdAt: "2023-04-20T16:30:00Z",
-      updatedAt: "2023-04-20T16:30:00Z"
+      updatedAt: "2023-04-20T16:30:00Z",
+      userId: currentUserId
     },
   ];
 
@@ -103,6 +110,7 @@ const ServiceDetail = () => {
       ],
       createdAt: "2023-12-10T14:30:00Z",
       updatedAt: "2023-12-14T09:15:00Z",
+      userId: currentUserId
     },
     {
       id: "2",
@@ -117,6 +125,7 @@ const ServiceDetail = () => {
       ],
       createdAt: "2023-12-08T10:20:00Z",
       updatedAt: "2023-12-08T10:20:00Z",
+      userId: currentUserId
     },
     {
       id: "3",
@@ -129,6 +138,7 @@ const ServiceDetail = () => {
       ],
       createdAt: "2023-12-11T16:45:00Z",
       updatedAt: "2023-12-12T08:30:00Z",
+      userId: currentUserId
     },
   ];
 

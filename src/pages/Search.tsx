@@ -32,6 +32,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import Navbar from "@/components/layout/Navbar";
 import { Song, SongFilter } from "@/types";
+import { useAuth } from "@/hooks/use-auth-context";
 
 const SearchPage = () => {
   // Estado para filtros
@@ -47,6 +48,8 @@ const SearchPage = () => {
   const [selectedTempo, setSelectedTempo] = useState<string>("");
   const [selectedStyle, setSelectedStyle] = useState<string>("");
   const [durationRange, setDurationRange] = useState<[number, number]>([0, 600]);
+  const { user } = useAuth();
+  const currentUserId = user?.id || "default-user";
   
   // Datos de ejemplo
   const [songs] = useState<Song[]>([
@@ -62,7 +65,8 @@ const SearchPage = () => {
       tags: ["gracia", "redención"],
       isFavorite: true,
       createdAt: "2023-01-15T10:30:00Z",
-      updatedAt: "2023-01-15T10:30:00Z"
+      updatedAt: "2023-01-15T10:30:00Z",
+      userId: currentUserId
     },
     {
       id: "2",
@@ -76,7 +80,8 @@ const SearchPage = () => {
       tags: ["adoración", "majestad"],
       isFavorite: false,
       createdAt: "2023-02-10T14:45:00Z",
-      updatedAt: "2023-02-10T14:45:00Z"
+      updatedAt: "2023-02-10T14:45:00Z",
+      userId: currentUserId
     },
     {
       id: "3",
@@ -90,7 +95,8 @@ const SearchPage = () => {
       tags: ["alabanza", "adoración"],
       isFavorite: true,
       createdAt: "2023-03-05T09:20:00Z",
-      updatedAt: "2023-03-05T09:20:00Z"
+      updatedAt: "2023-03-05T09:20:00Z",
+      userId: currentUserId
     },
     {
       id: "4",
@@ -104,7 +110,8 @@ const SearchPage = () => {
       tags: ["adoración", "majestad"],
       isFavorite: false,
       createdAt: "2023-04-20T16:30:00Z",
-      updatedAt: "2023-04-20T16:30:00Z"
+      updatedAt: "2023-04-20T16:30:00Z",
+      userId: currentUserId
     },
     {
       id: "5",
@@ -118,7 +125,8 @@ const SearchPage = () => {
       tags: ["jesús", "nombre"],
       isFavorite: true,
       createdAt: "2023-05-12T11:25:00Z",
-      updatedAt: "2023-05-12T11:25:00Z"
+      updatedAt: "2023-05-12T11:25:00Z",
+      userId: currentUserId
     },
     {
       id: "6",
@@ -132,7 +140,8 @@ const SearchPage = () => {
       tags: ["amor", "gracia"],
       isFavorite: false,
       createdAt: "2023-06-08T09:40:00Z",
-      updatedAt: "2023-06-08T09:40:00Z"
+      updatedAt: "2023-06-08T09:40:00Z",
+      userId: currentUserId
     },
     {
       id: "7",
@@ -146,7 +155,8 @@ const SearchPage = () => {
       tags: ["cordero", "santo"],
       isFavorite: true,
       createdAt: "2023-06-22T16:15:00Z",
-      updatedAt: "2023-06-22T16:15:00Z"
+      updatedAt: "2023-06-22T16:15:00Z",
+      userId: currentUserId
     },
   ]);
 
