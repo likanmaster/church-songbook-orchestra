@@ -24,7 +24,7 @@ const CATEGORIES_COLLECTION = 'categories';
 const convertFirestoreDataToSong = (id: string, data: any): Song => {
   return {
     id,
-    title: data.title || "", // Ensure title is always a string
+    title: data.title || "", 
     author: data.author || null,
     key: data.key || null,
     tempo: data.tempo || null,
@@ -46,10 +46,11 @@ const convertFirestoreDataToSong = (id: string, data: any): Song => {
 // Obtener todas las canciones del usuario actual y las compartidas con él
 export const getAllSongs = async (userId: string): Promise<Song[]> => {
   try {
+    // Simplificando la consulta para evitar necesitar índices compuestos
     const songsQuery = query(
       collection(db, SONGS_COLLECTION), 
-      where("userId", "==", userId),
-      orderBy('title')
+      where("userId", "==", userId)
+      // Eliminando orderBy para evitar necesidad de índice compuesto
     );
     
     const querySnapshot = await getDocs(songsQuery);
@@ -79,7 +80,9 @@ export const getAllSongs = async (userId: string): Promise<Song[]> => {
       .filter(doc => doc.data().userId !== userId) // Excluir las propias que ya se obtuvieron
       .map(doc => convertFirestoreDataToSong(doc.id, doc.data()));
     
-    return [...userSongs, ...sharedSongs, ...publicSongs];
+    // Ordenar las canciones por título después de obtener todas
+    const allSongs = [...userSongs, ...sharedSongs, ...publicSongs];
+    return allSongs.sort((a, b) => a.title.localeCompare(b.title));
   } catch (error) {
     console.error("Error al obtener canciones:", error);
     // En caso de error de permisos, devolvemos un array vacío

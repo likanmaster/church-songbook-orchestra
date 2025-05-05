@@ -21,7 +21,7 @@ import {
 const convertFirestoreDataToService = (id: string, data: any): Service => {
   return {
     id,
-    title: data.title || "", // Ensure title is always a string
+    title: data.title || "", 
     date: data.date,
     theme: data.theme || null,
     preacher: data.preacher || null,
@@ -39,14 +39,14 @@ const convertFirestoreDataToService = (id: string, data: any): Service => {
 // Obtener todos los servicios del usuario actual y los compartidos
 export const getAllServices = async (userId: string): Promise<Service[]> => {
   try {
-    // Obtener servicios propios del usuario
+    // Simplificando la consulta para evitar necesitar índices compuestos
     const servicesQuery = query(
       collection(db, SERVICES_COLLECTION), 
-      where("userId", "==", userId),
-      orderBy('date', 'desc')
+      where("userId", "==", userId)
+      // Eliminando orderBy para evitar necesidad de índice compuesto
     );
-    const querySnapshot = await getDocs(servicesQuery);
     
+    const querySnapshot = await getDocs(servicesQuery);
     const userServices = querySnapshot.docs.map(doc => 
       convertFirestoreDataToService(doc.id, doc.data())
     );
@@ -73,7 +73,9 @@ export const getAllServices = async (userId: string): Promise<Service[]> => {
       .filter(doc => doc.data().userId !== userId) // Excluir los propios que ya se obtuvieron
       .map(doc => convertFirestoreDataToService(doc.id, doc.data()));
     
-    return [...userServices, ...sharedServices, ...publicServices];
+    // Ordenar los servicios por fecha después de obtener todos (más recientes primero)
+    const allServices = [...userServices, ...sharedServices, ...publicServices];
+    return allServices.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   } catch (error) {
     console.error("Error al obtener servicios:", error);
     // En caso de error de permisos, devolvemos un array vacío
