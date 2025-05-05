@@ -24,7 +24,7 @@ export default function SectionEditor({ onAddSection }: SectionEditorProps) {
         placeholder="Escribe el texto de la sección (por ejemplo: 'Bienvenida', 'Ofrenda', 'Anuncios', etc.)"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        className="min-h-[100px]"
+        className="min-h-[150px]"
       />
       <Button 
         onClick={handleAdd}

@@ -39,7 +39,7 @@ export default function SongSelector({ songs, onSelectSong }: SongSelectorProps)
         />
       </div>
       
-      <div className="border rounded-md overflow-hidden max-h-64 overflow-y-auto">
+      <div className="border rounded-md overflow-hidden max-h-[60vh] overflow-y-auto">
         <Table>
           <TableHeader>
             <TableRow>

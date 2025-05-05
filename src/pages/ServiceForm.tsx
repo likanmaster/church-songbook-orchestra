@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Music, FileText, Save } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -21,10 +21,11 @@ import { Service, Song, ServiceSectionItem, ServiceSongItem } from "@/types";
 import { createService, getServiceById, updateService } from "@/services/service-service";
 import { useAuth } from "@/hooks/use-auth-context";
 import ServicePreviewModal from "@/components/services/ServicePreviewModal";
-import SongSelector from "@/components/services/SongSelector";
-import SectionEditor from "@/components/services/SectionEditor";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { getAllSongs } from "@/services/song-service";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import SongSelector from "@/components/services/SongSelector";
+import SectionEditor from "@/components/services/SectionEditor";
 
 const serviceFormSchema = z.object({
   title: z.string().min(3, {
@@ -46,6 +47,8 @@ const ServiceForm = () => {
   const [serviceItems, setServiceItems] = useState<(ServiceSongItem | ServiceSectionItem)[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [currentService, setCurrentService] = useState<Service | null>(null);
+  const [showSongSheet, setShowSongSheet] = useState(false);
+  const [showSectionSheet, setShowSectionSheet] = useState(false);
   const isEditing = !!id;
   const { user } = useAuth();
   const { toast } = useToast();
@@ -65,7 +68,8 @@ const ServiceForm = () => {
   useEffect(() => {
     const loadSongs = async () => {
       try {
-        const songs = await getAllSongs(user?.id || '');
+        if (!user?.id) return;
+        const songs = await getAllSongs(user.id);
         setSongsLibrary(songs);
       } catch (error) {
         console.error("Error al cargar canciones:", error);
@@ -77,16 +81,18 @@ const ServiceForm = () => {
 
   // Cargar servicio si estamos editando
   useEffect(() => {
-    if (isEditing && id) {
+    if (isEditing && id && user?.id) {
       loadService(id);
     }
-  }, [isEditing, id]);
+  }, [isEditing, id, user?.id]);
 
   const loadService = async (serviceId: string) => {
+    if (!user?.id) return;
+    
     setIsLoading(true);
     try {
       console.log("Cargando servicio:", serviceId);
-      const serviceData = await getServiceById(serviceId);
+      const serviceData = await getServiceById(serviceId, user.id);
       console.log("Servicio cargado:", serviceData);
       
       if (serviceData) {
@@ -99,13 +105,21 @@ const ServiceForm = () => {
         
         setCurrentService(serviceData);
         
-        // Cargar canciones si existen
-        if (serviceData.songs && serviceData.songs.length > 0) {
-          // Obtenemos las canciones completas
+        // Cargar secciones si existen
+        const sectionItems: ServiceSectionItem[] = serviceData.sections?.map(section => ({
+          type: 'section',
+          data: {
+            id: section.id,
+            text: section.text,
+            order: section.order
+          }
+        })) || [];
+        
+        // Cargar canciones si existen y existen en la biblioteca
+        if (serviceData.songs && serviceData.songs.length > 0 && songsLibrary.length > 0) {
           const songItems: ServiceSongItem[] = [];
           
           for (const serviceSong of serviceData.songs) {
-            // Buscar la canción en la biblioteca
             const songDetails = songsLibrary.find(s => s.id === serviceSong.songId);
             
             if (songDetails) {
@@ -114,23 +128,13 @@ const ServiceForm = () => {
                 data: {
                   ...songDetails,
                   order: serviceSong.order,
-                  serviceNotes: serviceSong.notes
+                  serviceNotes: serviceSong.notes || ''
                 }
               });
             }
           }
           
-          // Cargar secciones si existen
-          const sectionItems: ServiceSectionItem[] = serviceData.sections?.map(section => ({
-            type: 'section',
-            data: {
-              id: section.id,
-              text: section.text,
-              order: section.order
-            }
-          })) || [];
-          
-          // Combinar y ordenar
+          // Combinar y ordenar todos los elementos
           const allItems = [...songItems, ...sectionItems].sort((a, b) => {
             const orderA = a.type === 'song' ? a.data.order : a.data.order;
             const orderB = b.type === 'song' ? b.data.order : b.data.order;
@@ -138,6 +142,8 @@ const ServiceForm = () => {
           });
           
           setServiceItems(allItems);
+        } else {
+          setServiceItems(sectionItems);
         }
       } else {
         toast({
@@ -176,6 +182,7 @@ const ServiceForm = () => {
     };
     
     setServiceItems([...serviceItems, newSong]);
+    setShowSongSheet(false);
   };
 
   const handleAddSection = (text: string) => {
@@ -195,6 +202,7 @@ const ServiceForm = () => {
     };
     
     setServiceItems([...serviceItems, newSection]);
+    setShowSectionSheet(false);
   };
 
   const handleDragEnd = (result: any) => {
@@ -245,6 +253,8 @@ const ServiceForm = () => {
   };
 
   const handleSubmit = async (data: ServiceFormData) => {
+    if (!user?.id) return;
+    
     setIsLoading(true);
     try {
       const { title, date, theme, preacher, notes } = data;
@@ -258,7 +268,7 @@ const ServiceForm = () => {
             id: `song-${Date.now()}-${songData.id}`,
             songId: songData.id,
             order: songData.order,
-            notes: songData.serviceNotes
+            notes: songData.serviceNotes || ''
           };
         });
       
@@ -285,7 +295,7 @@ const ServiceForm = () => {
             songs,
             sections
           }, 
-          user?.id || ''
+          user.id
         );
         
         toast({
@@ -302,11 +312,11 @@ const ServiceForm = () => {
             notes,
             songs,
             sections,
-            userId: user?.id || '',
+            userId: user.id,
             isPublic: false,
             sharedWith: []
           }, 
-          user?.id || ''
+          user.id
         );
         
         toast({
@@ -336,9 +346,9 @@ const ServiceForm = () => {
       id: id || 'preview',
       title: formData.title,
       date: formData.date.toISOString(),
-      theme: formData.theme,
-      preacher: formData.preacher,
-      notes: formData.notes,
+      theme: formData.theme || '',
+      preacher: formData.preacher || '',
+      notes: formData.notes || '',
       songs: serviceItems
         .filter(item => item.type === 'song')
         .map(item => {
@@ -347,7 +357,7 @@ const ServiceForm = () => {
             id: `preview-${songData.id}`,
             songId: songData.id,
             order: songData.order,
-            notes: songData.serviceNotes
+            notes: songData.serviceNotes || ''
           };
         }),
       sections: serviceItems
@@ -524,7 +534,7 @@ const ServiceForm = () => {
                             ))
                           ) : (
                             <div className="text-center py-8 text-muted-foreground">
-                              No hay elementos en este servicio. Añade canciones o secciones usando los paneles de la derecha.
+                              No hay elementos en este servicio. Añade canciones o secciones usando los botones de abajo.
                             </div>
                           )}
                           {provided.placeholder}
@@ -533,13 +543,46 @@ const ServiceForm = () => {
                     </Droppable>
                   </DragDropContext>
 
-                  <div className="mt-4">
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Sheet open={showSongSheet} onOpenChange={setShowSongSheet}>
+                      <SheetTrigger asChild>
+                        <Button variant="outline" className="flex-1" onClick={() => setShowSongSheet(true)}>
+                          <Music className="h-4 w-4 mr-2" /> Añadir Canción
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent>
+                        <SheetHeader>
+                          <SheetTitle>Seleccionar Canción</SheetTitle>
+                        </SheetHeader>
+                        <div className="py-4">
+                          <SongSelector songs={songsLibrary} onSelectSong={handleAddSong} />
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                    
+                    <Sheet open={showSectionSheet} onOpenChange={setShowSectionSheet}>
+                      <SheetTrigger asChild>
+                        <Button variant="outline" className="flex-1" onClick={() => setShowSectionSheet(true)}>
+                          <FileText className="h-4 w-4 mr-2" /> Añadir Sección
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent>
+                        <SheetHeader>
+                          <SheetTitle>Agregar Nueva Sección</SheetTitle>
+                        </SheetHeader>
+                        <div className="py-4">
+                          <SectionEditor onAddSection={handleAddSection} />
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                    
                     <Button 
                       type="button"
                       onClick={() => form.handleSubmit(handleSubmit)()}
-                      className="w-full" 
-                      disabled={isLoading || serviceItems.length === 0}
+                      className="w-full mt-3" 
+                      disabled={isLoading}
                     >
+                      <Save className="h-4 w-4 mr-2" />
                       {isLoading ? "Guardando..." : "Guardar Servicio"}
                     </Button>
                   </div>
@@ -548,27 +591,30 @@ const ServiceForm = () => {
             </div>
           </div>
 
-          <div className="space-y-6">
-            {/* Sección para añadir canciones */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>Añadir Canciones</CardTitle>
+          <div className="hidden lg:block">
+            <Card className="sticky top-20">
+              <CardHeader>
+                <CardTitle>Resumen</CardTitle>
               </CardHeader>
               <CardContent>
-                <SongSelector 
-                  songs={songsLibrary} 
-                  onSelectSong={handleAddSong} 
-                />
-              </CardContent>
-            </Card>
-
-            {/* Sección para añadir texto/secciones */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>Añadir Sección</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SectionEditor onAddSection={handleAddSection} />
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Elementos:</span>
+                    <span className="font-medium">{serviceItems.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Canciones:</span>
+                    <span className="font-medium">
+                      {serviceItems.filter(item => item.type === 'song').length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Secciones:</span>
+                    <span className="font-medium">
+                      {serviceItems.filter(item => item.type === 'section').length}
+                    </span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

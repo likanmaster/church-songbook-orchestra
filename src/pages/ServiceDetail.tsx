@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Calendar, Music, Clock, Edit, ArrowLeft, Users, Printer } from "lucide-react";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import { Service, Song } from "@/types";
 import {
@@ -16,6 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Share } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth-context";
+import { getAllSongs } from "@/services/song-service";
+import { getServiceById } from "@/services/service-service";
 
 interface ServiceSongDetails extends Song {
   order: number;
@@ -29,118 +32,8 @@ const ServiceDetail = () => {
   const [songs, setSongs] = useState<ServiceSongDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
-  const currentUserId = user?.id || "default-user";
-
-  const availableSongs: Song[] = [
-    {
-      id: "1",
-      title: "Amazing Grace",
-      author: "John Newton",
-      key: "G",
-      tempo: 70,
-      style: "Himno",
-      duration: 240,
-      categories: ["Adoración", "Clásicos"],
-      tags: ["gracia", "redención"],
-      isFavorite: true,
-      createdAt: "2023-01-15T10:30:00Z",
-      updatedAt: "2023-01-15T10:30:00Z",
-      userId: currentUserId
-    },
-    {
-      id: "2",
-      title: "How Great is Our God",
-      author: "Chris Tomlin",
-      key: "C",
-      tempo: 80,
-      style: "Contemporáneo",
-      duration: 300,
-      categories: ["Alabanza"],
-      tags: ["adoración", "majestad"],
-      isFavorite: false,
-      createdAt: "2023-02-10T14:45:00Z",
-      updatedAt: "2023-02-10T14:45:00Z",
-      userId: currentUserId
-    },
-    {
-      id: "3",
-      title: "10,000 Reasons",
-      author: "Matt Redman",
-      key: "E",
-      tempo: 72,
-      style: "Contemporáneo",
-      duration: 330,
-      categories: ["Adoración", "Contemporáneo"],
-      tags: ["alabanza", "adoración"],
-      isFavorite: true,
-      createdAt: "2023-03-05T09:20:00Z",
-      updatedAt: "2023-03-05T09:20:00Z",
-      userId: currentUserId
-    },
-    {
-      id: "4",
-      title: "Dios Incomparable",
-      author: "Marcos Witt",
-      key: "D",
-      tempo: 65,
-      style: "Alabanza",
-      duration: 270,
-      categories: ["Alabanza", "Español"],
-      tags: ["adoración", "majestad"],
-      isFavorite: false,
-      createdAt: "2023-04-20T16:30:00Z",
-      updatedAt: "2023-04-20T16:30:00Z",
-      userId: currentUserId
-    },
-  ];
-
-  const servicesData: Service[] = [
-    {
-      id: "1",
-      title: "Servicio Dominical",
-      date: "2023-12-17",
-      theme: "La Gracia de Dios",
-      preacher: "Pastor Juan García",
-      notes: "Especial de Navidad",
-      songs: [
-        { id: "s1", songId: "1", order: 1, notes: "Inicio" },
-        { id: "s2", songId: "3", order: 2 },
-        { id: "s3", songId: "2", order: 3 },
-        { id: "s4", songId: "4", order: 4, notes: "Final" },
-      ],
-      createdAt: "2023-12-10T14:30:00Z",
-      updatedAt: "2023-12-14T09:15:00Z",
-      userId: currentUserId
-    },
-    {
-      id: "2",
-      title: "Reunión de Jóvenes",
-      date: "2023-12-15",
-      theme: "Fe en Acción",
-      preacher: "Líder de Jóvenes",
-      songs: [
-        { id: "s5", songId: "2", order: 1 },
-        { id: "s6", songId: "3", order: 2 },
-        { id: "s7", songId: "1", order: 3 },
-      ],
-      createdAt: "2023-12-08T10:20:00Z",
-      updatedAt: "2023-12-08T10:20:00Z",
-      userId: currentUserId
-    },
-    {
-      id: "3",
-      title: "Culto de Oración",
-      date: "2023-12-13",
-      theme: "Intercesión",
-      songs: [
-        { id: "s8", songId: "4", order: 1 },
-        { id: "s9", songId: "1", order: 2 },
-      ],
-      createdAt: "2023-12-11T16:45:00Z",
-      updatedAt: "2023-12-12T08:30:00Z",
-      userId: currentUserId
-    },
-  ];
+  const { toast } = useToast();
+  const [songsLibrary, setSongsLibrary] = useState<Song[]>([]);
 
   const userGroups = [
     { id: "1", name: "Equipo de Alabanza" },
@@ -225,7 +118,7 @@ const ServiceDetail = () => {
                     <span class="song-number">${index + 1}.</span>
                     <span class="song-title">${song.title}</span>
                   </div>
-                  <span class="song-key">Tonalidad: ${song.key}</span>
+                  <span class="song-key">Tonalidad: ${song.key || 'C'}</span>
                 </div>
               </div>
             `).join('')}
@@ -235,6 +128,17 @@ const ServiceDetail = () => {
             <div class="section">
               <h2>Notas Adicionales</h2>
               <p>${service.notes}</p>
+            </div>
+          ` : ''}
+          
+          ${service?.sections && service.sections.length > 0 ? `
+            <div class="section">
+              <h2>Secciones del Servicio</h2>
+              <ul>
+                ${service.sections.map((section, index) => `
+                  <li><strong>${section.order}.</strong> ${section.text}</li>
+                `).join('')}
+              </ul>
             </div>
           ` : ''}
         </body>
@@ -248,14 +152,32 @@ const ServiceDetail = () => {
     });
   };
 
+  // Cargar canciones de la biblioteca
+  useEffect(() => {
+    const loadSongsLibrary = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const songs = await getAllSongs(user.id);
+        setSongsLibrary(songs);
+      } catch (error) {
+        console.error("Error al cargar la biblioteca de canciones:", error);
+      }
+    };
+    
+    loadSongsLibrary();
+  }, [user?.id]);
+
   useEffect(() => {
     const loadService = async () => {
+      if (!id || !user?.id) return;
+      
       setIsLoading(true);
       try {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        const serviceData = await getServiceById(id, user.id);
+        console.log("Servicio cargado:", serviceData);
         
-        const foundService = servicesData.find(s => s.id === id);
-        if (!foundService) {
+        if (!serviceData) {
           toast({
             title: "Error",
             description: "Servicio no encontrado",
@@ -265,23 +187,28 @@ const ServiceDetail = () => {
           return;
         }
         
-        setService(foundService);
+        setService(serviceData);
         
-        const serviceSongs = foundService.songs.map(serviceSong => {
-          const songDetails = availableSongs.find(song => song.id === serviceSong.songId);
-          if (!songDetails) return null;
+        // Una vez que tenemos el servicio y la biblioteca de canciones, cargamos los detalles de las canciones
+        if (serviceData.songs && serviceData.songs.length > 0 && songsLibrary.length > 0) {
+          const serviceSongs = serviceData.songs.map(serviceSong => {
+            const songDetails = songsLibrary.find(s => s.id === serviceSong.songId);
+            
+            if (songDetails) {
+              return {
+                ...songDetails,
+                order: serviceSong.order,
+                serviceNotes: serviceSong.notes || '',
+              };
+            }
+            return null;
+          }).filter(Boolean) as ServiceSongDetails[];
           
-          return {
-            ...songDetails,
-            serviceNotes: serviceSong.notes,
-            order: serviceSong.order,
-          };
-        }).filter(Boolean) as ServiceSongDetails[];
-        
-        serviceSongs.sort((a, b) => a.order - b.order);
-        
-        setSongs(serviceSongs);
+          serviceSongs.sort((a, b) => a.order - b.order);
+          setSongs(serviceSongs);
+        }
       } catch (error) {
+        console.error("Error al cargar los datos del servicio:", error);
         toast({
           title: "Error",
           description: "Error al cargar los datos del servicio",
@@ -292,8 +219,11 @@ const ServiceDetail = () => {
       }
     };
     
-    loadService();
-  }, [id, navigate]);
+    // Cargar el servicio cuando tengamos tanto el ID como las canciones
+    if (songsLibrary.length > 0) {
+      loadService();
+    }
+  }, [id, user?.id, navigate, toast, songsLibrary]);
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { 
@@ -431,7 +361,7 @@ const ServiceDetail = () => {
                         </div>
                         <div>
                           <h3 className="font-medium">{song.title}</h3>
-                          <p className="text-sm text-muted-foreground">{song.author}</p>
+                          <p className="text-sm text-muted-foreground">{song.author || '-'}</p>
                         </div>
                       </div>
                       
@@ -445,7 +375,7 @@ const ServiceDetail = () => {
                     
                     <div className="flex flex-wrap gap-2 mt-2">
                       <Badge variant="outline" className="bg-secondary">
-                        {song.key}
+                        {song.key || 'C'}
                       </Badge>
                       {song.duration && (
                         <Badge variant="outline" className="bg-secondary">
@@ -453,7 +383,7 @@ const ServiceDetail = () => {
                           {Math.floor(song.duration / 60)}:{String(song.duration % 60).padStart(2, "0")} min
                         </Badge>
                       )}
-                      {song.categories.map((category, idx) => (
+                      {song.categories?.map((category, idx) => (
                         <Badge key={idx} variant="secondary" className="text-xs">{category}</Badge>
                       ))}
                     </div>
@@ -466,6 +396,34 @@ const ServiceDetail = () => {
                   </CardContent>
                 </Card>
               ))}
+              
+              {/* Mostrar secciones */}
+              {service.sections && service.sections.length > 0 && (
+                <>
+                  <div className="flex items-center justify-between my-4">
+                    <h2 className="text-xl font-bold">Secciones ({service.sections.length})</h2>
+                  </div>
+                  
+                  {service.sections.sort((a, b) => a.order - b.order).map((section) => (
+                    <Card key={section.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center">
+                          <div className="bg-secondary text-secondary-foreground rounded-full w-6 h-6 flex items-center justify-center mr-3">
+                            {section.order}
+                          </div>
+                          <p className="italic">{section.text}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </>
+              )}
+              
+              {songs.length === 0 && (!service.sections || service.sections.length === 0) && (
+                <div className="text-center py-10 text-muted-foreground">
+                  Este servicio no contiene canciones ni secciones.
+                </div>
+              )}
             </div>
           </div>
           
@@ -497,10 +455,19 @@ const ServiceDetail = () => {
                     <p className="font-medium">{songs.length} canciones</p>
                   </div>
                   
-                  <div>
-                    <p className="text-sm text-muted-foreground">Duración Total</p>
-                    <p className="font-medium">{calculateTotalDuration()} minutos</p>
-                  </div>
+                  {service.sections && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Secciones</p>
+                      <p className="font-medium">{service.sections.length} secciones</p>
+                    </div>
+                  )}
+                  
+                  {songs.length > 0 && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Duración Total</p>
+                      <p className="font-medium">{calculateTotalDuration()} minutos</p>
+                    </div>
+                  )}
                   
                   <Separator />
                   
