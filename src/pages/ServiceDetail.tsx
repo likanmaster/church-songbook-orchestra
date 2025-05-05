@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Calendar, Music, Clock, Edit, ArrowLeft, Users, Printer } from "lucide-react";
@@ -170,11 +169,11 @@ const ServiceDetail = () => {
 
   useEffect(() => {
     const loadService = async () => {
-      if (!id || !user?.id) return;
+      if (!id) return;
       
       setIsLoading(true);
       try {
-        const serviceData = await getServiceById(id, user.id);
+        const serviceData = await getServiceById(id);
         console.log("Servicio cargado:", serviceData);
         
         if (!serviceData) {
@@ -223,7 +222,7 @@ const ServiceDetail = () => {
     if (songsLibrary.length > 0) {
       loadService();
     }
-  }, [id, user?.id, navigate, toast, songsLibrary]);
+  }, [id, navigate, toast, songsLibrary]);
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { 

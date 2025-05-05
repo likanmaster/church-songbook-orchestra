@@ -84,7 +84,7 @@ export const getAllServices = async (userId: string): Promise<Service[]> => {
 };
 
 // Obtener servicio por ID
-export const getServiceById = async (id: string): Promise<Service | null> => {
+export const getServiceById = async (id: string, userId?: string): Promise<Service | null> => {
   try {
     const serviceDoc = await getDoc(doc(db, SERVICES_COLLECTION, id));
     

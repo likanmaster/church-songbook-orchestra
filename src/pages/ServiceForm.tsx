@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Calendar as CalendarIcon, Music, FileText, Save } from "lucide-react";
@@ -87,12 +86,10 @@ const ServiceForm = () => {
   }, [isEditing, id, user?.id]);
 
   const loadService = async (serviceId: string) => {
-    if (!user?.id) return;
-    
     setIsLoading(true);
     try {
       console.log("Cargando servicio:", serviceId);
-      const serviceData = await getServiceById(serviceId, user.id);
+      const serviceData = await getServiceById(serviceId);
       console.log("Servicio cargado:", serviceData);
       
       if (serviceData) {
