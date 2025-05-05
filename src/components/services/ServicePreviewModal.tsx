@@ -1,10 +1,16 @@
 
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Calendar, X } from "lucide-react";
-import type { Service, ServiceSong } from "@/types";
+import { Calendar, X, Music } from "lucide-react";
+import type { Service, ServiceSong, ServiceSection } from "@/types";
 
 type SongOption = { id: string; title: string; key: string };
+
+interface ServiceItem {
+  type: 'song' | 'section';
+  order: number;
+  content: any;
+}
 
 type ServicePreviewModalProps = {
   open: boolean;
@@ -27,8 +33,40 @@ export default function ServicePreviewModal({
     return songLibrary.find((s) => s.id === songId);
   }
 
-  // Sort songs by order
-  const sortedSongs = [...service.songs].sort((a, b) => a.order - b.order);
+  // Combine songs and sections into a single ordered list
+  const createOrderedItems = () => {
+    const items: ServiceItem[] = [];
+    
+    // Add songs
+    if (service.songs && service.songs.length > 0) {
+      service.songs.forEach((song: ServiceSong) => {
+        items.push({
+          type: 'song',
+          order: song.order,
+          content: {
+            ...song,
+            details: getSongDetails(song.songId)
+          }
+        });
+      });
+    }
+    
+    // Add sections
+    if (service.sections && service.sections.length > 0) {
+      service.sections.forEach((section: ServiceSection) => {
+        items.push({
+          type: 'section',
+          order: section.order,
+          content: section
+        });
+      });
+    }
+    
+    // Sort by order
+    return items.sort((a, b) => a.order - b.order);
+  };
+  
+  const orderedItems = createOrderedItems();
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -51,16 +89,31 @@ export default function ServicePreviewModal({
             </div>
           )}
           <div>
-            <span className="font-medium">Canciones:</span>
+            <span className="font-medium">Orden del Servicio:</span>
             <ul className="mt-1 ml-4 list-disc">
-              {sortedSongs.map((s, idx) => {
-                const song = getSongDetails(s.songId);
-                return (
-                  <li key={s.id || idx}>
-                    <span className="font-semibold">{song ? song.title : "Canción desconocida"}</span>
-                    {song?.key && <span className="ml-2 text-sm text-muted-foreground">(Tonalidad: {song.key})</span>}
-                  </li>
-                );
+              {orderedItems.map((item, idx) => {
+                if (item.type === 'song') {
+                  const songDetails = item.content.details;
+                  return (
+                    <li key={item.content.id || idx} className="flex items-center">
+                      <span className="mr-2 bg-primary/10 text-primary text-xs px-1.5 rounded-full">
+                        {item.order}
+                      </span>
+                      <span className="font-semibold">{songDetails ? songDetails.title : "Canción desconocida"}</span>
+                      {songDetails?.key && <span className="ml-2 text-sm text-muted-foreground">(Tonalidad: {songDetails.key})</span>}
+                      <Music className="ml-2 h-3 w-3 text-muted-foreground" />
+                    </li>
+                  );
+                } else {
+                  return (
+                    <li key={item.content.id || `section-${idx}`} className="flex items-center">
+                      <span className="mr-2 bg-secondary/10 text-secondary text-xs px-1.5 rounded-full">
+                        {item.order}
+                      </span>
+                      <span className="italic">{item.content.text}</span>
+                    </li>
+                  );
+                }
               })}
             </ul>
           </div>

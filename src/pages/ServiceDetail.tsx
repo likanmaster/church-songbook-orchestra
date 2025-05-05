@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Calendar, Music, Clock, Edit, ArrowLeft, Users, Printer } from "lucide-react";
@@ -7,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
-import { Service, Song } from "@/types";
+import { Service, Song, ServiceSection } from "@/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,11 +25,18 @@ interface ServiceSongDetails extends Song {
   serviceNotes?: string;
 }
 
+interface ServiceItem {
+  type: 'song' | 'section';
+  order: number;
+  content: ServiceSongDetails | ServiceSection;
+}
+
 const ServiceDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [service, setService] = useState<Service | null>(null);
   const [songs, setSongs] = useState<ServiceSongDetails[]>([]);
+  const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -203,9 +211,47 @@ const ServiceDetail = () => {
             return null;
           }).filter(Boolean) as ServiceSongDetails[];
           
-          serviceSongs.sort((a, b) => a.order - b.order);
           setSongs(serviceSongs);
         }
+        
+        // Create combined items array with both songs and sections
+        let allItems: ServiceItem[] = [];
+        
+        // Add songs to items array
+        if (serviceData.songs) {
+          serviceData.songs.forEach(songItem => {
+            const songDetails = songsLibrary.find(s => s.id === songItem.songId);
+            if (songDetails) {
+              const serviceSongDetails: ServiceSongDetails = {
+                ...songDetails,
+                order: songItem.order,
+                serviceNotes: songItem.notes || '',
+              };
+              
+              allItems.push({
+                type: 'song',
+                order: songItem.order,
+                content: serviceSongDetails
+              });
+            }
+          });
+        }
+        
+        // Add sections to items array
+        if (serviceData.sections) {
+          serviceData.sections.forEach(section => {
+            allItems.push({
+              type: 'section',
+              order: section.order,
+              content: section
+            });
+          });
+        }
+        
+        // Sort all items by order
+        allItems.sort((a, b) => a.order - b.order);
+        setServiceItems(allItems);
+        
       } catch (error) {
         console.error("Error al cargar los datos del servicio:", error);
         toast({
@@ -346,79 +392,70 @@ const ServiceDetail = () => {
             </Card>
             
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Canciones ({songs.length})</h2>
+              <h2 className="text-xl font-bold">Orden del Servicio ({serviceItems.length} elementos)</h2>
             </div>
             
             <div className="space-y-3">
-              {songs.map((song) => (
-                <Card key={song.id}>
+              {serviceItems.map((item, index) => (
+                <Card key={index}>
                   <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center">
-                        <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center mr-3">
-                          {song.order}
+                    {item.type === 'song' && (
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center">
+                          <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center mr-3">
+                            {item.order}
+                          </div>
+                          <div>
+                            <h3 className="font-medium">{(item.content as ServiceSongDetails).title}</h3>
+                            <p className="text-sm text-muted-foreground">{(item.content as ServiceSongDetails).author || '-'}</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium">{song.title}</h3>
-                          <p className="text-sm text-muted-foreground">{song.author || '-'}</p>
-                        </div>
+                        
+                        <Link to={`/songs/${(item.content as ServiceSongDetails).id}`}>
+                          <Button variant="ghost" size="sm">
+                            <Music className="mr-1 h-4 w-4" />
+                            Ver Canción
+                          </Button>
+                        </Link>
                       </div>
-                      
-                      <Link to={`/songs/${song.id}`}>
-                        <Button variant="ghost" size="sm">
-                          <Music className="mr-1 h-4 w-4" />
-                          Ver Canción
-                        </Button>
-                      </Link>
-                    </div>
+                    )}
                     
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <Badge variant="outline" className="bg-secondary">
-                        {song.key || 'C'}
-                      </Badge>
-                      {song.duration && (
+                    {item.type === 'song' && (
+                      <div className="flex flex-wrap gap-2 mt-2">
                         <Badge variant="outline" className="bg-secondary">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {Math.floor(song.duration / 60)}:{String(song.duration % 60).padStart(2, "0")} min
+                          {(item.content as ServiceSongDetails).key || 'C'}
                         </Badge>
-                      )}
-                      {song.categories?.map((category, idx) => (
-                        <Badge key={idx} variant="secondary" className="text-xs">{category}</Badge>
-                      ))}
-                    </div>
+                        {(item.content as ServiceSongDetails).duration && (
+                          <Badge variant="outline" className="bg-secondary">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {Math.floor((item.content as ServiceSongDetails).duration! / 60)}:{String((item.content as ServiceSongDetails).duration! % 60).padStart(2, "0")} min
+                          </Badge>
+                        )}
+                        {(item.content as ServiceSongDetails).categories?.map((category, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-xs">{category}</Badge>
+                        ))}
+                      </div>
+                    )}
                     
-                    {song.serviceNotes && (
+                    {item.type === 'song' && (item.content as ServiceSongDetails).serviceNotes && (
                       <div className="mt-2 text-sm italic border-l-2 border-primary pl-2">
-                        {song.serviceNotes}
+                        {(item.content as ServiceSongDetails).serviceNotes}
+                      </div>
+                    )}
+                    
+                    {item.type === 'section' && (
+                      <div className="flex items-center">
+                        <div className="bg-secondary text-secondary-foreground rounded-full w-6 h-6 flex items-center justify-center mr-3">
+                          {item.order}
+                        </div>
+                        <p className="italic">{(item.content as ServiceSection).text}</p>
                       </div>
                     )}
                   </CardContent>
                 </Card>
               ))}
               
-              {/* Mostrar secciones */}
-              {service.sections && service.sections.length > 0 && (
-                <>
-                  <div className="flex items-center justify-between my-4">
-                    <h2 className="text-xl font-bold">Secciones ({service.sections.length})</h2>
-                  </div>
-                  
-                  {service.sections.sort((a, b) => a.order - b.order).map((section) => (
-                    <Card key={section.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center">
-                          <div className="bg-secondary text-secondary-foreground rounded-full w-6 h-6 flex items-center justify-center mr-3">
-                            {section.order}
-                          </div>
-                          <p className="italic">{section.text}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </>
-              )}
-              
-              {songs.length === 0 && (!service.sections || service.sections.length === 0) && (
+              {serviceItems.length === 0 && (
                 <div className="text-center py-10 text-muted-foreground">
                   Este servicio no contiene canciones ni secciones.
                 </div>
@@ -450,16 +487,19 @@ const ServiceDetail = () => {
                   )}
                   
                   <div>
+                    <p className="text-sm text-muted-foreground">Elementos</p>
+                    <p className="font-medium">{serviceItems.length} elementos</p>
+                  </div>
+                  
+                  <div>
                     <p className="text-sm text-muted-foreground">Canciones</p>
                     <p className="font-medium">{songs.length} canciones</p>
                   </div>
                   
-                  {service.sections && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Secciones</p>
-                      <p className="font-medium">{service.sections.length} secciones</p>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-sm text-muted-foreground">Secciones</p>
+                    <p className="font-medium">{service.sections?.length || 0} secciones</p>
+                  </div>
                   
                   {songs.length > 0 && (
                     <div>

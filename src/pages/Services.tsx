@@ -1,20 +1,12 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Calendar, Plus, Edit, Trash2, Eye, ArrowRight } from "lucide-react";
+import { Calendar, Plus, Edit, Trash2, Eye, Music, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,23 +92,6 @@ const ServicesPage = () => {
     );
   }
 
-  // Example service for demonstration purposes
-  const exampleService: Service = {
-    id: "example-id",
-    title: "Servicio Dominical",
-    date: new Date().toISOString(),
-    theme: "Esperanza en Cristo",
-    preacher: "Pastor Juan",
-    notes: "Preparar himnos de adoración",
-    songs: [
-      { id: "song-1", songId: "1", order: 1 },
-      { id: "song-2", songId: "2", order: 2 }
-    ],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    userId: user?.id || ''
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -132,96 +107,99 @@ const ServicesPage = () => {
           </Button>
         </div>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Lista de Servicios</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {services.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="font-medium text-lg mb-2">No hay servicios</h3>
-                <p className="text-muted-foreground text-center mb-6">
-                  Aún no has creado ningún servicio. Comienza creando tu primer servicio.
-                </p>
-                <Button asChild>
-                  <Link to="/services/new">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Crear Servicio
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Título</TableHead>
-                    <TableHead className="hidden md:table-cell">Tema</TableHead>
-                    <TableHead className="hidden lg:table-cell">Predicador</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {services.map((service) => (
-                    <TableRow key={service.id}>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {format(new Date(service.date), "dd/MM/yyyy")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">{service.title}</TableCell>
-                      <TableCell className="hidden md:table-cell">{service.theme || "-"}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{service.preacher || "-"}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link to={`/services/${service.id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link to={`/services/${service.id}/edit`}>
-                              <Edit className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => setServiceToDelete(service.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. Se eliminará el servicio
-                                  permanentemente.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel onClick={() => setServiceToDelete(null)}>
-                                  Cancelar
-                                </AlertDialogCancel>
-                                <AlertDialogAction onClick={confirmDelete}>
-                                  Eliminar
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        {services.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="font-medium text-lg mb-2">No hay servicios</h3>
+            <p className="text-muted-foreground text-center mb-6">
+              Aún no has creado ningún servicio. Comienza creando tu primer servicio.
+            </p>
+            <Button asChild>
+              <Link to="/services/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Crear Servicio
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {services.map((service) => (
+              <Card key={service.id} className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <Badge className="mb-2" variant="outline">{format(new Date(service.date), "dd MMM yyyy")}</Badge>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 rounded-full"
+                          onClick={() => setServiceToDelete(service.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Se eliminará el servicio
+                            permanentemente.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={() => setServiceToDelete(null)}>
+                            Cancelar
+                          </AlertDialogCancel>
+                          <AlertDialogAction onClick={confirmDelete}>
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                  <CardTitle>{service.title}</CardTitle>
+                  {service.theme && <CardDescription>{service.theme}</CardDescription>}
+                </CardHeader>
+                
+                <CardContent className="pb-2">
+                  <div className="space-y-2">
+                    {service.preacher && (
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{service.preacher}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Music className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{service.songs?.length || 0} canciones</span>
+                    </div>
+                    {service.notes && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 italic">
+                        "{service.notes}"
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+                
+                <CardFooter className="pt-2">
+                  <div className="flex justify-between w-full gap-2">
+                    <Button variant="outline" size="sm" asChild className="flex-1">
+                      <Link to={`/services/${service.id}/edit`}>
+                        <Edit className="mr-1 h-4 w-4" /> Editar
+                      </Link>
+                    </Button>
+                    <Button variant="default" size="sm" asChild className="flex-1">
+                      <Link to={`/services/${service.id}`}>
+                        <Eye className="mr-1 h-4 w-4" /> Ver
+                      </Link>
+                    </Button>
+                  </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
