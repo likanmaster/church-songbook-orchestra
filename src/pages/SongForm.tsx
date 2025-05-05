@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Music, X, Plus, Save, Pencil, BookOpen, Loader2 } from "lucide-react";
@@ -88,7 +89,8 @@ const SongForm = () => {
         // Cargar canción si estamos editando
         if (id) {
           setIsLoading(true);
-          const fetchedSong = await getSongById(id, user?.id || '');
+          // Fix here: Remove the second argument as getSongById now expects only one parameter
+          const fetchedSong = await getSongById(id);
           
           if (fetchedSong) {
             setSong(fetchedSong);

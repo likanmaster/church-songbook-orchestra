@@ -61,7 +61,8 @@ const ServiceForm = () => {
   const loadService = async (id: string) => {
     setIsLoading(true);
     try {
-      const serviceData = await getServiceById(id, user?.id || '');
+      // Fix here: Remove the second argument as getServiceById now expects only one parameter
+      const serviceData = await getServiceById(id);
       if (serviceData) {
         form.setValue("title", serviceData.title);
         form.setValue("date", new Date(serviceData.date));
@@ -115,13 +116,13 @@ const ServiceForm = () => {
 
     try {
       if (isEditing && id) {
-        await updateService(id, updatedService, user?.id || '');
+        await updateService(id, updatedService);
         toast({
           title: "Éxito",
           description: "Servicio actualizado correctamente",
         });
       } else {
-        await createService(newService, user?.id || '');
+        await createService(newService);
         toast({
           title: "Éxito",
           description: "Servicio creado correctamente",
