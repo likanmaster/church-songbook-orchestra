@@ -11,7 +11,8 @@ import {
 } from "firebase/auth";
 import { toast } from "sonner";
 import { initializeApp } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { User } from "@/types";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -29,6 +30,12 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 export const db = getFirestore(app);
 
+// Colección de usuarios en Firestore
+export const USERS_COLLECTION = 'users';
+export const SONGS_COLLECTION = 'songs';
+export const SERVICES_COLLECTION = 'services';
+export const GROUPS_COLLECTION = 'groups';
+
 // Habilitar persistencia offline para mejor experiencia de usuario
 try {
   enableIndexedDbPersistence(db)
@@ -43,14 +50,9 @@ try {
   console.error("Error al configurar persistencia:", error);
 }
 
-type User = {
-  id: string;
-  email: string | null;
-  username: string | null;
-};
-
 type AuthContextType = {
   user: User | null;
+  firebaseUser: FirebaseUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -62,19 +64,75 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Función para obtener datos de usuario desde Firestore
+  const getUserData = async (uid: string): Promise<User | null> => {
+    try {
+      const userDocRef = doc(db, USERS_COLLECTION, uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        return {
+          id: userDoc.id,
+          email: userData.email || "",
+          username: userData.username || "",
+          createdAt: userData.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+          updatedAt: userData.updatedAt?.toDate()?.toISOString() || new Date().toISOString(),
+          photoURL: userData.photoURL,
+          songs: userData.songs || [],
+          groups: userData.groups || []
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error("Error al obtener datos de usuario:", error);
+      return null;
+    }
+  };
 
   // Monitor authentication state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setIsLoading(true);
-      if (firebaseUser) {
-        setUser({
-          id: firebaseUser.uid,
-          email: firebaseUser.email,
-          username: firebaseUser.displayName
-        });
+      if (fbUser) {
+        setFirebaseUser(fbUser);
+        
+        // Obtener o crear datos de usuario en Firestore
+        let userData = await getUserData(fbUser.uid);
+        
+        if (!userData) {
+          // Si no existe el documento, inicializamos los datos de usuario
+          userData = {
+            id: fbUser.uid,
+            email: fbUser.email || "",
+            username: fbUser.displayName || "",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            songs: [],
+            groups: []
+          };
+          
+          // Crear documento de usuario en Firestore
+          try {
+            await setDoc(doc(db, USERS_COLLECTION, fbUser.uid), {
+              email: fbUser.email,
+              username: fbUser.displayName,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              songs: [],
+              groups: []
+            });
+          } catch (error) {
+            console.error("Error al crear documento de usuario:", error);
+          }
+        }
+        
+        setUser(userData);
       } else {
+        setFirebaseUser(null);
         setUser(null);
       }
       setIsLoading(false);
@@ -110,6 +168,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         displayName: username
       });
       
+      // Crear documento de usuario en Firestore
+      await setDoc(doc(db, USERS_COLLECTION, userCredential.user.uid), {
+        email: email,
+        username: username,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        songs: [],
+        groups: []
+      });
+      
       toast.success("Cuenta creada exitosamente");
     } catch (error) {
       console.error("Error al registrar:", error);
@@ -137,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        firebaseUser,
         isAuthenticated: !!user,
         isLoading,
         login,

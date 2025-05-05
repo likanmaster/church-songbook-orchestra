@@ -17,6 +17,9 @@ export interface Song {
   audioUrl?: string;
   videoUrl?: string;
   usageCount?: number;
+  userId: string; // ID del usuario propietario
+  isPublic?: boolean; // Indica si la canción es pública (visible para todos)
+  sharedWith?: string[]; // IDs de usuarios con los que se ha compartido
 }
 
 export interface Attachment {
@@ -37,6 +40,9 @@ export interface Service {
   createdAt: string;
   updatedAt: string;
   sections?: ServiceSection[];
+  userId: string; // ID del usuario propietario
+  isPublic?: boolean; // Indica si el servicio es público
+  sharedWith?: string[]; // IDs de usuarios con los que se ha compartido
 }
 
 export interface ServiceSong {
@@ -103,4 +109,15 @@ export interface GroupMember {
   username: string;
   role: 'admin' | 'member';
   joinedAt: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  createdAt: string;
+  updatedAt: string;
+  photoURL?: string;
+  songs?: string[]; // IDs de canciones propias
+  groups?: string[]; // IDs de grupos a los que pertenece
 }
