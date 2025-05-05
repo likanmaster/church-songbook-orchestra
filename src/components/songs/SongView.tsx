@@ -1,3 +1,4 @@
+
 import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag, Eye, EyeOff, Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteSong } from "@/services/song-service";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/use-auth-context";
 
 interface SongViewProps {
   song: Song;
@@ -39,6 +41,7 @@ const SongView = ({ song }: SongViewProps) => {
   const [showChords, setShowChords] = useState<boolean>(true);
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
+  const { user } = useAuth();
   
   // Datos de ejemplo para grupos
   const userGroups = [
@@ -57,7 +60,7 @@ const SongView = ({ song }: SongViewProps) => {
   
   const handleDelete = async () => {
     try {
-      await deleteSong(song.id, user?.id || ''); // Add userId argument
+      await deleteSong(song.id, user?.id || '');
       toast({
         title: "Canción eliminada",
         description: "La canción ha sido eliminada exitosamente."

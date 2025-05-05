@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Calendar } from "lucide-react";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -11,11 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar as CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarDate } from "@/components/ui/calendar";
-import { toast } from "@/components/ui/use-toast";
+import { Calendar } from "@/components/ui/calendar";
+import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import { Service } from "@/types";
 import { createService, getServiceById, updateService } from "@/services/service-service";
@@ -60,7 +60,7 @@ const ServiceForm = () => {
   const loadService = async (id: string) => {
     setIsLoading(true);
     try {
-      const serviceData = await getServiceById(id);
+      const serviceData = await getServiceById(id, user?.id || '');
       if (serviceData) {
         form.setValue("title", serviceData.title);
         form.setValue("date", new Date(serviceData.date));
@@ -113,8 +113,8 @@ const ServiceForm = () => {
     };
 
     try {
-      if (isEditing) {
-        await updateService(id!, updatedService, user?.id || '');
+      if (isEditing && id) {
+        await updateService(id, updatedService, user?.id || '');
         toast({
           title: "Éxito",
           description: "Servicio actualizado correctamente",
@@ -190,7 +190,7 @@ const ServiceForm = () => {
                       control={form.control}
                       name="date"
                       render={({ field }) => (
-                        <CalendarDate
+                        <Calendar
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
@@ -198,6 +198,7 @@ const ServiceForm = () => {
                             date > new Date()
                           }
                           initialFocus
+                          className={cn("p-3 pointer-events-auto")}
                         />
                       )}
                     />

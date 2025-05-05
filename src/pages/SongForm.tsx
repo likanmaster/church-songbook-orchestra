@@ -32,6 +32,20 @@ import SongView from "@/components/songs/SongView";
 import { Song } from "@/types";
 import ChordButtonGroup from "@/components/songs/ChordButtonGroup";
 import { getSongById, createSong, updateSong, getAllCategories } from "@/services/song-service";
+import { useAuth } from "@/hooks/use-auth-context";
+
+// Define the SongFormData type
+interface SongFormData {
+  title: string;
+  author: string;
+  lyrics: string;
+  key: string;
+  tempo: string;
+  style: string;
+  duration: string;
+  notes: string;
+  isFavorite: boolean;
+}
 
 const SongForm = () => {
   const navigate = useNavigate();
@@ -46,9 +60,10 @@ const SongForm = () => {
   const [availableCategories, setAvailableCategories] = useState<{id: string, name: string}[]>([]);
   const isNewSong = !id;
   const lyricsTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const { user } = useAuth();
   
   // Crear el form usando useForm
-  const form = useForm({
+  const form = useForm<SongFormData>({
     defaultValues: {
       title: "",
       author: "",
@@ -73,7 +88,7 @@ const SongForm = () => {
         // Cargar canción si estamos editando
         if (id) {
           setIsLoading(true);
-          const fetchedSong = await getSongById(id);
+          const fetchedSong = await getSongById(id, user?.id || '');
           
           if (fetchedSong) {
             setSong(fetchedSong);
@@ -144,10 +159,11 @@ const SongForm = () => {
         tags,
         tempo: data.tempo ? parseInt(data.tempo) : undefined,
         duration: data.duration ? parseInt(data.duration) : undefined,
+        userId: user?.id || ''
       };
       
       if (isNewSong) {
-        await createSong(songData as Omit<Song, 'id' | 'createdAt' | 'updatedAt'>);
+        await createSong(songData as Omit<Song, 'id' | 'createdAt' | 'updatedAt'>, user?.id || '');
         toast.success("Canción creada con éxito");
       } else if (id) {
         await updateSong(id, songData, user?.id || '');
@@ -198,7 +214,8 @@ const SongForm = () => {
     tags,
     isFavorite: form.getValues("isFavorite"),
     createdAt: song?.createdAt || new Date().toISOString(),
-    updatedAt: song?.updatedAt || new Date().toISOString()
+    updatedAt: song?.updatedAt || new Date().toISOString(),
+    userId: user?.id || ''
   };
 
   if (isLoading) {
@@ -248,7 +265,7 @@ const SongForm = () => {
               Cancelar
             </Button>
             {mode === "edit" && (
-              <Button onClick={form.handleSubmit(handleSave)}>
+              <Button onClick={form.handleSubmit(handleSubmit)}>
                 <Save className="mr-2 h-4 w-4" />
                 Guardar
               </Button>
@@ -262,7 +279,7 @@ const SongForm = () => {
         ) : (
           // Modo de edición
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSave)}>
+            <form onSubmit={form.handleSubmit(handleSubmit)}>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                   <Card>
