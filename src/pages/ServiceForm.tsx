@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import { Service } from "@/types";
 import { createService, getServiceById, updateService } from "@/services/service-service";
@@ -39,6 +39,7 @@ const ServiceForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!id;
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),

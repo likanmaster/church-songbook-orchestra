@@ -215,7 +215,9 @@ const SongForm = () => {
     isFavorite: form.getValues("isFavorite"),
     createdAt: song?.createdAt || new Date().toISOString(),
     updatedAt: song?.updatedAt || new Date().toISOString(),
-    userId: user?.id || ''
+    userId: user?.id || '',
+    isPublic: false,
+    sharedWith: []
   };
 
   if (isLoading) {
