@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -116,13 +115,15 @@ const ServiceForm = () => {
 
     try {
       if (isEditing && id) {
-        await updateService(id, updatedService);
+        // Fix here: Add the userId as the third argument
+        await updateService(id, updatedService, user?.id || '');
         toast({
           title: "Éxito",
           description: "Servicio actualizado correctamente",
         });
       } else {
-        await createService(newService);
+        // Fix here: Add the userId as the second argument
+        await createService(newService, user?.id || '');
         toast({
           title: "Éxito",
           description: "Servicio creado correctamente",
