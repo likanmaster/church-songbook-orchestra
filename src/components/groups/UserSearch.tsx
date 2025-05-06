@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -34,8 +35,8 @@ const UserSearch = ({ currentUserId, selectedUserIds, onAddUser }: UserSearchPro
     }
   }, [searchQuery]);
 
-  const searchUsers = async (query: string) => {
-    if (query.length < 2) {
+  const searchUsers = async (searchText: string) => {
+    if (searchText.length < 2) {
       setSearchResults([]);
       return;
     }
@@ -47,8 +48,8 @@ const UserSearch = ({ currentUserId, selectedUserIds, onAddUser }: UserSearchPro
       // Búsqueda por nombre de usuario - using template literals instead of String concatenation
       const q = query(
         usersCollection,
-        where("username", ">=", query),
-        where("username", "<=", `${query}\uf8ff`)
+        where("username", ">=", searchText),
+        where("username", "<=", `${searchText}\uf8ff`)
       );
       
       const querySnapshot = await getDocs(q);
