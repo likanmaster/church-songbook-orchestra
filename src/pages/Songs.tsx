@@ -1,20 +1,14 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Music, Edit, Trash2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import { Song } from "@/types";
@@ -139,36 +133,22 @@ const SongsPage = () => {
             
             <Separator />
             
-            <ScrollArea className="rounded-md border mt-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[200px]">Título</TableHead>
-                    <TableHead>Autor</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSongs.map((song) => (
-                    <TableRow key={song.id}>
-                      <TableCell className="font-medium">{song.title}</TableCell>
-                      <TableCell>{song.author}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/songs/${song.id}`}>
-                            <Music className="mr-2 h-4 w-4" />
-                            Ver
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/songs/${song.id}/edit`}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                          </Link>
-                        </Button>
+            {filteredSongs.length === 0 ? (
+              <div className="text-center py-8">
+                <Music className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">No se encontraron canciones</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                {filteredSongs.map((song) => (
+                  <Card key={song.id} className="overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">{song.title}</CardTitle>
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-8 w-8 p-0"
                           onClick={() => toggleFavorite(song, !song.isFavorite)}
                         >
                           {song.isFavorite ? (
@@ -177,26 +157,55 @@ const SongsPage = () => {
                             <Star className="h-4 w-4" />
                           )}
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(song.id)}
-                        >
-                          <Trash2 className="text-red-500 h-4 w-4" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">{song.author}</p>
+                    </CardHeader>
+                    
+                    <CardContent className="pt-0">
+                      {song.key && (
+                        <Badge variant="outline" className="mr-2">
+                          Tonalidad: {song.key}
+                        </Badge>
+                      )}
+                      {song.categories && song.categories.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {song.categories.map((category, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-xs">
+                              {category}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                    
+                    <CardFooter className="flex justify-between pt-2">
+                      <div className="flex space-x-1">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/songs/${song.id}`}>
+                            <Music className="mr-2 h-4 w-4" />
+                            Ver
+                          </Link>
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredSongs.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center">
-                        No se encontraron canciones.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </ScrollArea>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/songs/${song.id}/edit`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </Link>
+                        </Button>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(song.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>
