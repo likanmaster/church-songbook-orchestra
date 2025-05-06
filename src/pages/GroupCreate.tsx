@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -27,7 +28,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { db, GROUPS_COLLECTION, USERS_COLLECTION } from "@/hooks/use-auth-context";
-import { collection, addDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore"; 
+import { collection, addDoc, serverTimestamp, getDocs, query, where, DocumentData } from "firebase/firestore"; 
 import { useAuth } from "@/hooks/use-auth-context";
 
 const formSchema = z.object({
@@ -84,7 +85,7 @@ const GroupCreate = () => {
       querySnapshot.forEach((doc) => {
         // No incluir al usuario actual ni a los usuarios ya seleccionados
         if (doc.id !== user?.id && !selectedUsers.some(selected => selected.id === doc.id)) {
-          const userData = doc.data();
+          const userData = doc.data() as DocumentData;
           results.push({
             id: doc.id,
             username: userData.username as string || "",
