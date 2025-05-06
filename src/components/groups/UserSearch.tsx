@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserPlus } from "lucide-react";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, DocumentData } from "firebase/firestore";
 import { db, USERS_COLLECTION } from "@/hooks/use-auth-context";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -45,11 +44,11 @@ const UserSearch = ({ currentUserId, selectedUserIds, onAddUser }: UserSearchPro
     
     try {
       const usersCollection = collection(db, USERS_COLLECTION);
-      // Búsqueda por nombre de usuario
+      // Búsqueda por nombre de usuario - using template literals instead of String concatenation
       const q = query(
         usersCollection,
         where("username", ">=", query),
-        where("username", "<=", query + "\uf8ff")
+        where("username", "<=", `${query}\uf8ff`)
       );
       
       const querySnapshot = await getDocs(q);
@@ -58,7 +57,7 @@ const UserSearch = ({ currentUserId, selectedUserIds, onAddUser }: UserSearchPro
       querySnapshot.forEach((doc) => {
         // No incluir al usuario actual ni a los usuarios ya seleccionados
         if (doc.id !== currentUserId && !selectedUserIds.includes(doc.id)) {
-          const userData = doc.data();
+          const userData = doc.data() as DocumentData;
           results.push({
             id: doc.id,
             username: userData.username as string || "",
