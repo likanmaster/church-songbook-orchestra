@@ -1,20 +1,8 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Search, UserPlus, Shield, UserMinus, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -23,91 +11,29 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { db, GROUPS_COLLECTION, USERS_COLLECTION } from "@/hooks/use-auth-context";
-import { collection, addDoc, serverTimestamp, getDocs, query, where, DocumentData } from "firebase/firestore"; 
+import { db, GROUPS_COLLECTION } from "@/hooks/use-auth-context";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"; 
 import { useAuth } from "@/hooks/use-auth-context";
+import UserSearch from "@/components/groups/UserSearch";
+import MembersList from "@/components/groups/MembersList";
+import GroupDetailsForm, { GroupFormData } from "@/components/groups/GroupDetailsForm";
 
-const formSchema = z.object({
-  name: z.string().min(1, "El nombre es requerido"),
-  description: z.string().optional(),
-});
-
-type FormData = z.infer<typeof formSchema>;
+interface GroupMember {
+  id: string;
+  username: string;
+  role: "admin" | "member";
+}
 
 const GroupCreate = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [selectedUsers, setSelectedUsers] = useState<Array<{
-    id: string;
-    username: string;
-    role: "admin" | "member";
-  }>>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Array<{
-    id: string;
-    username: string;
-  }>>([]);
-  const [isSearching, setIsSearching] = useState(false);
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-    },
-  });
-
-  const searchUsers = async (query: string) => {
-    if (query.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    
-    setIsSearching(true);
-    
-    try {
-      const usersCollection = collection(db, USERS_COLLECTION);
-      // Búsqueda por nombre de usuario
-      const q = query(
-        usersCollection,
-        where("username", ">=", query),
-        where("username", "<=", query + "\uf8ff")
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const results: Array<{ id: string; username: string }> = [];
-      
-      querySnapshot.forEach((doc) => {
-        // No incluir al usuario actual ni a los usuarios ya seleccionados
-        if (doc.id !== user?.id && !selectedUsers.some(selected => selected.id === doc.id)) {
-          const userData = doc.data() as DocumentData;
-          results.push({
-            id: doc.id,
-            username: userData.username as string || "",
-          });
-        }
-      });
-      
-      setSearchResults(results);
-    } catch (error) {
-      console.error("Error al buscar usuarios:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron buscar usuarios",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSearching(false);
-    }
-  };
+  const [selectedUsers, setSelectedUsers] = useState<GroupMember[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleAddUser = (user: { id: string; username: string }) => {
     setSelectedUsers([...selectedUsers, { ...user, role: "member" }]);
-    setSearchResults(searchResults.filter(u => u.id !== user.id));
   };
 
   const handleRemoveUser = (userId: string) => {
@@ -124,7 +50,7 @@ const GroupCreate = () => {
     );
   };
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: GroupFormData) => {
     if (!user) {
       toast({
         title: "Error",
@@ -141,6 +67,8 @@ const GroupCreate = () => {
       });
       return;
     }
+    
+    setIsLoading(true);
     
     try {
       // Crear el grupo en Firestore
@@ -187,6 +115,8 @@ const GroupCreate = () => {
         description: "No se pudo crear el grupo",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -210,44 +140,7 @@ const GroupCreate = () => {
               <CardTitle>Detalles del Grupo</CardTitle>
             </CardHeader>
             <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre del Grupo</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ej: Equipo de Alabanza" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Descripción (opcional)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Describe el propósito del grupo"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <Button type="submit" className="w-full">
-                    Crear Grupo
-                  </Button>
-                </form>
-              </Form>
+              <GroupDetailsForm onSubmit={onSubmit} isLoading={isLoading} />
             </CardContent>
           </Card>
 
@@ -256,99 +149,17 @@ const GroupCreate = () => {
               <CardTitle>Miembros</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Buscar usuarios..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    searchUsers(e.target.value);
-                  }}
-                  className="pl-9"
-                />
-              </div>
+              <UserSearch 
+                currentUserId={user?.id}
+                selectedUserIds={selectedUsers.map(user => user.id)}
+                onAddUser={handleAddUser}
+              />
 
-              <div className="space-y-2">
-                {isSearching && (
-                  <div className="flex items-center justify-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                    <span className="ml-2 text-sm text-muted-foreground">Buscando...</span>
-                  </div>
-                )}
-                
-                {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground">No se encontraron usuarios</p>
-                  </div>
-                )}
-                
-                {searchResults.map((user) => (
-                  <Card key={user.id}>
-                    <CardContent className="flex items-center justify-between p-4">
-                      <div className="flex items-center gap-4">
-                        <Avatar>
-                          <AvatarFallback>
-                            {user.username.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{user.username}</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleAddUser(user)}
-                      >
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Agregar
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="font-medium mb-2">Miembros seleccionados:</h3>
-                {selectedUsers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Aún no has seleccionado ningún miembro</p>
-                ) : (
-                  selectedUsers.map((user) => (
-                    <Card key={user.id}>
-                      <CardContent className="flex items-center justify-between p-4">
-                        <div className="flex items-center gap-4">
-                          <Avatar>
-                            <AvatarFallback>
-                              {user.username.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <span className="font-medium block">{user.username}</span>
-                            <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                              {user.role === "admin" ? "Administrador" : "Miembro"}
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => toggleUserRole(user.id)}
-                          >
-                            <Shield className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleRemoveUser(user.id)}
-                          >
-                            <UserMinus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
+              <MembersList 
+                members={selectedUsers}
+                onToggleRole={toggleUserRole}
+                onRemoveMember={handleRemoveUser}
+              />
             </CardContent>
           </Card>
         </div>
