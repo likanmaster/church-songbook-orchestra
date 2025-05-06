@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -88,7 +87,7 @@ const GroupCreate = () => {
           const userData = doc.data();
           results.push({
             id: doc.id,
-            username: (userData.username as string) || "",
+            username: userData.username ? String(userData.username) : "",
           });
         }
       });
@@ -270,7 +269,6 @@ const GroupCreate = () => {
                 />
               </div>
 
-              {/* Lista de usuarios encontrados */}
               <div className="space-y-2">
                 {isSearching && (
                   <div className="flex items-center justify-center py-4">
@@ -309,7 +307,6 @@ const GroupCreate = () => {
                 ))}
               </div>
 
-              {/* Lista de miembros seleccionados */}
               <div className="space-y-2">
                 <h3 className="font-medium mb-2">Miembros seleccionados:</h3>
                 {selectedUsers.length === 0 ? (
