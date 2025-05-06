@@ -2,8 +2,8 @@
 import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag, Eye, EyeOff, Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Song } from "@/types";
-import { useState } from "react";
+import { Song, Group } from "@/types";
+import { useState, useEffect } from "react";
 import KeyTransposer from "./KeyTransposer";
 import {
   DropdownMenu,
@@ -30,6 +30,8 @@ import {
 import { deleteSong } from "@/services/song-service";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth-context";
+import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, setDoc, serverTimestamp } from "firebase/firestore";
+import { db, GROUPS_COLLECTION, USERS_COLLECTION } from "@/hooks/use-auth-context";
 
 interface SongViewProps {
   song: Song;
@@ -42,20 +44,96 @@ const SongView = ({ song }: SongViewProps) => {
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
   const { user } = useAuth();
+  const [userGroups, setUserGroups] = useState<Group[]>([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
   
-  // Datos de ejemplo para grupos
-  const userGroups = [
-    { id: "1", name: "Equipo de Alabanza" },
-    { id: "2", name: "Grupo de Jóvenes" },
-    { id: "3", name: "Coro Principal" },
-  ];
+  // Cargar los grupos del usuario
+  useEffect(() => {
+    const fetchUserGroups = async () => {
+      if (!user?.id) return;
+      
+      setIsLoadingGroups(true);
+      try {
+        // Obtener grupos donde el usuario es miembro
+        const groupsQuery = query(
+          collection(db, GROUPS_COLLECTION),
+          where("members", "array-contains", { userId: user.id })
+        );
+        
+        const querySnapshot = await getDocs(groupsQuery);
+        const groups: Group[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          const groupData = doc.data() as Omit<Group, 'id'>;
+          groups.push({
+            id: doc.id,
+            ...groupData
+          } as Group);
+        });
+        
+        setUserGroups(groups);
+      } catch (error) {
+        console.error("Error al obtener grupos:", error);
+      } finally {
+        setIsLoadingGroups(false);
+      }
+    };
+    
+    fetchUserGroups();
+  }, [user?.id]);
 
-  const handleShareWithGroup = (groupId: string) => {
-    // Aquí iría la lógica para compartir la canción con el grupo
-    toast({
-      title: "Canción compartida",
-      description: `La canción ha sido compartida con el grupo exitosamente.`,
-    });
+  const handleShareWithGroup = async (groupId: string, groupName: string) => {
+    if (!user?.id || !song.id) return;
+    
+    try {
+      // 1. Actualizar el array sharedSongs del grupo
+      const groupRef = doc(db, GROUPS_COLLECTION, groupId);
+      await updateDoc(groupRef, {
+        sharedSongs: arrayUnion(song.id),
+        updatedAt: serverTimestamp()
+      });
+      
+      // 2. Enviar notificación a todos los miembros del grupo (excepto al usuario actual)
+      // Obtener los miembros del grupo
+      const groupDoc = await getDocs(query(collection(db, GROUPS_COLLECTION), where("id", "==", groupId)));
+      let members: {userId: string, username: string}[] = [];
+      
+      groupDoc.forEach((doc) => {
+        const groupData = doc.data();
+        members = groupData.members || [];
+      });
+      
+      // Enviar notificación a cada miembro excepto al usuario actual
+      for (const member of members) {
+        if (member.userId !== user.id) {
+          // Crear una notificación en la colección de notificaciones del usuario
+          const notificationId = `song_${song.id}_${Date.now()}`;
+          await setDoc(doc(db, USERS_COLLECTION, member.userId, 'notifications', notificationId), {
+            type: 'new_song',
+            groupId: groupId,
+            groupName: groupName,
+            from: user.username,
+            fromId: user.id,
+            contentId: song.id,
+            contentName: song.title,
+            createdAt: serverTimestamp(),
+            read: false
+          });
+        }
+      }
+      
+      toast({
+        title: "Canción compartida",
+        description: `La canción ha sido compartida con el grupo "${groupName}" exitosamente.`,
+      });
+    } catch (error) {
+      console.error("Error al compartir la canción:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo compartir la canción con el grupo.",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleDelete = async () => {
@@ -190,15 +268,26 @@ const SongView = ({ song }: SongViewProps) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              {userGroups.map((group) => (
-                <DropdownMenuItem
-                  key={group.id}
-                  onClick={() => handleShareWithGroup(group.id)}
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  {group.name}
-                </DropdownMenuItem>
-              ))}
+              {isLoadingGroups ? (
+                <div className="flex items-center justify-center p-4">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                  <span className="ml-2 text-sm">Cargando grupos...</span>
+                </div>
+              ) : userGroups.length > 0 ? (
+                userGroups.map((group) => (
+                  <DropdownMenuItem
+                    key={group.id}
+                    onClick={() => handleShareWithGroup(group.id, group.name)}
+                  >
+                    <Users className="mr-2 h-4 w-4" />
+                    {group.name}
+                  </DropdownMenuItem>
+                ))
+              ) : (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  No perteneces a ningún grupo
+                </div>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           

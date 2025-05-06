@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Calendar, Music, Clock, Edit, ArrowLeft, Users, Printer } from "lucide-react";
@@ -8,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
-import { Service, Song, ServiceSection } from "@/types";
+import { Service, Song, ServiceSection, Group } from "@/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +18,8 @@ import { Share } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth-context";
 import { getAllSongs } from "@/services/song-service";
 import { getServiceById } from "@/services/service-service";
+import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, setDoc, serverTimestamp } from "firebase/firestore";
+import { db, GROUPS_COLLECTION, USERS_COLLECTION } from "@/hooks/use-auth-context";
 
 interface ServiceSongDetails extends Song {
   order: number;
@@ -41,18 +42,96 @@ const ServiceDetail = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [songsLibrary, setSongsLibrary] = useState<Song[]>([]);
+  const [userGroups, setUserGroups] = useState<Group[]>([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
 
-  const userGroups = [
-    { id: "1", name: "Equipo de Alabanza" },
-    { id: "2", name: "Grupo de Jóvenes" },
-    { id: "3", name: "Coro Principal" },
-  ];
+  // Cargar los grupos del usuario
+  useEffect(() => {
+    const fetchUserGroups = async () => {
+      if (!user?.id) return;
+      
+      setIsLoadingGroups(true);
+      try {
+        // Obtener grupos donde el usuario es miembro
+        const groupsQuery = query(
+          collection(db, GROUPS_COLLECTION),
+          where("members", "array-contains", { userId: user.id })
+        );
+        
+        const querySnapshot = await getDocs(groupsQuery);
+        const groups: Group[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          const groupData = doc.data() as Omit<Group, 'id'>;
+          groups.push({
+            id: doc.id,
+            ...groupData
+          } as Group);
+        });
+        
+        setUserGroups(groups);
+      } catch (error) {
+        console.error("Error al obtener grupos:", error);
+      } finally {
+        setIsLoadingGroups(false);
+      }
+    };
+    
+    fetchUserGroups();
+  }, [user?.id]);
 
-  const handleShareWithGroup = (groupId: string) => {
-    toast({
-      title: "Servicio compartido",
-      description: `El servicio ha sido compartido con el grupo exitosamente.`,
-    });
+  const handleShareWithGroup = async (groupId: string, groupName: string) => {
+    if (!user?.id || !service || !id) return;
+    
+    try {
+      // 1. Actualizar el array sharedServices del grupo
+      const groupRef = doc(db, GROUPS_COLLECTION, groupId);
+      await updateDoc(groupRef, {
+        sharedServices: arrayUnion(id),
+        updatedAt: serverTimestamp()
+      });
+      
+      // 2. Enviar notificación a todos los miembros del grupo (excepto al usuario actual)
+      // Obtener los miembros del grupo
+      const groupDoc = await getDocs(query(collection(db, GROUPS_COLLECTION), where("id", "==", groupId)));
+      let members: {userId: string, username: string}[] = [];
+      
+      groupDoc.forEach((doc) => {
+        const groupData = doc.data();
+        members = groupData.members || [];
+      });
+      
+      // Enviar notificación a cada miembro excepto al usuario actual
+      for (const member of members) {
+        if (member.userId !== user.id) {
+          // Crear una notificación en la colección de notificaciones del usuario
+          const notificationId = `service_${id}_${Date.now()}`;
+          await setDoc(doc(db, USERS_COLLECTION, member.userId, 'notifications', notificationId), {
+            type: 'new_service',
+            groupId: groupId,
+            groupName: groupName,
+            from: user.username,
+            fromId: user.id,
+            contentId: id,
+            contentName: service.title,
+            createdAt: serverTimestamp(),
+            read: false
+          });
+        }
+      }
+      
+      toast({
+        title: "Servicio compartido",
+        description: `El servicio ha sido compartido con el grupo "${groupName}" exitosamente.`,
+      });
+    } catch (error) {
+      console.error("Error al compartir el servicio:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo compartir el servicio con el grupo.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handlePrint = () => {
@@ -342,15 +421,26 @@ const ServiceDetail = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                {userGroups.map((group) => (
-                  <DropdownMenuItem
-                    key={group.id}
-                    onClick={() => handleShareWithGroup(group.id)}
-                  >
-                    <Users className="mr-2 h-4 w-4" />
-                    {group.name}
-                  </DropdownMenuItem>
-                ))}
+                {isLoadingGroups ? (
+                  <div className="flex items-center justify-center p-4">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                    <span className="ml-2 text-sm">Cargando grupos...</span >
+                  </div>
+                ) : userGroups.length > 0 ? (
+                  userGroups.map((group) => (
+                    <DropdownMenuItem
+                      key={group.id}
+                      onClick={() => handleShareWithGroup(group.id, group.name)}
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      {group.name}
+                    </DropdownMenuItem>
+                  ))
+                ) : (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    No perteneces a ningún grupo
+                  </div>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             
