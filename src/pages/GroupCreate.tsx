@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -73,7 +72,6 @@ const GroupCreate = () => {
     try {
       const usersCollection = collection(db, USERS_COLLECTION);
       // Búsqueda por nombre de usuario
-      // Fix error: Using the primitive string instead of String object
       const q = query(
         usersCollection,
         where("username", ">=", query),
@@ -87,10 +85,9 @@ const GroupCreate = () => {
         // No incluir al usuario actual ni a los usuarios ya seleccionados
         if (doc.id !== user?.id && !selectedUsers.some(selected => selected.id === doc.id)) {
           const userData = doc.data();
-          // Fix error: Adding type assertion to userData.username
           results.push({
             id: doc.id,
-            username: typeof userData.username === 'string' ? userData.username : "",
+            username: userData.username as string || "",
           });
         }
       });
