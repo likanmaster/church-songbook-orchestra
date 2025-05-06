@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Search, UserPlus, ArrowLeft } from "lucide-react";
@@ -132,7 +131,7 @@ const GroupInvite = () => {
         id: `m${Date.now()}`, // ID único para el miembro
         userId: userId,
         username: username,
-        role: 'member',
+        role: 'member' as 'member', // Type assertion to ensure it's the correct literal type
         joinedAt: new Date().toISOString(),
       };
       

@@ -88,7 +88,7 @@ const GroupCreate = () => {
           const userData = doc.data();
           results.push({
             id: doc.id,
-            username: userData.username || "",
+            username: userData.username as string || "",
           });
         }
       });
@@ -157,7 +157,7 @@ const GroupCreate = () => {
             id: `m${Date.now()}`,
             userId: user.id,
             username: user.username,
-            role: 'admin',
+            role: 'admin' as 'admin',
             joinedAt: new Date().toISOString(),
           },
           // Añadir los miembros seleccionados
