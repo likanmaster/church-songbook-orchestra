@@ -22,11 +22,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
+import { db, GROUPS_COLLECTION, USERS_COLLECTION } from "@/hooks/use-auth-context";
+import { collection, addDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore"; 
+import { useAuth } from "@/hooks/use-auth-context";
 
 const formSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -37,6 +40,7 @@ type FormData = z.infer<typeof formSchema>;
 
 const GroupCreate = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedUsers, setSelectedUsers] = useState<Array<{
     id: string;
@@ -44,6 +48,11 @@ const GroupCreate = () => {
     role: "admin" | "member";
   }>>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Array<{
+    id: string;
+    username: string;
+  }>>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -53,22 +62,53 @@ const GroupCreate = () => {
     },
   });
 
-  // Datos de ejemplo - esto se reemplazará con datos reales de la base de datos
-  const users = [
-    { id: "2", username: "Juan" },
-    { id: "3", username: "María" },
-    { id: "4", username: "Ana" },
-    { id: "5", username: "Carlos" },
-  ];
-
-  const filteredUsers = users.filter(
-    (user) =>
-      !selectedUsers.some((selected) => selected.id === user.id) &&
-      user.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const searchUsers = async (query: string) => {
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setIsSearching(true);
+    
+    try {
+      const usersCollection = collection(db, USERS_COLLECTION);
+      // Búsqueda por nombre de usuario
+      const q = query(
+        usersCollection,
+        where("username", ">=", query),
+        where("username", "<=", query + "\uf8ff")
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const results: Array<{ id: string; username: string }> = [];
+      
+      querySnapshot.forEach((doc) => {
+        // No incluir al usuario actual ni a los usuarios ya seleccionados
+        if (doc.id !== user?.id && !selectedUsers.some(selected => selected.id === doc.id)) {
+          const userData = doc.data();
+          results.push({
+            id: doc.id,
+            username: userData.username || "",
+          });
+        }
+      });
+      
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Error al buscar usuarios:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron buscar usuarios",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const handleAddUser = (user: { id: string; username: string }) => {
     setSelectedUsers([...selectedUsers, { ...user, role: "member" }]);
+    setSearchResults(searchResults.filter(u => u.id !== user.id));
   };
 
   const handleRemoveUser = (userId: string) => {
@@ -85,7 +125,16 @@ const GroupCreate = () => {
     );
   };
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para crear un grupo",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (selectedUsers.length === 0) {
       toast({
         description: "Debes agregar al menos un miembro al grupo",
@@ -93,14 +142,53 @@ const GroupCreate = () => {
       });
       return;
     }
-
-    // Aquí iría la lógica para crear el grupo
-    console.log({ ...data, members: selectedUsers });
-    toast({
-      title: "Grupo creado",
-      description: "El grupo se ha creado exitosamente",
-    });
-    navigate("/groups");
+    
+    try {
+      // Crear el grupo en Firestore
+      const groupData = {
+        name: data.name,
+        description: data.description || "",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        createdBy: user.id,
+        members: [
+          // Añadir al creador como administrador
+          {
+            id: `m${Date.now()}`,
+            userId: user.id,
+            username: user.username,
+            role: 'admin',
+            joinedAt: new Date().toISOString(),
+          },
+          // Añadir los miembros seleccionados
+          ...selectedUsers.map(selected => ({
+            id: `m${Date.now()}-${selected.id}`,
+            userId: selected.id,
+            username: selected.username,
+            role: selected.role,
+            joinedAt: new Date().toISOString(),
+          })),
+        ],
+        sharedSongs: [],
+        sharedServices: [],
+      };
+      
+      const docRef = await addDoc(collection(db, GROUPS_COLLECTION), groupData);
+      
+      toast({
+        title: "Grupo creado",
+        description: "El grupo se ha creado exitosamente",
+      });
+      
+      navigate(`/groups/${docRef.id}`);
+    } catch (error) {
+      console.error("Error al crear el grupo:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo crear el grupo",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -174,14 +262,30 @@ const GroupCreate = () => {
                 <Input
                   placeholder="Buscar usuarios..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    searchUsers(e.target.value);
+                  }}
                   className="pl-9"
                 />
               </div>
 
               {/* Lista de usuarios encontrados */}
               <div className="space-y-2">
-                {filteredUsers.map((user) => (
+                {isSearching && (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    <span className="ml-2 text-sm text-muted-foreground">Buscando...</span>
+                  </div>
+                )}
+                
+                {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-muted-foreground">No se encontraron usuarios</p>
+                  </div>
+                )}
+                
+                {searchResults.map((user) => (
                   <Card key={user.id}>
                     <CardContent className="flex items-center justify-between p-4">
                       <div className="flex items-center gap-4">
@@ -208,41 +312,45 @@ const GroupCreate = () => {
               {/* Lista de miembros seleccionados */}
               <div className="space-y-2">
                 <h3 className="font-medium mb-2">Miembros seleccionados:</h3>
-                {selectedUsers.map((user) => (
-                  <Card key={user.id}>
-                    <CardContent className="flex items-center justify-between p-4">
-                      <div className="flex items-center gap-4">
-                        <Avatar>
-                          <AvatarFallback>
-                            {user.username.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <span className="font-medium block">{user.username}</span>
-                          <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                            {user.role === "admin" ? "Administrador" : "Miembro"}
-                          </Badge>
+                {selectedUsers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Aún no has seleccionado ningún miembro</p>
+                ) : (
+                  selectedUsers.map((user) => (
+                    <Card key={user.id}>
+                      <CardContent className="flex items-center justify-between p-4">
+                        <div className="flex items-center gap-4">
+                          <Avatar>
+                            <AvatarFallback>
+                              {user.username.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <span className="font-medium block">{user.username}</span>
+                            <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                              {user.role === "admin" ? "Administrador" : "Miembro"}
+                            </Badge>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => toggleUserRole(user.id)}
-                        >
-                          <Shield className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleRemoveUser(user.id)}
-                        >
-                          <UserMinus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => toggleUserRole(user.id)}
+                          >
+                            <Shield className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleRemoveUser(user.id)}
+                          >
+                            <UserMinus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
