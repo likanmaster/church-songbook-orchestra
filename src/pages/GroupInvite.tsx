@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Search, UserPlus, ArrowLeft } from "lucide-react";
@@ -17,14 +18,13 @@ import { db, GROUPS_COLLECTION, USERS_COLLECTION } from "@/hooks/use-auth-contex
 import { getDocs, doc, getDoc, updateDoc, arrayUnion, collection, query, where, addDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/hooks/use-auth-context";
 import { Group, User } from "@/types";
+import UserSearch from "@/components/groups/UserSearch";
 
 const GroupInvite = () => {
   const { id } = useParams();
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [users, setUsers] = useState<User[]>([]);
   const [group, setGroup] = useState<Group | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -77,49 +77,7 @@ const GroupInvite = () => {
     fetchGroup();
   }, [id, user, toast, navigate]);
 
-  useEffect(() => {
-    const searchUsers = async () => {
-      if (searchQuery.length < 2) {
-        setUsers([]);
-        return;
-      }
-      
-      try {
-        const usersCollection = collection(db, USERS_COLLECTION);
-        // Búsqueda por nombre de usuario
-        const q = query(
-          usersCollection,
-          where("username", ">=", searchQuery),
-          where("username", "<=", searchQuery + "\uf8ff")
-        );
-        
-        const querySnapshot = await getDocs(q);
-        const usersData: User[] = [];
-        
-        querySnapshot.forEach((doc) => {
-          // No incluir al usuario actual ni a los miembros ya existentes
-          if (doc.id !== user?.id && !group?.members.some(member => member.userId === doc.id)) {
-            const userData = doc.data();
-            usersData.push({
-              id: doc.id,
-              email: userData.email || "",
-              username: userData.username || "",
-              createdAt: userData.createdAt?.toDate()?.toISOString() || "",
-              updatedAt: userData.updatedAt?.toDate()?.toISOString() || "",
-            });
-          }
-        });
-        
-        setUsers(usersData);
-      } catch (error) {
-        console.error("Error al buscar usuarios:", error);
-      }
-    };
-    
-    searchUsers();
-  }, [searchQuery, group, user]);
-
-  const handleInvite = async (userId: string, username: string) => {
+  const handleInvite = async (newUser: { id: string; username: string }) => {
     if (!id || !group) return;
     
     try {
@@ -129,8 +87,8 @@ const GroupInvite = () => {
       // Crear un nuevo miembro
       const newMember = {
         id: `m${Date.now()}`, // ID único para el miembro
-        userId: userId,
-        username: username,
+        userId: newUser.id,
+        username: newUser.username,
         role: 'member' as 'member', // Type assertion to ensure it's the correct literal type
         joinedAt: new Date().toISOString(),
       };
@@ -149,11 +107,8 @@ const GroupInvite = () => {
       
       toast({
         title: "Éxito",
-        description: `${username} ha sido añadido al grupo`,
+        description: `${newUser.username} ha sido añadido al grupo`,
       });
-      
-      // Eliminar el usuario de la lista de búsqueda
-      setUsers(users.filter(u => u.id !== userId));
     } catch (error) {
       console.error("Error al invitar al usuario:", error);
       toast({
@@ -194,61 +149,16 @@ const GroupInvite = () => {
           <h1 className="text-3xl font-bold">Invitar Miembros</h1>
         </div>
 
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Buscar usuarios por nombre..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
         <div className="grid gap-4">
-          {users.length === 0 && searchQuery.length >= 2 && (
-            <div className="text-center py-12">
-              <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-medium mb-2">No se encontraron usuarios</h3>
-              <p className="text-muted-foreground">
-                Intenta con un término de búsqueda diferente
-              </p>
-            </div>
+          {group && (
+            <UserSearch 
+              currentUserId={user?.id}
+              selectedUserIds={group.members.map(member => member.userId)}
+              onAddUser={handleInvite}
+              groupId={group.id}
+              groupName={group.name}
+            />
           )}
-          
-          {searchQuery.length < 2 && (
-            <div className="text-center py-12">
-              <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-medium mb-2">Buscar usuarios</h3>
-              <p className="text-muted-foreground">
-                Escribe al menos 2 caracteres para buscar usuarios
-              </p>
-            </div>
-          )}
-
-          {users.map((user) => (
-            <Card key={user.id}>
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-4">
-                  <Avatar>
-                    <AvatarFallback>
-                      {user.username.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold">{user.username}</h3>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
-                  </div>
-                </div>
-                <Button
-                  variant="secondary"
-                  onClick={() => handleInvite(user.id, user.username)}
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Invitar
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
         </div>
       </main>
     </div>

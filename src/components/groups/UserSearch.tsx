@@ -6,9 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserPlus } from "lucide-react";
-import { collection, query, where, getDocs, DocumentData } from "firebase/firestore";
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  doc, 
+  setDoc, 
+  DocumentData,
+  serverTimestamp
+} from "firebase/firestore";
 import { db, USERS_COLLECTION } from "@/hooks/use-auth-context";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/use-auth-context";
 
 interface User {
   id: string;
@@ -19,13 +29,22 @@ interface UserSearchProps {
   currentUserId: string | undefined;
   selectedUserIds: string[];
   onAddUser: (user: User) => void;
+  groupName?: string;
+  groupId?: string;
 }
 
-const UserSearch = ({ currentUserId, selectedUserIds, onAddUser }: UserSearchProps) => {
+const UserSearch = ({ 
+  currentUserId, 
+  selectedUserIds, 
+  onAddUser, 
+  groupName, 
+  groupId 
+}: UserSearchProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (searchQuery.length >= 2) {
@@ -79,6 +98,40 @@ const UserSearch = ({ currentUserId, selectedUserIds, onAddUser }: UserSearchPro
     }
   };
 
+  const handleAddUser = async (selectedUser: User) => {
+    // Llamar a la función del componente padre para añadir el usuario
+    onAddUser(selectedUser);
+    
+    // Si estamos en el contexto de un grupo existente (GroupInvite), enviar notificación
+    if (groupId && groupName && user) {
+      try {
+        // Crear una notificación en la colección de notificaciones del usuario invitado
+        const notificationId = `invite_${Date.now()}`;
+        await setDoc(doc(db, USERS_COLLECTION, selectedUser.id, 'notifications', notificationId), {
+          type: 'group_invite',
+          groupId: groupId,
+          groupName: groupName,
+          from: user.username,
+          fromId: user.id,
+          createdAt: serverTimestamp(),
+          read: false
+        });
+        
+        toast({
+          title: "Invitación enviada",
+          description: `${selectedUser.username} ha sido invitado al grupo`,
+        });
+      } catch (error) {
+        console.error("Error al enviar notificación:", error);
+        toast({
+          title: "Error",
+          description: "No se pudo enviar la invitación",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -119,7 +172,7 @@ const UserSearch = ({ currentUserId, selectedUserIds, onAddUser }: UserSearchPro
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => onAddUser(user)}
+                onClick={() => handleAddUser(user)}
               >
                 <UserPlus className="h-4 w-4 mr-2" />
                 Agregar
