@@ -88,7 +88,7 @@ const GroupCreate = () => {
           const userData = doc.data();
           results.push({
             id: doc.id,
-            username: userData.username as string || "",
+            username: (userData.username as string) || "",
           });
         }
       });
