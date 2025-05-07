@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Navbar from "@/components/layout/Navbar";
 import { useAuth } from "@/hooks/use-auth-context";
 import { db, SONGS_COLLECTION, SERVICES_COLLECTION } from "@/hooks/use-auth-context";
-import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, getDoc, doc } from "firebase/firestore";
 import { Service, Song } from "@/types";
 
 const Index = () => {
@@ -24,11 +24,11 @@ const Index = () => {
       
       setIsLoadingSongs(true);
       try {
+        // Modificado para evitar usar orderBy que requiere un índice compuesto
         const songsQuery = query(
           collection(db, SONGS_COLLECTION),
           where("userId", "==", user.id),
-          orderBy("updatedAt", "desc"),
-          limit(3)
+          limit(10) // Obtenemos más canciones para luego ordenarlas manualmente
         );
 
         const querySnapshot = await getDocs(songsQuery);
@@ -57,7 +57,13 @@ const Index = () => {
           });
         });
         
-        setRecentSongs(songs);
+        // Ordenamos las canciones manualmente por fecha de actualización (más recientes primero)
+        songs.sort((a, b) => 
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+        
+        // Limitamos a 3 canciones después de ordenar
+        setRecentSongs(songs.slice(0, 3));
       } catch (error) {
         console.error("Error al cargar canciones recientes:", error);
       } finally {
@@ -70,11 +76,11 @@ const Index = () => {
       
       setIsLoadingServices(true);
       try {
+        // Modificado para evitar usar orderBy que requiere un índice compuesto
         const servicesQuery = query(
           collection(db, SERVICES_COLLECTION),
           where("userId", "==", user.id),
-          orderBy("updatedAt", "desc"),
-          limit(3)
+          limit(10) // Obtenemos más servicios para luego ordenarlos manualmente
         );
 
         const querySnapshot = await getDocs(servicesQuery);
@@ -99,7 +105,13 @@ const Index = () => {
           });
         });
         
-        setRecentServices(services);
+        // Ordenamos los servicios manualmente por fecha de actualización (más recientes primero)
+        services.sort((a, b) => 
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+        
+        // Limitamos a 3 servicios después de ordenar
+        setRecentServices(services.slice(0, 3));
       } catch (error) {
         console.error("Error al cargar servicios recientes:", error);
       } finally {
