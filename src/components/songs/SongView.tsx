@@ -1,4 +1,3 @@
-
 import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag, Eye, EyeOff, Trash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,33 +53,43 @@ const SongView = ({ song }: SongViewProps) => {
       
       setIsLoadingGroups(true);
       try {
-        // Obtener grupos donde el usuario es miembro
-        const groupsQuery = query(
-          collection(db, GROUPS_COLLECTION),
-          where("members", "array-contains", { userId: user.id })
-        );
+        // Obtener todos los grupos para luego filtrarlos
+        const groupsCollection = collection(db, GROUPS_COLLECTION);
+        const querySnapshot = await getDocs(groupsCollection);
         
-        const querySnapshot = await getDocs(groupsQuery);
         const groups: Group[] = [];
         
         querySnapshot.forEach((doc) => {
-          const groupData = doc.data() as Omit<Group, 'id'>;
-          groups.push({
-            id: doc.id,
-            ...groupData
-          } as Group);
+          const groupData = doc.data();
+          
+          // Verificar si el usuario es miembro (filtrando por userId)
+          const isMember = Array.isArray(groupData.members) && 
+                          groupData.members.some((member: any) => member.userId === user.id);
+          
+          if (isMember) {
+            groups.push({
+              id: doc.id,
+              ...groupData,
+              createdAt: groupData.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+              updatedAt: groupData.updatedAt?.toDate()?.toISOString() || new Date().toISOString(),
+            } as Group);
+          }
         });
         
         setUserGroups(groups);
       } catch (error) {
         console.error("Error al obtener grupos:", error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los grupos",
+        });
       } finally {
         setIsLoadingGroups(false);
       }
     };
     
     fetchUserGroups();
-  }, [user?.id]);
+  }, [user?.id, toast]);
 
   const handleShareWithGroup = async (groupId: string, groupName: string) => {
     if (!user?.id || !song.id) return;
