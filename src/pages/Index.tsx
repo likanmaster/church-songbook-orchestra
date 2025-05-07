@@ -42,11 +42,12 @@ const Index = () => {
             author: songData.author || "",
             key: songData.key || "",
             lyrics: songData.lyrics || "",
-            chords: songData.chords || null,
+            // Remove the chords property as it's not in the Song type
             tempo: songData.tempo || null,
             timeSignature: songData.timeSignature || null,
             capo: songData.capo || null,
             tags: songData.tags || [],
+            categories: songData.categories || [],
             createdAt: songData.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
             updatedAt: songData.updatedAt?.toDate()?.toISOString() || new Date().toISOString(),
             userId: songData.userId || "",
