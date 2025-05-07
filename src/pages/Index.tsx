@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Music, FileText, Clock, Search, Star } from "lucide-react";
@@ -42,9 +41,8 @@ const Index = () => {
             author: songData.author || "",
             key: songData.key || "",
             lyrics: songData.lyrics || "",
-            // Remove the chords property as it's not in the Song type
+            // Remove the timeSignature property as it's not in the Song type
             tempo: songData.tempo || null,
-            timeSignature: songData.timeSignature || null,
             capo: songData.capo || null,
             tags: songData.tags || [],
             categories: songData.categories || [],
