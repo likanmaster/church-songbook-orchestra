@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Music, FileText, Clock, Search, Star } from "lucide-react";
@@ -41,15 +42,18 @@ const Index = () => {
             author: songData.author || "",
             key: songData.key || "",
             lyrics: songData.lyrics || "",
-            // Remove the timeSignature property as it's not in the Song type
             tempo: songData.tempo || null,
-            capo: songData.capo || null,
             tags: songData.tags || [],
             categories: songData.categories || [],
             createdAt: songData.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
             updatedAt: songData.updatedAt?.toDate()?.toISOString() || new Date().toISOString(),
             userId: songData.userId || "",
-            isFavorite: songData.isFavorite || false
+            isFavorite: songData.isFavorite || false,
+            style: songData.style || null,
+            duration: songData.duration || null,
+            notes: songData.notes || null,
+            isPublic: songData.isPublic || false,
+            sharedWith: songData.sharedWith || []
           });
         });
         
