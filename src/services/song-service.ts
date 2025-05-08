@@ -1,4 +1,3 @@
-
 import { db, SONGS_COLLECTION, USERS_COLLECTION } from "@/hooks/use-auth-context";
 import { Song, Category } from "@/types";
 import { 
@@ -39,7 +38,8 @@ const convertFirestoreDataToSong = (id: string, data: any): Song => {
     updatedAt: data.updatedAt?.toDate()?.toISOString() || new Date().toISOString(),
     userId: data.userId || "",
     isPublic: data.isPublic || false,
-    sharedWith: data.sharedWith || []
+    sharedWith: data.sharedWith || [],
+    usageCount: data.usageCount || 0
   };
 };
 
@@ -119,7 +119,8 @@ export const createSong = async (songData: Omit<Song, 'id' | 'createdAt' | 'upda
       title: songData.title || "", // Ensure title is defined
       userId: userId,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      usageCount: 0 // Inicializar contador de uso
     };
     
     const docRef = await addDoc(collection(db, SONGS_COLLECTION), songToSave);
@@ -150,7 +151,8 @@ export const createSong = async (songData: Omit<Song, 'id' | 'createdAt' | 'upda
       updatedAt: new Date().toISOString(),
       userId: userId,
       isPublic: songData.isPublic || false,
-      sharedWith: songData.sharedWith || []
+      sharedWith: songData.sharedWith || [],
+      usageCount: 0
     };
     
     return newSong;
@@ -177,7 +179,7 @@ export const updateSong = async (id: string, songData: Partial<Song>, userId: st
     }
     
     // Eliminar propiedades que no queremos actualizar en Firestore
-    const { id: _, createdAt, updatedAt, userId: __, ...dataToUpdate } = songData as any;
+    const { id: _, createdAt, updatedAt, userId: __, usageCount, ...dataToUpdate } = songData as any;
     
     // Preparamos los datos, eliminando propiedades undefined o null
     const cleanedData = Object.fromEntries(
@@ -214,7 +216,8 @@ export const updateSong = async (id: string, songData: Partial<Song>, userId: st
       updatedAt: new Date().toISOString(),
       userId: currentData?.userId || userId,
       isPublic: songData.isPublic !== undefined ? songData.isPublic : currentData?.isPublic || false,
-      sharedWith: songData.sharedWith !== undefined ? songData.sharedWith : currentData?.sharedWith || []
+      sharedWith: songData.sharedWith !== undefined ? songData.sharedWith : currentData?.sharedWith || [],
+      usageCount: currentData?.usageCount || 0
     };
     
     return updatedSong;
@@ -282,6 +285,56 @@ export const toggleSongFavorite = async (id: string, isFavorite: boolean, userId
     
   } catch (error) {
     console.error("Error al actualizar favorito:", error);
+    throw error;
+  }
+};
+
+// Actualizar accesibilidad de la canción (pública/privada)
+export const updateSongPublicStatus = async (id: string, isPublic: boolean, userId: string): Promise<void> => {
+  try {
+    const songRef = doc(db, SONGS_COLLECTION, id);
+    
+    // Verificar que el usuario sea propietario de la canción
+    const songDoc = await getDoc(songRef);
+    if (!songDoc.exists()) {
+      throw new Error("La canción no existe");
+    }
+    
+    const songOwner = songDoc.data().userId;
+    if (songOwner !== userId) {
+      throw new Error("No tienes permiso para modificar esta canción");
+    }
+    
+    await updateDoc(songRef, { 
+      isPublic: isPublic,
+      updatedAt: serverTimestamp()
+    });
+    
+  } catch (error) {
+    console.error("Error al actualizar estado público:", error);
+    throw error;
+  }
+};
+
+// Incrementar el contador de uso de la canción
+export const incrementSongUsageCount = async (id: string): Promise<void> => {
+  try {
+    const songRef = doc(db, SONGS_COLLECTION, id);
+    
+    const songDoc = await getDoc(songRef);
+    if (!songDoc.exists()) {
+      throw new Error("La canción no existe");
+    }
+    
+    const currentUsageCount = songDoc.data().usageCount || 0;
+    
+    await updateDoc(songRef, { 
+      usageCount: currentUsageCount + 1,
+      updatedAt: serverTimestamp()
+    });
+    
+  } catch (error) {
+    console.error("Error al incrementar contador de uso:", error);
     throw error;
   }
 };

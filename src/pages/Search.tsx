@@ -1,6 +1,7 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search as SearchIcon, Filter, Clock, Music, Sliders, X } from "lucide-react";
+import { Search as SearchIcon, Filter, Clock, Music, Sliders, X, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -30,9 +31,11 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import { Song, SongFilter } from "@/types";
 import { useAuth } from "@/hooks/use-auth-context";
+import { getAllSongs, toggleSongFavorite } from "@/services/song-service";
 
 const SearchPage = () => {
   // Estado para filtros
@@ -48,117 +51,49 @@ const SearchPage = () => {
   const [selectedTempo, setSelectedTempo] = useState<string>("");
   const [selectedStyle, setSelectedStyle] = useState<string>("");
   const [durationRange, setDurationRange] = useState<[number, number]>([0, 600]);
-  const { user } = useAuth();
-  const currentUserId = user?.id || "default-user";
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showOnlyPublic, setShowOnlyPublic] = useState(true);
   
-  // Datos de ejemplo
-  const [songs] = useState<Song[]>([
-    {
-      id: "1",
-      title: "Amazing Grace",
-      author: "John Newton",
-      key: "G",
-      tempo: 70,
-      style: "Himno",
-      duration: 240,
-      categories: ["Adoración", "Clásicos"],
-      tags: ["gracia", "redención"],
-      isFavorite: true,
-      createdAt: "2023-01-15T10:30:00Z",
-      updatedAt: "2023-01-15T10:30:00Z",
-      userId: currentUserId
-    },
-    {
-      id: "2",
-      title: "How Great is Our God",
-      author: "Chris Tomlin",
-      key: "C",
-      tempo: 80,
-      style: "Contemporáneo",
-      duration: 300,
-      categories: ["Alabanza"],
-      tags: ["adoración", "majestad"],
-      isFavorite: false,
-      createdAt: "2023-02-10T14:45:00Z",
-      updatedAt: "2023-02-10T14:45:00Z",
-      userId: currentUserId
-    },
-    {
-      id: "3",
-      title: "10,000 Reasons",
-      author: "Matt Redman",
-      key: "E",
-      tempo: 72,
-      style: "Contemporáneo",
-      duration: 330,
-      categories: ["Adoración", "Contemporáneo"],
-      tags: ["alabanza", "adoración"],
-      isFavorite: true,
-      createdAt: "2023-03-05T09:20:00Z",
-      updatedAt: "2023-03-05T09:20:00Z",
-      userId: currentUserId
-    },
-    {
-      id: "4",
-      title: "Dios Incomparable",
-      author: "Marcos Witt",
-      key: "D",
-      tempo: 65,
-      style: "Alabanza",
-      duration: 270,
-      categories: ["Alabanza", "Español"],
-      tags: ["adoración", "majestad"],
-      isFavorite: false,
-      createdAt: "2023-04-20T16:30:00Z",
-      updatedAt: "2023-04-20T16:30:00Z",
-      userId: currentUserId
-    },
-    {
-      id: "5",
-      title: "What A Beautiful Name",
-      author: "Hillsong Worship",
-      key: "D",
-      tempo: 68,
-      style: "Contemporáneo",
-      duration: 290,
-      categories: ["Adoración"],
-      tags: ["jesús", "nombre"],
-      isFavorite: true,
-      createdAt: "2023-05-12T11:25:00Z",
-      updatedAt: "2023-05-12T11:25:00Z",
-      userId: currentUserId
-    },
-    {
-      id: "6",
-      title: "Reckless Love",
-      author: "Cory Asbury",
-      key: "Bb",
-      tempo: 82,
-      style: "Contemporáneo",
-      duration: 340,
-      categories: ["Adoración"],
-      tags: ["amor", "gracia"],
-      isFavorite: false,
-      createdAt: "2023-06-08T09:40:00Z",
-      updatedAt: "2023-06-08T09:40:00Z",
-      userId: currentUserId
-    },
-    {
-      id: "7",
-      title: "Agnus Dei",
-      author: "Michael W. Smith",
-      key: "G",
-      tempo: 70,
-      style: "Himno Contemporáneo",
-      duration: 220,
-      categories: ["Adoración", "Clásicos"],
-      tags: ["cordero", "santo"],
-      isFavorite: true,
-      createdAt: "2023-06-22T16:15:00Z",
-      updatedAt: "2023-06-22T16:15:00Z",
-      userId: currentUserId
-    },
-  ]);
+  const { user } = useAuth();
+  const currentUserId = user?.id || "";
+  
+  useEffect(() => {
+    loadSongs();
+  }, [user?.id]);
+
+  const loadSongs = async () => {
+    setIsLoading(true);
+    try {
+      if (user?.id) {
+        const songsData = await getAllSongs(user.id);
+        setSongs(songsData);
+      }
+    } catch (error) {
+      console.error("Error al cargar canciones:", error);
+      toast("Error al cargar canciones");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleFavorite = async (song: Song) => {
+    if (!user?.id) return;
+    
+    try {
+      await toggleSongFavorite(song.id, !song.isFavorite, user.id);
+      setSongs(songs.map(s => 
+        s.id === song.id ? {...s, isFavorite: !s.isFavorite} : s
+      ));
+      toast(song.isFavorite 
+        ? "Canción eliminada de favoritos" 
+        : "Canción añadida a favoritos"
+      );
+    } catch (error) {
+      console.error("Error al actualizar favorito:", error);
+      toast("Error al actualizar favorito");
+    }
+  };
 
   const categories = [
     "Alabanza",
@@ -227,13 +162,26 @@ const SearchPage = () => {
   };
   
   const filteredSongs = songs.filter((song) => {
+    // Solo mostrar canciones públicas o del usuario actual
+    if (showOnlyPublic) {
+      const isAccessible = 
+        song.isPublic || 
+        song.userId === currentUserId || 
+        (song.sharedWith && song.sharedWith.includes(currentUserId));
+        
+      if (!isAccessible) return false;
+    } else {
+      // Si no muestra solo públicas, entonces solo mostrar las propias
+      if (song.userId !== currentUserId) return false;
+    }
+    
     const matchesSearch = !filters.search || 
       song.title.toLowerCase().includes(filters.search.toLowerCase()) || 
-      (song.author?.toLowerCase().includes(filters.search.toLowerCase()) || false) ||
-      song.tags.some(tag => tag.toLowerCase().includes(filters.search.toLowerCase()));
+      (song.author?.toLowerCase()?.includes(filters.search.toLowerCase()) || false) ||
+      (song.tags?.some(tag => tag.toLowerCase().includes(filters.search.toLowerCase())) || false);
       
     const matchesCategories = !filters.categories?.length || 
-      filters.categories.some(cat => song.categories.includes(cat));
+      (song.categories && filters.categories.some(cat => song.categories.includes(cat)));
       
     const matchesKey = !filters.key || song.key === filters.key;
     
@@ -260,6 +208,20 @@ const SearchPage = () => {
            matchesTempo && matchesStyle && matchesDuration && matchesFavorite;
   });
 
+  // Ordenamos por popularidad (usageCount)
+  const sortedSongs = [...filteredSongs].sort((a, b) => {
+    // Primero por popularidad (si existe)
+    const usageCountA = a.usageCount || 0;
+    const usageCountB = b.usageCount || 0;
+    
+    if (usageCountB !== usageCountA) {
+      return usageCountB - usageCountA;
+    }
+    
+    // Si hay empate, ordena por título
+    return a.title.localeCompare(b.title);
+  });
+
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -276,6 +238,22 @@ const SearchPage = () => {
     if (filters.minDuration !== 0 || filters.maxDuration !== 600) count++;
     return count;
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Cargando canciones...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -319,6 +297,19 @@ const SearchPage = () => {
               </SheetHeader>
               
               <div className="mt-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium">Mostrar Canciones Públicas</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Incluye canciones públicas y compartidas contigo
+                    </p>
+                  </div>
+                  <Switch
+                    checked={showOnlyPublic}
+                    onCheckedChange={setShowOnlyPublic}
+                  />
+                </div>
+                
                 <div>
                   <h3 className="text-sm font-medium mb-3">Categorías</h3>
                   <div className="flex flex-wrap gap-2">
@@ -342,7 +333,7 @@ const SearchPage = () => {
                       <SelectValue placeholder="Cualquier tonalidad" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="any">Cualquier tonalidad</SelectItem>
+                      <SelectItem value="">Cualquier tonalidad</SelectItem>
                       {keyOptions.map((key) => (
                         <SelectItem key={key} value={key}>{key}</SelectItem>
                       ))}
@@ -357,7 +348,7 @@ const SearchPage = () => {
                       <SelectValue placeholder="Cualquier tempo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="any">Cualquier tempo</SelectItem>
+                      <SelectItem value="">Cualquier tempo</SelectItem>
                       {tempoOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                       ))}
@@ -372,7 +363,7 @@ const SearchPage = () => {
                       <SelectValue placeholder="Cualquier estilo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="any">Cualquier estilo</SelectItem>
+                      <SelectItem value="">Cualquier estilo</SelectItem>
                       {styleOptions.map((style) => (
                         <SelectItem key={style} value={style}>{style}</SelectItem>
                       ))}
@@ -508,68 +499,87 @@ const SearchPage = () => {
           </div>
         )}
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredSongs.map((song) => (
-            <Card key={song.id} className="overflow-hidden">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <CardTitle>{song.title}</CardTitle>
-                  {song.isFavorite && (
-                    <Badge variant="outline" className="bg-song-100 text-song-700 dark:bg-song-900 dark:text-song-300">
-                      ★ Favorito
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">{song.author}</p>
-              </CardHeader>
-              
-              <CardContent className="pb-2">
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {song.categories.map((category, index) => (
-                    <Badge key={index} variant="secondary">{category}</Badge>
-                  ))}
-                </div>
-                
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div className="bg-secondary rounded-md p-1.5 text-center">
-                    <span className="block text-xs text-muted-foreground">Tonalidad</span>
-                    <span className="font-medium">{song.key || "-"}</span>
-                  </div>
-                  <div className="bg-secondary rounded-md p-1.5 text-center">
-                    <span className="block text-xs text-muted-foreground">Tempo</span>
-                    <span className="font-medium">{song.tempo || "-"} bpm</span>
-                  </div>
-                  <div className="bg-secondary rounded-md p-1.5 text-center">
-                    <span className="block text-xs text-muted-foreground">Duración</span>
-                    <span className="font-medium">
-                      {song.duration ? `${Math.floor(song.duration / 60)}:${String(song.duration % 60).padStart(2, '0')}` : "-"}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-              
-              <CardFooter>
-                <Button asChild variant="default" className="w-full">
-                  <Link to={`/songs/${song.id}`}>
-                    <Music className="mr-2 h-4 w-4" />
-                    Ver Canción
-                  </Link>
+        <div className="mb-8">
+          <h2 className="text-xl font-medium mb-4">Canciones Populares</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sortedSongs.length > 0 ? (
+              sortedSongs.map((song) => (
+                <Card key={song.id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-lg">
+                        {song.title}
+                        {song.isPublic && (
+                          <Badge variant="outline" className="ml-2 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                            Público
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-1"
+                        onClick={() => toggleFavorite(song)}
+                      >
+                        <Star className={`h-4 w-4 ${song.isFavorite ? 'fill-yellow-500 text-yellow-500' : ''}`} />
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{song.author}</p>
+                  </CardHeader>
+                  
+                  <CardContent className="pb-2">
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {song.categories.map((category, index) => (
+                        <Badge key={index} variant="secondary">{category}</Badge>
+                      ))}
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div className="bg-secondary rounded-md p-1.5 text-center">
+                        <span className="block text-xs text-muted-foreground">Tonalidad</span>
+                        <span className="font-medium">{song.key || "-"}</span>
+                      </div>
+                      <div className="bg-secondary rounded-md p-1.5 text-center">
+                        <span className="block text-xs text-muted-foreground">Tempo</span>
+                        <span className="font-medium">{song.tempo || "-"} bpm</span>
+                      </div>
+                      <div className="bg-secondary rounded-md p-1.5 text-center">
+                        <span className="block text-xs text-muted-foreground">Duración</span>
+                        <span className="font-medium">
+                          {song.duration ? formatDuration(song.duration) : "-"}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {song.usageCount !== undefined && song.usageCount > 0 && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Usado en {song.usageCount} {song.usageCount === 1 ? 'servicio' : 'servicios'}
+                      </p>
+                    )}
+                  </CardContent>
+                  
+                  <CardFooter>
+                    <Button asChild variant="default" className="w-full">
+                      <Link to={`/songs/${song.id}`}>
+                        <Music className="mr-2 h-4 w-4" />
+                        Ver Canción
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8">
+                <SearchIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-medium mb-2">No se encontraron canciones</h3>
+                <p className="text-muted-foreground mb-6">Intenta con diferentes filtros o términos de búsqueda</p>
+                <Button onClick={handleResetFilters}>
+                  Limpiar Filtros
                 </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-        
-        {filteredSongs.length === 0 && (
-          <div className="text-center py-12">
-            <SearchIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-medium mb-2">No se encontraron canciones</h3>
-            <p className="text-muted-foreground mb-6">Intenta con diferentes filtros o términos de búsqueda</p>
-            <Button onClick={handleResetFilters}>
-              Limpiar Filtros
-            </Button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </main>
     </div>
   );
