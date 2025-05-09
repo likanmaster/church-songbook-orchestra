@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import { Song } from "@/types";
-import { getAllSongs, deleteSong, toggleSongFavorite } from "@/services/song-service";
+import { getAllSongs, deleteSong, toggleSongFavorite, updateSongPublicStatus } from "@/services/song-service";
 import { useAuth } from "@/hooks/use-auth-context";
 
 const SongsPage = () => {
@@ -63,6 +63,27 @@ const SongsPage = () => {
     }
   };
 
+  const togglePublic = async (song: Song, isPublic: boolean) => {
+    try {
+      await updateSongPublicStatus(song.id, isPublic, user?.id || '');
+      setSongs(
+        songs.map((s) =>
+          s.id === song.id ? { ...s, isPublic } : s
+        )
+      );
+      toast({
+        title: "Success",
+        description: `Song is now ${isPublic ? 'public' : 'private'}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update public status",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDelete = async (songId: string) => {
     try {
       await deleteSong(songId, user?.id || '');
@@ -83,6 +104,20 @@ const SongsPage = () => {
   const filteredSongs = songs.filter((song) =>
     song.title.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Helper to render star rating
+  const renderStarRating = (rating: number = 0) => {
+    return (
+      <div className="flex items-center mt-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star 
+            key={star} 
+            className={`h-3 w-3 ${star <= rating ? "fill-yellow-500 text-yellow-500" : "text-gray-300"}`} 
+          />
+        ))}
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -144,38 +179,56 @@ const SongsPage = () => {
                   <Card key={song.id} className="overflow-hidden">
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
-                        <CardTitle className="text-lg">{song.title}</CardTitle>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => toggleFavorite(song, !song.isFavorite)}
-                        >
-                          {song.isFavorite ? (
-                            <Star className="text-yellow-500 h-4 w-4" />
-                          ) : (
-                            <Star className="h-4 w-4" />
-                          )}
-                        </Button>
+                        <div>
+                          <CardTitle className="text-lg">{song.title}</CardTitle>
+                          <p className="text-sm text-muted-foreground">{song.author}</p>
+                          {renderStarRating(song.rating || 0)}
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => toggleFavorite(song, !song.isFavorite)}
+                          >
+                            {song.isFavorite ? (
+                              <Star className="text-yellow-500 h-4 w-4 fill-yellow-500" />
+                            ) : (
+                              <Star className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">{song.author}</p>
                     </CardHeader>
                     
                     <CardContent className="pt-0">
-                      {song.key && (
-                        <Badge variant="outline" className="mr-2">
-                          Tonalidad: {song.key}
-                        </Badge>
-                      )}
-                      {song.categories && song.categories.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {song.categories.map((category, idx) => (
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center">
+                          <Label htmlFor={`public-${song.id}`} className="mr-2 text-xs">
+                            {song.isPublic ? "Pública" : "Privada"}
+                          </Label>
+                          <Switch 
+                            id={`public-${song.id}`}
+                            checked={song.isPublic || false}
+                            onCheckedChange={(checked) => togglePublic(song, checked)}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {song.key && (
+                          <Badge variant="outline" className="text-xs">
+                            {song.key}
+                          </Badge>
+                        )}
+                        {song.categories && song.categories.length > 0 && (
+                          song.categories.map((category, idx) => (
                             <Badge key={idx} variant="secondary" className="text-xs">
                               {category}
                             </Badge>
-                          ))}
-                        </div>
-                      )}
+                          ))
+                        )}
+                      </div>
                     </CardContent>
                     
                     <CardFooter className="flex justify-between pt-2">

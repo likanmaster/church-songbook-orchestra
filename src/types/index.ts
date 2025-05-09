@@ -21,6 +21,7 @@ export interface Song {
   userId: string; // ID del usuario propietario
   isPublic?: boolean; // Indica si la canción es pública (visible para todos)
   sharedWith?: string[]; // IDs de usuarios con los que se ha compartido
+  rating?: number; // Rating from 0 to 5 stars
 }
 
 export interface Attachment {

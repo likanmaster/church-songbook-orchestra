@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Music, X, Plus, Save, Pencil, BookOpen, Loader2 } from "lucide-react";
@@ -34,6 +33,7 @@ import { Song } from "@/types";
 import ChordButtonGroup from "@/components/songs/ChordButtonGroup";
 import { getSongById, createSong, updateSong, getAllCategories } from "@/services/song-service";
 import { useAuth } from "@/hooks/use-auth-context";
+import { Switch, Label, Star } from "@radix-ui/react";
 
 // Define the SongFormData type
 interface SongFormData {
@@ -218,8 +218,10 @@ const SongForm = () => {
     createdAt: song?.createdAt || new Date().toISOString(),
     updatedAt: song?.updatedAt || new Date().toISOString(),
     userId: user?.id || '',
-    isPublic: false,
-    sharedWith: []
+    isPublic: song?.isPublic || false,
+    sharedWith: song?.sharedWith || [],
+    usageCount: song?.usageCount || 0,
+    rating: song?.rating || 0
   };
 
   if (isLoading) {
@@ -485,6 +487,70 @@ const SongForm = () => {
                           </FormItem>
                         )}
                       />
+                      
+                      {/* Nuevo switch para visibilidad pública */}
+                      <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <Label className="text-base">Canción pública</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Permite que otros usuarios encuentren esta canción
+                          </p>
+                        </div>
+                        <Switch 
+                          checked={song?.isPublic || false}
+                          onCheckedChange={(checked) => {
+                            if (id && user) {
+                              updateSongPublicStatus(id, checked, user.id)
+                                .then(() => {
+                                  if (song) {
+                                    setSong({...song, isPublic: checked});
+                                  }
+                                  toast.success(checked ? "Canción hecha pública" : "Canción hecha privada");
+                                })
+                                .catch(error => {
+                                  toast.error("Error al cambiar visibilidad: " + error.message);
+                                });
+                            }
+                          }}
+                        />
+                      </div>
+                      
+                      {/* Sistema de puntuación con estrellas */}
+                      <div className="rounded-lg border p-4">
+                        <Label className="text-base mb-2 block">Puntuación</Label>
+                        <div className="flex items-center space-x-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              className="text-2xl focus:outline-none"
+                              onClick={() => {
+                                if (id && user) {
+                                  updateSongRating(id, star, user.id)
+                                    .then(() => {
+                                      if (song) {
+                                        setSong({...song, rating: star});
+                                      }
+                                      toast.success(`Puntuación actualizada: ${star} estrellas`);
+                                    })
+                                    .catch(error => {
+                                      toast.error("Error al actualizar puntuación: " + error.message);
+                                    });
+                                }
+                              }}
+                            >
+                              {song?.rating && star <= song.rating ? (
+                                <Star className="h-6 w-6 fill-yellow-500 text-yellow-500" />
+                              ) : (
+                                <Star className="h-6 w-6 text-muted-foreground" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          {song?.rating ? `${song.rating} de 5 estrellas` : "Sin puntuación"}
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                   

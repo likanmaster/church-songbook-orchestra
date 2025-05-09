@@ -39,7 +39,8 @@ const convertFirestoreDataToSong = (id: string, data: any): Song => {
     userId: data.userId || "",
     isPublic: data.isPublic || false,
     sharedWith: data.sharedWith || [],
-    usageCount: data.usageCount || 0
+    usageCount: data.usageCount || 0,
+    rating: data.rating || 0
   };
 };
 
@@ -120,7 +121,8 @@ export const createSong = async (songData: Omit<Song, 'id' | 'createdAt' | 'upda
       userId: userId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      usageCount: 0 // Inicializar contador de uso
+      usageCount: 0, // Inicializar contador de uso
+      rating: songData.rating || 0 // Initialize rating
     };
     
     const docRef = await addDoc(collection(db, SONGS_COLLECTION), songToSave);
@@ -152,7 +154,8 @@ export const createSong = async (songData: Omit<Song, 'id' | 'createdAt' | 'upda
       userId: userId,
       isPublic: songData.isPublic || false,
       sharedWith: songData.sharedWith || [],
-      usageCount: 0
+      usageCount: 0,
+      rating: songData.rating || 0
     };
     
     return newSong;
@@ -217,7 +220,8 @@ export const updateSong = async (id: string, songData: Partial<Song>, userId: st
       userId: currentData?.userId || userId,
       isPublic: songData.isPublic !== undefined ? songData.isPublic : currentData?.isPublic || false,
       sharedWith: songData.sharedWith !== undefined ? songData.sharedWith : currentData?.sharedWith || [],
-      usageCount: currentData?.usageCount || 0
+      usageCount: currentData?.usageCount || 0,
+      rating: currentData?.rating || 0
     };
     
     return updatedSong;
@@ -335,6 +339,42 @@ export const incrementSongUsageCount = async (id: string): Promise<void> => {
     
   } catch (error) {
     console.error("Error al incrementar contador de uso:", error);
+    throw error;
+  }
+};
+
+// Actualizar puntuación de la canción
+export const updateSongRating = async (id: string, rating: number, userId: string): Promise<void> => {
+  try {
+    if (rating < 0 || rating > 5) {
+      throw new Error("La puntuación debe estar entre 0 y 5");
+    }
+    
+    const songRef = doc(db, SONGS_COLLECTION, id);
+    
+    // Verificar que la canción existe
+    const songDoc = await getDoc(songRef);
+    if (!songDoc.exists()) {
+      throw new Error("La canción no existe");
+    }
+    
+    // Cualquiera puede puntuar una canción pública o compartida con él
+    const songData = songDoc.data();
+    const canRate = songData.isPublic || 
+                    songData.userId === userId || 
+                    (songData.sharedWith && songData.sharedWith.includes(userId));
+                    
+    if (!canRate) {
+      throw new Error("No tienes permiso para puntuar esta canción");
+    }
+    
+    await updateDoc(songRef, { 
+      rating: rating,
+      updatedAt: serverTimestamp()
+    });
+    
+  } catch (error) {
+    console.error("Error al actualizar puntuación:", error);
     throw error;
   }
 };
