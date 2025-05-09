@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Music, X, Plus, Save, Pencil, BookOpen, Loader2 } from "lucide-react";
+import { Music, X, Plus, Save, Pencil, BookOpen, Loader2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,9 +31,16 @@ import Navbar from "@/components/layout/Navbar";
 import SongView from "@/components/songs/SongView";
 import { Song } from "@/types";
 import ChordButtonGroup from "@/components/songs/ChordButtonGroup";
-import { getSongById, createSong, updateSong, getAllCategories } from "@/services/song-service";
+import { 
+  getSongById, 
+  createSong, 
+  updateSong, 
+  getAllCategories,
+  updateSongPublicStatus,
+  updateSongRating
+} from "@/services/song-service";
 import { useAuth } from "@/hooks/use-auth-context";
-import { Switch, Label, Star } from "@radix-ui/react";
+import { Switch, Label } from "@/components/ui/switch";
 
 // Define the SongFormData type
 interface SongFormData {
