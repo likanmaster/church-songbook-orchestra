@@ -40,7 +40,8 @@ import {
   updateSongRating
 } from "@/services/song-service";
 import { useAuth } from "@/hooks/use-auth-context";
-import { Switch, Label } from "@/components/ui/switch";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 // Define the SongFormData type
 interface SongFormData {
