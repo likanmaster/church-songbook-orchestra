@@ -25,12 +25,13 @@ import GroupCreate from "./pages/GroupCreate";
 import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
+const basename = import.meta.env.BASE_URL;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="system">
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={basename}>
           <TooltipProvider>
             <Toaster />
             <Sonner />
