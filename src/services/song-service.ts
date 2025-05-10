@@ -401,3 +401,89 @@ export const getAllCategories = async (): Promise<Category[]> => {
     ];
   }
 };
+
+// Copiar una canción pública o compartida a la cuenta del usuario
+export const copySongToUserAccount = async (songId: string, userId: string): Promise<Song> => {
+  try {
+    // Obtener la canción original
+    const originalSongDoc = await getDoc(doc(db, SONGS_COLLECTION, songId));
+    
+    if (!originalSongDoc.exists()) {
+      throw new Error("La canción no existe");
+    }
+    
+    const originalSongData = originalSongDoc.data();
+    
+    // Verificar que la canción es pública o está compartida con el usuario
+    const canCopy = originalSongData.isPublic || 
+                    (originalSongData.sharedWith && originalSongData.sharedWith.includes(userId));
+    
+    if (!canCopy) {
+      throw new Error("No tienes permiso para copiar esta canción");
+    }
+    
+    // Crear una nueva canción basada en la original pero con el nuevo usuario como propietario
+    const newSongData = {
+      title: `${originalSongData.title} (Copia)`,
+      author: originalSongData.author,
+      key: originalSongData.key,
+      tempo: originalSongData.tempo,
+      style: originalSongData.style,
+      duration: originalSongData.duration,
+      lyrics: originalSongData.lyrics,
+      notes: originalSongData.notes || "Canción copiada de " + (originalSongData.author || "autor desconocido"),
+      categories: originalSongData.categories || [],
+      tags: originalSongData.tags || [],
+      isFavorite: false,
+      userId,
+      isPublic: false, // Por defecto, la copia es privada
+      sharedWith: [],
+      attachments: originalSongData.attachments || [],
+      usageCount: 0, // Reiniciar el contador de uso
+      rating: 0, // Reiniciar la puntuación
+    };
+    
+    // Crear la nueva canción
+    const docRef = await addDoc(collection(db, SONGS_COLLECTION), {
+      ...newSongData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    
+    // Actualizar el array de canciones del usuario
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    await updateDoc(userRef, {
+      songs: arrayUnion(docRef.id),
+      updatedAt: serverTimestamp()
+    });
+    
+    // Construimos un objeto Song con los datos que acabamos de guardar
+    const newSong: Song = {
+      id: docRef.id,
+      title: newSongData.title,
+      lyrics: newSongData.lyrics,
+      author: newSongData.author,
+      key: newSongData.key,
+      tempo: newSongData.tempo,
+      style: newSongData.style,
+      duration: newSongData.duration,
+      notes: newSongData.notes,
+      attachments: newSongData.attachments,
+      categories: newSongData.categories,
+      tags: newSongData.tags,
+      isFavorite: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      userId,
+      isPublic: false,
+      sharedWith: [],
+      usageCount: 0,
+      rating: 0
+    };
+    
+    return newSong;
+  } catch (error) {
+    console.error("Error al copiar canción:", error);
+    throw error;
+  }
+};

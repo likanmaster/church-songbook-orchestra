@@ -23,161 +23,175 @@ import GroupDetail from "./pages/GroupDetail";
 import GroupInvite from "./pages/GroupInvite";
 import GroupCreate from "./pages/GroupCreate";
 import Settings from "./pages/Settings";
+import { useMemo } from "react";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="system">
-      <AuthProvider>
-        <BrowserRouter>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              <Route 
-                path="/" 
-                element={
-                  <AuthGuard>
-                    <Index />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/songs" 
-                element={
-                  <AuthGuard>
-                    <Songs />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/songs/new" 
-                element={
-                  <AuthGuard>
-                    <SongForm />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/songs/:id" 
-                element={
-                  <AuthGuard>
-                    <SongForm />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/services" 
-                element={
-                  <AuthGuard>
-                    <Services />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/services/new" 
-                element={
-                  <AuthGuard>
-                    <ServiceForm />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/services/:id" 
-                element={
-                  <AuthGuard>
-                    <ServiceDetail />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/services/:id/edit" 
-                element={
-                  <AuthGuard>
-                    <ServiceForm />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/search" 
-                element={
-                  <AuthGuard>
-                    <Search />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/login" 
-                element={
-                  <AuthGuard requireAuth={false}>
-                    <Login />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/register" 
-                element={
-                  <AuthGuard requireAuth={false}>
-                    <Register />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/profile" 
-                element={
-                  <AuthGuard>
-                    <Profile />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/groups" 
-                element={
-                  <AuthGuard>
-                    <Groups />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/groups/:id" 
-                element={
-                  <AuthGuard>
-                    <GroupDetail />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/groups/:id/invite" 
-                element={
-                  <AuthGuard>
-                    <GroupInvite />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/groups/new" 
-                element={
-                  <AuthGuard>
-                    <GroupCreate />
-                  </AuthGuard>
-                } 
-              />
-              <Route 
-                path="/settings" 
-                element={
-                  <AuthGuard>
-                    <Settings />
-                  </AuthGuard>
-                } 
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </TooltipProvider>
-        </BrowserRouter>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Determinar si la aplicación se está ejecutando en un subdirectorio
+  // Por ejemplo, si está en /cancionero/ en el servidor web
+  const basename = useMemo(() => {
+    const path = window.location.pathname;
+    // Si estamos en un subdirectorio como /cancionero/, extraemos ese subdirectorio
+    if (path.match(/^\/[\w-]+\/?$/)) {
+      return path.replace(/\/$/, ''); // elimina la barra final si existe
+    }
+    return '';
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="system">
+        <AuthProvider>
+          <BrowserRouter basename={basename}>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                <Route 
+                  path="/" 
+                  element={
+                    <AuthGuard>
+                      <Index />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/songs" 
+                  element={
+                    <AuthGuard>
+                      <Songs />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/songs/new" 
+                  element={
+                    <AuthGuard>
+                      <SongForm />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/songs/:id" 
+                  element={
+                    <AuthGuard>
+                      <SongForm />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/services" 
+                  element={
+                    <AuthGuard>
+                      <Services />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/services/new" 
+                  element={
+                    <AuthGuard>
+                      <ServiceForm />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/services/:id" 
+                  element={
+                    <AuthGuard>
+                      <ServiceDetail />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/services/:id/edit" 
+                  element={
+                    <AuthGuard>
+                      <ServiceForm />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/search" 
+                  element={
+                    <AuthGuard>
+                      <Search />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/login" 
+                  element={
+                    <AuthGuard requireAuth={false}>
+                      <Login />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/register" 
+                  element={
+                    <AuthGuard requireAuth={false}>
+                      <Register />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/profile" 
+                  element={
+                    <AuthGuard>
+                      <Profile />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/groups" 
+                  element={
+                    <AuthGuard>
+                      <Groups />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/groups/:id" 
+                  element={
+                    <AuthGuard>
+                      <GroupDetail />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/groups/:id/invite" 
+                  element={
+                    <AuthGuard>
+                      <GroupInvite />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/groups/new" 
+                  element={
+                    <AuthGuard>
+                      <GroupCreate />
+                    </AuthGuard>
+                  } 
+                />
+                <Route 
+                  path="/settings" 
+                  element={
+                    <AuthGuard>
+                      <Settings />
+                    </AuthGuard>
+                  } 
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </TooltipProvider>
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search as SearchIcon, Filter, Clock, Music, Sliders, X, Star } from "lucide-react";
+import { Search as SearchIcon, Filter, Clock, Music, Sliders, X, Star, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,7 +34,7 @@ import { toast } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import { Song, SongFilter } from "@/types";
 import { useAuth } from "@/hooks/use-auth-context";
-import { getAllSongs, toggleSongFavorite } from "@/services/song-service";
+import { getAllSongs, toggleSongFavorite, copySongToUserAccount } from "@/services/song-service";
 
 const SearchPage = () => {
   // Estado para filtros
@@ -92,6 +91,23 @@ const SearchPage = () => {
     } catch (error) {
       console.error("Error al actualizar favorito:", error);
       toast("Error al actualizar favorito");
+    }
+  };
+  
+  const copySong = async (song: Song) => {
+    if (!user?.id) return;
+    
+    try {
+      setIsLoading(true);
+      await copySongToUserAccount(song.id, user.id);
+      toast.success("Canción copiada a tu biblioteca");
+      // Recargar canciones para mostrar la nueva copia
+      await loadSongs();
+    } catch (error) {
+      console.error("Error al copiar canción:", error);
+      toast.error("Error al copiar canción");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -558,13 +574,26 @@ const SearchPage = () => {
                     )}
                   </CardContent>
                   
-                  <CardFooter>
+                  <CardFooter className="flex flex-col gap-2">
                     <Button asChild variant="default" className="w-full">
                       <Link to={`/songs/${song.id}`}>
                         <Music className="mr-2 h-4 w-4" />
                         Ver Canción
                       </Link>
                     </Button>
+                    
+                    {/* Botón para copiar canción (solo visible para canciones públicas o compartidas que no son del usuario) */}
+                    {(song.isPublic || (song.sharedWith && song.sharedWith.includes(currentUserId))) && 
+                     song.userId !== currentUserId && (
+                      <Button 
+                        variant="outline" 
+                        className="w-full" 
+                        onClick={() => copySong(song)}
+                      >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copiar a mi biblioteca
+                      </Button>
+                    )}
                   </CardFooter>
                 </Card>
               ))
