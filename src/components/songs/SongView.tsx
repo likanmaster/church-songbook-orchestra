@@ -1,5 +1,5 @@
 
-import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag, Eye, EyeOff, Trash } from "lucide-react";
+import { Music, Heart, Clock, User, Brush, Music2, FileText, StickyNote, Tag, Eye, EyeOff, Trash, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Song, Group } from "@/types";
@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deleteSong } from "@/services/song-service";
+import { deleteSong, copySongToUserAccount } from "@/services/song-service";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth-context";
 import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, setDoc, serverTimestamp } from "firebase/firestore";
@@ -43,10 +43,16 @@ const SongView = ({ song }: SongViewProps) => {
   const [showChords, setShowChords] = useState<boolean>(true);
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
   const { user } = useAuth();
   const [userGroups, setUserGroups] = useState<Group[]>([]);
   const [isLoadingGroups, setIsLoadingGroups] = useState(false);
   
+  // Check if the song can be copied (it's public or shared with the user)
+  const canCopySong = song.isPublic || (Array.isArray(song.sharedWith) && song.sharedWith.includes(user?.id || ""));
+  // Check if the user is the owner of the song
+  const isOwnSong = song.userId === user?.id;
+
   // Cargar los grupos del usuario
   useEffect(() => {
     const fetchUserGroups = async () => {
@@ -143,6 +149,36 @@ const SongView = ({ song }: SongViewProps) => {
         description: "No se pudo compartir la canción con el grupo.",
         variant: "destructive",
       });
+    }
+  };
+  
+  const handleCopySong = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para copiar canciones",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsCopying(true);
+    try {
+      const copiedSong = await copySongToUserAccount(song.id, user.id);
+      toast({
+        title: "Canción copiada",
+        description: "La canción ha sido copiada a tu biblioteca exitosamente."
+      });
+      navigate(`/songs/${copiedSong.id}`);
+    } catch (error) {
+      console.error("Error al copiar la canción:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo copiar la canción. Intente nuevamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCopying(false);
     }
   };
   
@@ -243,32 +279,45 @@ const SongView = ({ song }: SongViewProps) => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <Trash className="mr-2 h-4 w-4" />
-                Eliminar
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta acción no se puede deshacer. Esta acción eliminará permanentemente la canción "{song.title}" y sus datos asociados.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={handleDelete} 
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {isOwnSong && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash className="mr-2 h-4 w-4" />
+                  Eliminar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Esta acción eliminará permanentemente la canción "{song.title}" y sus datos asociados.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleDelete} 
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          
+          {!isOwnSong && canCopySong && (
+            <Button 
+              variant="secondary" 
+              onClick={handleCopySong}
+              disabled={isCopying}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              {isCopying ? 'Copiando...' : 'Copiar a mi biblioteca'}
+            </Button>
+          )}
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

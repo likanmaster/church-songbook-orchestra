@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Calendar, Music, Clock, Edit, ArrowLeft, Users, Printer } from "lucide-react";
+import { Calendar, Music, Clock, Edit, ArrowLeft, Users, Printer, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Share } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth-context";
-import { getAllSongs } from "@/services/song-service";
+import { getAllSongs, copySongToUserAccount } from "@/services/song-service";
 import { getServiceById } from "@/services/service-service";
 import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, setDoc, serverTimestamp } from "firebase/firestore";
 import { db, GROUPS_COLLECTION, USERS_COLLECTION } from "@/hooks/use-auth-context";
@@ -44,6 +44,7 @@ const ServiceDetail = () => {
   const [songsLibrary, setSongsLibrary] = useState<Song[]>([]);
   const [userGroups, setUserGroups] = useState<Group[]>([]);
   const [isLoadingGroups, setIsLoadingGroups] = useState(false);
+  const [copyingSongId, setCopyingSongId] = useState<string | null>(null);
 
   // Cargar los grupos del usuario
   useEffect(() => {
@@ -141,6 +142,38 @@ const ServiceDetail = () => {
         description: "No se pudo compartir el servicio con el grupo.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleCopySong = async (songId: string) => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para copiar canciones",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCopyingSongId(songId);
+    try {
+      const copiedSong = await copySongToUserAccount(songId, user.id);
+      toast({
+        title: "Canción copiada",
+        description: "La canción ha sido copiada a tu biblioteca exitosamente."
+      });
+      
+      // Update the songs library with the new song
+      setSongsLibrary(prev => [...prev, copiedSong]);
+    } catch (error) {
+      console.error("Error al copiar la canción:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo copiar la canción. Intente nuevamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setCopyingSongId(null);
     }
   };
 
@@ -511,12 +544,31 @@ const ServiceDetail = () => {
                           </div>
                         </div>
                         
-                        <Link to={`/songs/${(item.content as ServiceSongDetails).id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Music className="mr-1 h-4 w-4" />
-                            Ver Canción
-                          </Button>
-                        </Link>
+                        <div className="flex gap-2">
+                          <Link to={`/songs/${(item.content as ServiceSongDetails).id}`}>
+                            <Button variant="ghost" size="sm">
+                              <Music className="mr-1 h-4 w-4" />
+                              Ver Canción
+                            </Button>
+                          </Link>
+                          
+                          {/* Add copy button if the song is public or shared and not owned by the user */}
+                          {item.type === 'song' && 
+                           (item.content as ServiceSongDetails).userId !== user?.id &&
+                           ((item.content as ServiceSongDetails).isPublic || 
+                            (Array.isArray((item.content as ServiceSongDetails).sharedWith) && 
+                             (item.content as ServiceSongDetails).sharedWith.includes(user?.id || ""))) && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleCopySong((item.content as ServiceSongDetails).id)}
+                              disabled={copyingSongId === (item.content as ServiceSongDetails).id}
+                            >
+                              <Copy className="mr-1 h-4 w-4" />
+                              {copyingSongId === (item.content as ServiceSongDetails).id ? 'Copiando...' : 'Copiar'}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     )}
                     

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Music, Edit, Trash2, Star } from "lucide-react";
+import { Plus, Music, Edit, Trash2, Star, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import { Song } from "@/types";
-import { getAllSongs, deleteSong, toggleSongFavorite, updateSongPublicStatus } from "@/services/song-service";
+import { getAllSongs, deleteSong, toggleSongFavorite, updateSongPublicStatus, copySongToUserAccount } from "@/services/song-service";
 import { useAuth } from "@/hooks/use-auth-context";
 
 const SongsPage = () => {
@@ -21,6 +21,7 @@ const SongsPage = () => {
   const [search, setSearch] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
+  const [copyingSong, setCopyingSong] = useState<string | null>(null);
 
   useEffect(() => {
     loadSongs();
@@ -98,6 +99,36 @@ const SongsPage = () => {
         description: "Failed to delete song",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleCopySong = async (songId: string) => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para copiar canciones",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCopyingSong(songId);
+    try {
+      const copiedSong = await copySongToUserAccount(songId, user.id);
+      setSongs([...songs, copiedSong]);
+      toast({
+        title: "Canción copiada",
+        description: "La canción ha sido copiada a tu biblioteca exitosamente."
+      });
+    } catch (error) {
+      console.error("Error al copiar la canción:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo copiar la canción. Intente nuevamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setCopyingSong(null);
     }
   };
 
@@ -203,16 +234,22 @@ const SongsPage = () => {
                     
                     <CardContent className="pt-0">
                       <div className="flex justify-between items-center mb-2">
-                        <div className="flex items-center">
-                          <Label htmlFor={`public-${song.id}`} className="mr-2 text-xs">
-                            {song.isPublic ? "Pública" : "Privada"}
-                          </Label>
-                          <Switch 
-                            id={`public-${song.id}`}
-                            checked={song.isPublic || false}
-                            onCheckedChange={(checked) => togglePublic(song, checked)}
-                          />
-                        </div>
+                        {song.userId === user?.id ? (
+                          <div className="flex items-center">
+                            <Label htmlFor={`public-${song.id}`} className="mr-2 text-xs">
+                              {song.isPublic ? "Pública" : "Privada"}
+                            </Label>
+                            <Switch 
+                              id={`public-${song.id}`}
+                              checked={song.isPublic || false}
+                              onCheckedChange={(checked) => togglePublic(song, checked)}
+                            />
+                          </div>
+                        ) : (
+                          <Badge variant={song.isPublic ? "secondary" : "outline"} className="text-xs">
+                            {song.isPublic ? "Pública" : "Compartida"}
+                          </Badge>
+                        )}
                       </div>
                       
                       <div className="flex flex-wrap gap-1 mt-2">
@@ -239,21 +276,40 @@ const SongsPage = () => {
                             Ver
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link to={`/songs/${song.id}/edit`}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                          </Link>
-                        </Button>
+                        
+                        {song.userId === user?.id ? (
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to={`/songs/${song.id}/edit`}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </Link>
+                          </Button>
+                        ) : (
+                          // If the song is public or shared and not owned by the user, show the copy button
+                          (song.isPublic || (Array.isArray(song.sharedWith) && song.sharedWith.includes(user?.id || ""))) && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleCopySong(song.id)}
+                              disabled={copyingSong === song.id}
+                            >
+                              <Copy className="mr-2 h-4 w-4" />
+                              {copyingSong === song.id ? 'Copiando...' : 'Copiar'}
+                            </Button>
+                          )
+                        )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(song.id)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-100"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      
+                      {song.userId === user?.id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(song.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </CardFooter>
                   </Card>
                 ))}
