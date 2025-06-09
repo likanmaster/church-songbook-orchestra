@@ -23,27 +23,15 @@ import GroupDetail from "./pages/GroupDetail";
 import GroupInvite from "./pages/GroupInvite";
 import GroupCreate from "./pages/GroupCreate";
 import Settings from "./pages/Settings";
-import { useMemo } from "react";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Determinar si la aplicación se está ejecutando en un subdirectorio
-  // Por ejemplo, si está en /cancionero/ en el servidor web
-  const basename = useMemo(() => {
-    const path = window.location.pathname;
-    // Si estamos en un subdirectorio como /cancionero/, extraemos ese subdirectorio
-    if (path.match(/^\/[\w-]+\/?$/)) {
-      return path.replace(/\/$/, ''); // elimina la barra final si existe
-    }
-    return '';
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system">
         <AuthProvider>
-          <BrowserRouter basename={basename}>
+          <BrowserRouter>
             <TooltipProvider>
               <Toaster />
               <Sonner />
