@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "sonner"; // Import directly from sonner package
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,8 +23,6 @@ import GroupDetail from "./pages/GroupDetail";
 import GroupInvite from "./pages/GroupInvite";
 import GroupCreate from "./pages/GroupCreate";
 import Settings from "./pages/Settings";
-import ExploreSongs from "./pages/ExploreSongs";
-import ExploreServices from "./pages/ExploreServices";
 
 const queryClient = new QueryClient();
 
@@ -170,22 +169,6 @@ const App = () => {
                   element={
                     <AuthGuard>
                       <Settings />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/explore/songs" 
-                  element={
-                    <AuthGuard>
-                      <ExploreSongs />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
-                  path="/explore/services" 
-                  element={
-                    <AuthGuard>
-                      <ExploreServices />
                     </AuthGuard>
                   } 
                 />
