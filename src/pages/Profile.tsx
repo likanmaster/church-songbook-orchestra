@@ -15,6 +15,8 @@ import { getAllSongs } from "@/services/song-service";
 import { getAllServices } from "@/services/service-service";
 import { Song, Service } from "@/types";
 import { useQuery } from "@tanstack/react-query";
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db, USERS_COLLECTION } from "@/hooks/use-auth-context";
 
 const Profile = () => {
   const { user, isLoading } = useAuth();
@@ -81,10 +83,20 @@ const Profile = () => {
       const currentUser = auth.currentUser;
       
       if (currentUser) {
+        // Actualizar Firebase Auth
         await updateProfile(currentUser, {
           displayName: username,
           photoURL: avatarUrl || undefined
         });
+
+        // Actualizar documento de usuario en Firestore
+        const userDocRef = doc(db, USERS_COLLECTION, currentUser.uid);
+        await updateDoc(userDocRef, {
+          username: username,
+          photoURL: avatarUrl || null,
+          updatedAt: serverTimestamp()
+        });
+
         toast.success("Perfil actualizado correctamente");
         setIsEditing(false);
       }
