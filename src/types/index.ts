@@ -1,3 +1,4 @@
+
 export interface Song {
   id: string;
   title: string;
@@ -17,6 +18,9 @@ export interface Song {
   isPublic: boolean;
   sharedWith: string[];
   createdBy?: string; // Nombre del usuario que creó la canción
+  usageCount?: number; // Contador de uso en servicios
+  rating?: number; // Puntuación de la canción
+  attachments?: Attachment[]; // Archivos adjuntos de la canción
 }
 
 export interface Attachment {
