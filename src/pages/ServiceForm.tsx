@@ -1,147 +1,88 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon, Music, FileText, Save } from "lucide-react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { format } from "date-fns";
-
+import { useNavigate, useParams } from "react-router-dom";
+import { Plus, X, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Separator } from "@/components/ui/separator";
+import { format } from "date-fns";
+import { DatePicker } from "@/components/ui/date-picker";
 import Navbar from "@/components/layout/Navbar";
-import { Service, Song, ServiceSectionItem, ServiceSongItem } from "@/types";
-import { createService, getServiceById, updateService } from "@/services/service-service";
+import SongSearch from "@/components/SongSearch";
+import { Service, ServiceSong, ServiceSection, Song } from "@/types";
+import { getServiceById, createService, updateService } from "@/services/service-service";
 import { useAuth } from "@/hooks/use-auth-context";
-import ServicePreviewModal from "@/components/services/ServicePreviewModal";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { getAllSongs } from "@/services/song-service";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import SongSelector from "@/components/services/SongSelector";
-import SectionEditor from "@/components/services/SectionEditor";
-
-const serviceFormSchema = z.object({
-  title: z.string().min(3, {
-    message: "El título debe tener al menos 3 caracteres.",
-  }),
-  date: z.date(),
-  theme: z.string().optional(),
-  preacher: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-type ServiceFormData = z.infer<typeof serviceFormSchema>;
+import { v4 as uuidv4 } from 'uuid';
 
 const ServiceForm = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const [title, setTitle] = useState("");
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [theme, setTheme] = useState("");
+  const [preacher, setPreacher] = useState("");
+  const [notes, setNotes] = useState("");
+  const [songs, setSongs] = useState<
+    (Song & { order: number; serviceNotes?: string })[]
+  >([]);
+  const [sections, setSections] = useState<ServiceSection[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [songsLibrary, setSongsLibrary] = useState<Song[]>([]);
-  const [serviceItems, setServiceItems] = useState<(ServiceSongItem | ServiceSectionItem)[]>([]);
-  const [showPreview, setShowPreview] = useState(false);
-  const [currentService, setCurrentService] = useState<Service | null>(null);
-  const [showSongSheet, setShowSongSheet] = useState(false);
-  const [showSectionSheet, setShowSectionSheet] = useState(false);
-  const isEditing = !!id;
-  const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { id: serviceId } = useParams<{ id: string }>();
+  const isEditing = !!serviceId;
 
-  const form = useForm<ServiceFormData>({
-    resolver: zodResolver(serviceFormSchema),
-    defaultValues: {
-      title: "",
-      date: new Date(),
-      theme: "",
-      preacher: "",
-      notes: "",
-    },
-  });
-
-  // Cargar canciones
   useEffect(() => {
-    const loadSongs = async () => {
-      try {
-        if (!user?.id) return;
-        const songs = await getAllSongs(user.id);
-        setSongsLibrary(songs);
-      } catch (error) {
-        console.error("Error al cargar canciones:", error);
-      }
-    };
-    
-    loadSongs();
-  }, [user?.id]);
-
-  // Cargar servicio si estamos editando
-  useEffect(() => {
-    if (isEditing && id && user?.id) {
-      loadService(id);
+    if (isEditing && serviceId) {
+      loadService(serviceId);
+    } else {
+      // Inicializar con una sección por defecto al crear un nuevo servicio
+      setSections([{ id: uuidv4(), text: "Introducción", order: 0 }]);
     }
-  }, [isEditing, id, user?.id]);
+  }, [serviceId, isEditing]);
 
-  const loadService = async (serviceId: string) => {
+  const loadService = async (id: string) => {
     setIsLoading(true);
     try {
-      console.log("Cargando servicio:", serviceId);
-      const serviceData = await getServiceById(serviceId);
-      console.log("Servicio cargado:", serviceData);
-      
-      if (serviceData) {
-        // Configurar form
-        form.setValue("title", serviceData.title);
-        form.setValue("date", new Date(serviceData.date));
-        form.setValue("theme", serviceData.theme || "");
-        form.setValue("preacher", serviceData.preacher || "");
-        form.setValue("notes", serviceData.notes || "");
-        
-        setCurrentService(serviceData);
-        
-        // Cargar secciones si existen
-        const sectionItems: ServiceSectionItem[] = serviceData.sections?.map(section => ({
-          type: 'section',
-          data: {
+      const service = await getServiceById(id);
+      if (service) {
+        setTitle(service.title);
+        setDate(new Date(service.date));
+        setTheme(service.theme || "");
+        setPreacher(service.preacher || "");
+        setNotes(service.notes || "");
+        setSongs(
+          service.songs
+            .sort((a, b) => a.order - b.order)
+            .map((serviceSong, index) => ({
+              ...serviceSong,
+              id: serviceSong.songId, // Asumiendo que serviceSong tiene un songId
+              order: index,
+              serviceNotes: serviceSong.notes,
+            })) as any
+        );
+        setSections(
+          service.sections.sort((a, b) => a.order - b.order).map((section) => ({
             id: section.id,
             text: section.text,
-            order: section.order
-          }
-        })) || [];
-        
-        // Cargar canciones si existen y existen en la biblioteca
-        if (serviceData.songs && serviceData.songs.length > 0 && songsLibrary.length > 0) {
-          const songItems: ServiceSongItem[] = [];
-          
-          for (const serviceSong of serviceData.songs) {
-            const songDetails = songsLibrary.find(s => s.id === serviceSong.songId);
-            
-            if (songDetails) {
-              songItems.push({
-                type: 'song',
-                data: {
-                  ...songDetails,
-                  order: serviceSong.order,
-                  serviceNotes: serviceSong.notes || ''
-                }
-              });
-            }
-          }
-          
-          // Combinar y ordenar todos los elementos
-          const allItems = [...songItems, ...sectionItems].sort((a, b) => {
-            const orderA = a.type === 'song' ? a.data.order : a.data.order;
-            const orderB = b.type === 'song' ? b.data.order : b.data.order;
-            return orderA - orderB;
-          });
-          
-          setServiceItems(allItems);
-        } else {
-          setServiceItems(sectionItems);
-        }
+            order: section.order,
+          }))
+        );
       } else {
         toast({
           title: "Error",
@@ -154,7 +95,7 @@ const ServiceForm = () => {
       console.error("Error al cargar el servicio:", error);
       toast({
         title: "Error",
-        description: "Error al cargar los datos del servicio",
+        description: "No se pudo cargar el servicio",
         variant: "destructive",
       });
     } finally {
@@ -162,172 +103,69 @@ const ServiceForm = () => {
     }
   };
 
-  const handleAddSong = (song: Song) => {
-    const maxOrder = serviceItems.length > 0 
-      ? Math.max(...serviceItems.map(item => 
-          item.type === 'song' ? item.data.order : item.data.order
-        )) 
-      : 0;
-    
-    const newSong: ServiceSongItem = {
-      type: 'song',
-      data: {
-        ...song,
-        order: maxOrder + 1,
-        serviceNotes: ''
-      }
-    };
-    
-    setServiceItems([...serviceItems, newSong]);
-    setShowSongSheet(false);
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para crear un servicio",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const handleAddSection = (text: string) => {
-    const maxOrder = serviceItems.length > 0 
-      ? Math.max(...serviceItems.map(item => 
-          item.type === 'song' ? item.data.order : item.data.order
-        )) 
-      : 0;
-    
-    const newSection: ServiceSectionItem = {
-      type: 'section',
-      data: {
-        id: `section-${Date.now()}`,
-        text,
-        order: maxOrder + 1
-      }
-    };
-    
-    setServiceItems([...serviceItems, newSection]);
-    setShowSectionSheet(false);
-  };
+    if (songs.length === 0) {
+      toast({
+        title: "Error",
+        description: "Debes agregar al menos una canción",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-    
-    const items = Array.from(serviceItems);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    
-    // Actualizar órdenes
-    const updatedItems = items.map((item, index) => {
-      if (item.type === 'song') {
-        return {
-          ...item,
-          data: { ...item.data, order: index + 1 }
-        };
-      } else {
-        return {
-          ...item,
-          data: { ...item.data, order: index + 1 }
-        };
-      }
-    });
-    
-    setServiceItems(updatedItems);
-  };
-
-  const handleRemoveItem = (index: number) => {
-    const newItems = [...serviceItems];
-    newItems.splice(index, 1);
-    
-    // Re-ordenar
-    const updatedItems = newItems.map((item, index) => {
-      if (item.type === 'song') {
-        return {
-          ...item,
-          data: { ...item.data, order: index + 1 }
-        };
-      } else {
-        return {
-          ...item,
-          data: { ...item.data, order: index + 1 }
-        };
-      }
-    });
-    
-    setServiceItems(updatedItems);
-  };
-
-  const handleSubmit = async (data: ServiceFormData) => {
-    if (!user?.id) return;
-    
     setIsLoading(true);
+
     try {
-      const { title, date, theme, preacher, notes } = data;
-      
-      // Extraer canciones y secciones
-      const songs = serviceItems
-        .filter(item => item.type === 'song')
-        .map(item => {
-          const songData = (item as ServiceSongItem).data;
-          return {
-            id: `song-${Date.now()}-${songData.id}`,
-            songId: songData.id,
-            order: songData.order,
-            notes: songData.serviceNotes || ''
-          };
-        });
-      
-      const sections = serviceItems
-        .filter(item => item.type === 'section')
-        .map(item => {
-          const sectionData = (item as ServiceSectionItem).data;
-          return {
-            id: sectionData.id,
-            text: sectionData.text,
-            order: sectionData.order
-          };
-        });
-      
-      if (isEditing && id) {
-        await updateService(
-          id, 
-          {
-            title,
-            date: date.toISOString(),
-            theme,
-            preacher,
-            notes,
-            songs,
-            sections
-          }, 
-          user.id
-        );
-        
-        toast({
-          title: "Éxito",
-          description: "Servicio actualizado correctamente",
-        });
+      const serviceData: Omit<Service, 'id' | 'createdAt' | 'updatedAt'> = {
+        title,
+        date: date?.toISOString() || new Date().toISOString(),
+        theme: theme || null,
+        preacher: preacher || null,
+        notes: notes || null,
+        songs: songs.map((song, index) => ({
+          id: `${song.id}-${index}`,
+          songId: song.id,
+          order: index,
+          notes: song.serviceNotes || "",
+        })),
+        sections: sections.map((section, index) => ({
+          id: section.id,
+          text: section.text,
+          order: index,
+        })),
+        userId: user.id,
+        isPublic: false, // Default to private
+        sharedWith: [], // Empty array initially
+      };
+
+      let result;
+      if (isEditing && serviceId) {
+        result = await updateService(serviceId, serviceData, user.id);
       } else {
-        await createService(
-          {
-            title,
-            date: date.toISOString(),
-            theme,
-            preacher,
-            notes,
-            songs,
-            sections,
-            userId: user.id,
-            isPublic: false,
-            sharedWith: []
-          }, 
-          user.id
-        );
-        
-        toast({
-          title: "Éxito",
-          description: "Servicio creado correctamente",
-        });
+        result = await createService(serviceData, user.id);
       }
-      
+
+      toast({
+        title: "Éxito",
+        description: isEditing ? "Servicio actualizado correctamente" : "Servicio creado correctamente",
+      });
+
       navigate("/services");
     } catch (error) {
       console.error("Error al guardar el servicio:", error);
       toast({
         title: "Error",
-        description: "Error al guardar el servicio",
+        description: "No se pudo guardar el servicio",
         variant: "destructive",
       });
     } finally {
@@ -335,297 +173,257 @@ const ServiceForm = () => {
     }
   };
 
-  const handlePreview = () => {
-    const formData = form.getValues();
-    
-    // Crear servicio temporal para previsualizarlo
-    const previewService: Service = {
-      id: id || 'preview',
-      title: formData.title,
-      date: formData.date.toISOString(),
-      theme: formData.theme || '',
-      preacher: formData.preacher || '',
-      notes: formData.notes || '',
-      songs: serviceItems
-        .filter(item => item.type === 'song')
-        .map(item => {
-          const songData = (item as ServiceSongItem).data;
-          return {
-            id: `preview-${songData.id}`,
-            songId: songData.id,
-            order: songData.order,
-            notes: songData.serviceNotes || ''
-          };
-        }),
-      sections: serviceItems
-        .filter(item => item.type === 'section')
-        .map(item => {
-          const sectionData = (item as ServiceSectionItem).data;
-          return {
-            id: sectionData.id,
-            text: sectionData.text,
-            order: sectionData.order
-          };
-        }),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      userId: user?.id || '',
-    };
-    
-    setCurrentService(previewService);
-    setShowPreview(true);
+  const addSong = (song: Song) => {
+    if (!songs.find((s) => s.id === song.id)) {
+      setSongs([...songs, { ...song, order: songs.length }]);
+    } else {
+      toast({
+        title: "Advertencia",
+        description: "La canción ya está en el servicio",
+      });
+    }
   };
+
+  const removeSong = (songId: string) => {
+    setSongs(songs.filter((song) => song.id !== songId));
+  };
+
+  const addSection = () => {
+    setSections([...sections, { id: uuidv4(), text: "", order: sections.length }]);
+  };
+
+  const updateSection = (id: string, text: string) => {
+    setSections(
+      sections.map((section) => (section.id === id ? { ...section, text } : section))
+    );
+  };
+
+  const removeSection = (id: string) => {
+    setSections(sections.filter((section) => section.id !== id));
+  };
+
+  const onDragEnd = (result: any) => {
+    if (!result.destination) {
+      return;
+    }
+
+    const items = Array.from(songs);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Actualizar el estado con el nuevo orden y las propiedades necesarias
+    setSongs(
+      items.map((song, index) => ({
+        ...song,
+        order: index,
+      }))
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Cargando servicio...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      
       <main className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">{isEditing ? "Editar Servicio" : "Nuevo Servicio"}</h1>
-            <p className="text-muted-foreground">
-              Completa el formulario para {isEditing ? "editar" : "crear"} un nuevo servicio.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handlePreview}
-              disabled={!form.formState.isValid}
-            >
-              Previsualizar
-            </Button>
-          </div>
+          <h1 className="text-3xl font-bold">{isEditing ? "Editar Servicio" : "Nuevo Servicio"}</h1>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Información del Servicio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-4">
-                  <div>
-                    <Label htmlFor="title">Título</Label>
-                    <Input id="title" type="text" placeholder="Título del servicio" {...form.register("title")} />
-                    {form.formState.errors.title && (
-                      <p className="text-sm text-red-500">{form.formState.errors.title.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="date">Fecha</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !form.getValues("date") && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {form.getValues("date") ? (
-                            format(form.getValues("date"), "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="center" side="bottom">
-                        <Controller
-                          control={form.control}
-                          name="date"
-                          render={({ field }) => (
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                              className={cn("p-3")}
-                            />
-                          )}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {form.formState.errors.date && (
-                      <p className="text-sm text-red-500">{form.formState.errors.date.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="theme">Tema</Label>
-                    <Input id="theme" type="text" placeholder="Tema del servicio" {...form.register("theme")} />
-                    {form.formState.errors.theme && (
-                      <p className="text-sm text-red-500">{form.formState.errors.theme.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="preacher">Predicador</Label>
-                    <Input id="preacher" type="text" placeholder="Predicador del servicio" {...form.register("preacher")} />
-                    {form.formState.errors.preacher && (
-                      <p className="text-sm text-red-500">{form.formState.errors.preacher.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="notes">Notas</Label>
-                    <Textarea id="notes" placeholder="Notas adicionales" {...form.register("notes")} />
-                    {form.formState.errors.notes && (
-                      <p className="text-sm text-red-500">{form.formState.errors.notes.message}</p>
-                    )}
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-
-            <div className="mt-6">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle>Elementos del Servicio</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <DragDropContext onDragEnd={handleDragEnd}>
-                    <Droppable droppableId="service-items">
-                      {(provided) => (
-                        <div
-                          {...provided.droppableProps}
-                          ref={provided.innerRef}
-                          className="space-y-3"
-                        >
-                          {serviceItems.length > 0 ? (
-                            serviceItems.map((item, index) => (
-                              <Draggable key={item.type === 'song' ? `song-${item.data.id}` : `section-${item.data.id}`} 
-                                draggableId={item.type === 'song' ? `song-${item.data.id}` : `section-${item.data.id}`} 
-                                index={index}
-                              >
-                                {(provided) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                    className="p-3 border rounded-md bg-white dark:bg-gray-800 flex items-center justify-between"
-                                  >
-                                    <div className="flex items-center">
-                                      <span className="mr-2 text-muted-foreground">{index + 1}.</span>
-                                      {item.type === 'song' ? (
-                                        <div>
-                                          <div className="font-medium">{item.data.title}</div>
-                                          <div className="text-xs text-muted-foreground">{item.data.author || 'Autor desconocido'}</div>
-                                        </div>
-                                      ) : (
-                                        <div className="font-medium italic">{item.data.text}</div>
-                                      )}
-                                    </div>
-                                    <Button variant="ghost" size="sm" onClick={() => handleRemoveItem(index)}>
-                                      Eliminar
-                                    </Button>
-                                  </div>
-                                )}
-                              </Draggable>
-                            ))
-                          ) : (
-                            <div className="text-center py-8 text-muted-foreground">
-                              No hay elementos en este servicio. Añade canciones o secciones usando los botones de abajo.
-                            </div>
-                          )}
-                          {provided.placeholder}
-                        </div>
-                      )}
-                    </Droppable>
-                  </DragDropContext>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Sheet open={showSongSheet} onOpenChange={setShowSongSheet}>
-                      <SheetTrigger asChild>
-                        <Button variant="outline" className="flex-1" onClick={() => setShowSongSheet(true)}>
-                          <Music className="h-4 w-4 mr-2" /> Añadir Canción
-                        </Button>
-                      </SheetTrigger>
-                      <SheetContent>
-                        <SheetHeader>
-                          <SheetTitle>Seleccionar Canción</SheetTitle>
-                        </SheetHeader>
-                        <div className="py-4">
-                          <SongSelector songs={songsLibrary} onSelectSong={handleAddSong} />
-                        </div>
-                      </SheetContent>
-                    </Sheet>
-                    
-                    <Sheet open={showSectionSheet} onOpenChange={setShowSectionSheet}>
-                      <SheetTrigger asChild>
-                        <Button variant="outline" className="flex-1" onClick={() => setShowSectionSheet(true)}>
-                          <FileText className="h-4 w-4 mr-2" /> Añadir Sección
-                        </Button>
-                      </SheetTrigger>
-                      <SheetContent>
-                        <SheetHeader>
-                          <SheetTitle>Agregar Nueva Sección</SheetTitle>
-                        </SheetHeader>
-                        <div className="py-4">
-                          <SectionEditor onAddSection={handleAddSection} />
-                        </div>
-                      </SheetContent>
-                    </Sheet>
-                    
-                    <Button 
-                      type="button"
-                      onClick={() => form.handleSubmit(handleSubmit)()}
-                      className="w-full mt-3" 
-                      disabled={isLoading}
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      {isLoading ? "Guardando..." : "Guardar Servicio"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>{isEditing ? "Editar los detalles del servicio" : "Ingrese los detalles del servicio"}</CardTitle>
+            <CardDescription>
+              Completa el formulario para {isEditing ? "actualizar" : "crear"} un nuevo servicio.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="title">Título</Label>
+                <Input
+                  type="text"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="date">Fecha</Label>
+                <DatePicker
+                  id="date"
+                  value={date}
+                  onValueChange={setDate}
+                />
+              </div>
             </div>
-          </div>
-
-          <div className="hidden lg:block">
-            <Card className="sticky top-20">
-              <CardHeader>
-                <CardTitle>Resumen</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Elementos:</span>
-                    <span className="font-medium">{serviceItems.length}</span>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="theme">Tema (opcional)</Label>
+                <Input
+                  type="text"
+                  id="theme"
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="preacher">Predicador (opcional)</Label>
+                <Input
+                  type="text"
+                  id="preacher"
+                  value={preacher}
+                  onChange={(e) => setPreacher(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="notes">Notas (opcional)</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-xl font-semibold mb-4">Canciones</h3>
+              <SongSearch onSelect={addSong} />
+              
+              {songs.length > 0 && (
+                <DragDropContext onDragEnd={onDragEnd}>
+                  <Droppable droppableId="songs">
+                    {(provided) => (
+                      <ul
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className="space-y-2"
+                      >
+                        {songs.map((song, index) => (
+                          <Draggable key={song.id} draggableId={song.id} index={index}>
+                            {(provided) => (
+                              <li
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className="flex items-center justify-between p-3 bg-secondary rounded-md"
+                              >
+                                <div className="flex items-center">
+                                  <div {...provided.dragHandleProps} className="cursor-grab mr-2">
+                                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                  <span className="text-sm">{song.title}</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Input
+                                    type="text"
+                                    placeholder="Notas de la canción"
+                                    value={song.serviceNotes || ""}
+                                    onChange={(e) => {
+                                      const newSongs = [...songs];
+                                      newSongs[index].serviceNotes = e.target.value;
+                                      setSongs(newSongs);
+                                    }}
+                                    className="max-w-[200px] text-sm"
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-red-500 hover:bg-red-100"
+                                    onClick={() => removeSong(song.id)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </li>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </ul>
+                    )}
+                  </Droppable>
+                </DragDropContext>
+              )}
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold">Secciones</h3>
+                <Button type="button" variant="outline" size="sm" onClick={addSection}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Añadir Sección
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                {sections.map((section) => (
+                  <div key={section.id} className="flex items-start gap-4">
+                    <Textarea
+                      placeholder="Contenido de la sección"
+                      value={section.text}
+                      onChange={(e) => updateSection(section.id, e.target.value)}
+                      className="flex-1"
+                    />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 rounded-full text-red-500 hover:bg-red-100"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Se eliminará la sección
+                            permanentemente.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>
+                            Cancelar
+                          </AlertDialogCancel>
+                          <AlertDialogAction onClick={() => removeSection(section.id)}>
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Canciones:</span>
-                    <span className="font-medium">
-                      {serviceItems.filter(item => item.type === 'song').length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Secciones:</span>
-                    <span className="font-medium">
-                      {serviceItems.filter(item => item.type === 'section').length}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {currentService && (
-          <ServicePreviewModal
-            open={showPreview}
-            onClose={() => setShowPreview(false)}
-            onSave={() => form.handleSubmit(handleSubmit)()}
-            service={currentService}
-            songLibrary={songsLibrary.map(song => ({ id: song.id, title: song.title, key: song.key || "C" }))}
-          />
-        )}
+                ))}
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={handleSubmit} disabled={isLoading}>
+              {isLoading ? "Guardando..." : "Guardar Servicio"}
+            </Button>
+          </CardFooter>
+        </Card>
       </main>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Music, Edit, Trash2, Star, Copy } from "lucide-react";
@@ -132,9 +131,13 @@ const SongsPage = () => {
     }
   };
 
-  const filteredSongs = songs.filter((song) =>
-    song.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredSongs = songs.filter((song) => {
+    // First filter by user ownership, then by search term
+    const isUserSong = song.userId === user?.id;
+    const matchesSearch = song.title.toLowerCase().includes(search.toLowerCase());
+    
+    return isUserSong && matchesSearch;
+  });
 
   // Helper to render star rating
   const renderStarRating = (rating: number = 0) => {
