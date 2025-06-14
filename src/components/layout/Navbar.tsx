@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, Music, Search, Settings, Home, BookOpen, Users } from "lucide-react";
@@ -18,7 +17,7 @@ const Navbar = () => {
     { title: "Canciones", path: "/songs", icon: <Music className="h-5 w-5 mr-2" /> },
     { title: "Servicios", path: "/services", icon: <BookOpen className="h-5 w-5 mr-2" /> },
     { title: "Grupos", path: "/groups", icon: <Users className="h-5 w-5 mr-2" /> },
-    { title: "Buscar", path: "/search", icon: <Search className="h-5 w-5 mr-2" /> },
+    { title: "Explorar", path: "/search", icon: <Search className="h-5 w-5 mr-2" /> },
     { title: "Ajustes", path: "/settings", icon: <Settings className="h-5 w-5 mr-2" /> },
   ];
 
