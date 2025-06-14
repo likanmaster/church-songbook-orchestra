@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { getAuth, updateProfile } from "firebase/auth";
 import Navbar from "@/components/layout/Navbar";
+import { getAllSongs } from "@/services/song-service";
+import { getAllServices } from "@/services/service-service";
+import { Song, Service } from "@/types";
+import { useQuery } from "@tanstack/react-query";
 
 const Profile = () => {
   const { user, isLoading } = useAuth();
@@ -19,12 +23,40 @@ const Profile = () => {
   const [email, setEmail] = useState(user?.email || "");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  // Mock stats - in a real app these would come from your backend
+  // Obtener canciones del usuario
+  const { data: songs = [], isLoading: songsLoading } = useQuery({
+    queryKey: ['songs', user?.id],
+    queryFn: () => getAllSongs(user?.id || ''),
+    enabled: !!user?.id,
+  });
+
+  // Obtener servicios del usuario
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
+    queryKey: ['services', user?.id],
+    queryFn: () => getAllServices(user?.id || ''),
+    enabled: !!user?.id,
+  });
+
+  // Calcular estadísticas reales
+  const userSongs = songs.filter(song => song.userId === user?.id);
+  const favoriteSongs = songs.filter(song => song.isFavorite && song.userId === user?.id);
+  const userServices = services.filter(service => service.userId === user?.id);
+
   const stats = {
-    songs: 12,
-    favorites: 5,
-    services: 3,
+    songs: userSongs.length,
+    favorites: favoriteSongs.length,
+    services: userServices.length,
   };
+
+  useEffect(() => {
+    if (user) {
+      setUsername(user.username || "");
+      setEmail(user.email || "");
+      if (user.photoURL) {
+        setAvatarUrl(user.photoURL);
+      }
+    }
+  }, [user]);
 
   if (isLoading || !user) {
     return (
@@ -50,7 +82,8 @@ const Profile = () => {
       
       if (currentUser) {
         await updateProfile(currentUser, {
-          displayName: username
+          displayName: username,
+          photoURL: avatarUrl || undefined
         });
         toast.success("Perfil actualizado correctamente");
         setIsEditing(false);
@@ -59,6 +92,13 @@ const Profile = () => {
       console.error("Error al actualizar perfil:", error);
       toast.error("Error al actualizar perfil");
     }
+  };
+
+  const getUserInitials = () => {
+    if (username) {
+      return username.split(' ').map(name => name[0]).join('').toUpperCase().slice(0, 2);
+    }
+    return user?.email?.[0]?.toUpperCase() || 'U';
   };
 
   return (
@@ -72,8 +112,8 @@ const Profile = () => {
                 {avatarUrl ? (
                   <AvatarImage src={avatarUrl} className="object-cover" />
                 ) : (
-                  <AvatarFallback>
-                    <User className="h-10 w-10" />
+                  <AvatarFallback className="text-lg font-semibold">
+                    {getUserInitials()}
                   </AvatarFallback>
                 )}
               </Avatar>
@@ -92,30 +132,36 @@ const Profile = () => {
               />
             </div>
             <div>
-              <CardTitle>Perfil</CardTitle>
+              <CardTitle>{username || "Usuario"}</CardTitle>
               <p className="text-sm text-muted-foreground">
                 Gestiona tu información personal
               </p>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="p-4 flex flex-col items-center justify-center text-center">
-                <Music className="h-8 w-8 mb-2 text-primary" />
-                <h3 className="text-2xl font-bold">{stats.songs}</h3>
-                <p className="text-sm text-muted-foreground">Canciones</p>
-              </Card>
-              <Card className="p-4 flex flex-col items-center justify-center text-center">
-                <Heart className="h-8 w-8 mb-2 text-primary" />
-                <h3 className="text-2xl font-bold">{stats.favorites}</h3>
-                <p className="text-sm text-muted-foreground">Favoritos</p>
-              </Card>
-              <Card className="p-4 flex flex-col items-center justify-center text-center">
-                <Music className="h-8 w-8 mb-2 text-primary" />
-                <h3 className="text-2xl font-bold">{stats.services}</h3>
-                <p className="text-sm text-muted-foreground">Servicios</p>
-              </Card>
-            </div>
+            {(songsLoading || servicesLoading) ? (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">Cargando estadísticas...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="p-4 flex flex-col items-center justify-center text-center">
+                  <Music className="h-8 w-8 mb-2 text-primary" />
+                  <h3 className="text-2xl font-bold">{stats.songs}</h3>
+                  <p className="text-sm text-muted-foreground">Canciones</p>
+                </Card>
+                <Card className="p-4 flex flex-col items-center justify-center text-center">
+                  <Heart className="h-8 w-8 mb-2 text-primary" />
+                  <h3 className="text-2xl font-bold">{stats.favorites}</h3>
+                  <p className="text-sm text-muted-foreground">Favoritos</p>
+                </Card>
+                <Card className="p-4 flex flex-col items-center justify-center text-center">
+                  <Music className="h-8 w-8 mb-2 text-primary" />
+                  <h3 className="text-2xl font-bold">{stats.services}</h3>
+                  <p className="text-sm text-muted-foreground">Servicios</p>
+                </Card>
+              </div>
+            )}
 
             <div className="space-y-4">
               <div className="space-y-2">
@@ -134,7 +180,7 @@ const Profile = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={true} // Email cannot be changed in Firebase without reauthentication
+                  disabled={true}
                 />
                 {isEditing && (
                   <p className="text-xs text-muted-foreground">
