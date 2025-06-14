@@ -1,27 +1,21 @@
+
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Group, Song, ServiceItemType, GroupMessage } from "@/types";
+import { Group, Song, GroupMessage } from "@/types";
 import Navbar from "@/components/layout/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Music, Users, BookOpen, Clock, Calendar, UserMinus, Share, UserPlus, AlertTriangle, ArrowLeft, MessageCircle } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Music, Users, BookOpen, AlertTriangle, ArrowLeft, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { db, GROUPS_COLLECTION, SONGS_COLLECTION, SERVICES_COLLECTION } from "@/hooks/use-auth-context";
-import { doc, getDoc, deleteDoc, updateDoc, arrayRemove, serverTimestamp, arrayUnion } from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp, arrayUnion } from "firebase/firestore";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/use-auth-context";
 import GroupChat from "@/components/groups/GroupChat";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import GroupHeader from "@/components/groups/GroupHeader";
+import GroupMembersTab from "@/components/groups/GroupMembersTab";
+import GroupSongsTab from "@/components/groups/GroupSongsTab";
+import GroupServicesTab from "@/components/groups/GroupServicesTab";
+import GroupDeleteMemberDialog from "@/components/groups/GroupDeleteMemberDialog";
 
 const GroupDetail = () => {
   const { id } = useParams();
@@ -113,7 +107,6 @@ const GroupDetail = () => {
     if (!id || !group || !memberToRemove) return;
     
     try {
-      // Solo permitir al administrador eliminar miembros
       if (!isUserAdmin()) {
         toast({
           title: "Error",
@@ -123,7 +116,6 @@ const GroupDetail = () => {
         return;
       }
       
-      // Buscar el miembro a eliminar
       const memberToDelete = group.members.find(member => member.id === memberToRemove.id);
       
       if (!memberToDelete) {
@@ -135,10 +127,7 @@ const GroupDetail = () => {
         return;
       }
       
-      // Actualizar el documento del grupo
       const groupRef = doc(db, GROUPS_COLLECTION, id);
-      
-      // Obtener la lista actualizada de miembros
       const updatedMembers = group.members.filter(member => member.id !== memberToRemove.id);
       
       await updateDoc(groupRef, {
@@ -146,7 +135,6 @@ const GroupDetail = () => {
         updatedAt: serverTimestamp(),
       });
       
-      // Actualizar el estado local
       setGroup({
         ...group,
         members: updatedMembers,
@@ -157,7 +145,6 @@ const GroupDetail = () => {
         description: `${memberToRemove.username} ha sido eliminado del grupo`,
       });
       
-      // Cerrar el diálogo
       setShowDeleteDialog(false);
       setMemberToRemove(null);
     } catch (error) {
@@ -192,7 +179,6 @@ const GroupDetail = () => {
         updatedAt: serverTimestamp(),
       });
       
-      // Actualizar el estado local
       setGroup(prevGroup => ({
         ...prevGroup!,
         messages: [...(prevGroup?.messages || []), newMessage]
@@ -207,6 +193,11 @@ const GroupDetail = () => {
     } finally {
       setIsSendingMessage(false);
     }
+  };
+
+  const handleRemoveMemberClick = (member: { id: string; username: string }) => {
+    setMemberToRemove(member);
+    setShowDeleteDialog(true);
   };
 
   if (isLoading) {
@@ -277,31 +268,12 @@ const GroupDetail = () => {
       <Navbar />
       
       <main className="container mx-auto px-4 py-6">
-        <div className="flex items-center gap-4 mb-2">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/groups">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <h1 className="text-3xl font-bold">{group.name}</h1>
-        </div>
-        
-        <p className="text-muted-foreground mb-6">{group.description}</p>
-        
-        {isUserAdmin() && (
-          <div className="flex flex-wrap gap-2 mb-6">
-            <Button asChild variant="outline" size="sm">
-              <Link to={`/groups/${id}/invite`}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Invitar Miembros
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm">
-              <Share className="mr-2 h-4 w-4" />
-              Compartir Grupo
-            </Button>
-          </div>
-        )}
+        <GroupHeader
+          groupId={id!}
+          groupName={group.name}
+          groupDescription={group.description}
+          isUserAdmin={isUserAdmin()}
+        />
 
         <Tabs defaultValue="members" className="space-y-4">
           <TabsList>
@@ -324,103 +296,20 @@ const GroupDetail = () => {
           </TabsList>
 
           <TabsContent value="members" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {group.members.map((member) => (
-                <Card key={member.id}>
-                  <CardContent className="pt-6 pb-4">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback>
-                          {member.username.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{member.username}</h3>
-                        <Badge variant={member.role === 'admin' ? 'default' : 'secondary'} className="mt-1">
-                          {member.role === 'admin' ? 'Administrador' : 'Miembro'}
-                        </Badge>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Miembro desde {new Date(member.joinedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      
-                      {isUserAdmin() && member.userId !== user?.id && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="text-red-500 hover:text-red-700 hover:bg-red-100"
-                          onClick={() => {
-                            setMemberToRemove({ id: member.id, username: member.username });
-                            setShowDeleteDialog(true);
-                          }}
-                        >
-                          <UserMinus className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <GroupMembersTab
+              members={group.members}
+              isUserAdmin={isUserAdmin()}
+              currentUserId={user?.id}
+              onRemoveMember={handleRemoveMemberClick}
+            />
           </TabsContent>
 
           <TabsContent value="songs" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {songs.length > 0 ? (
-                songs.map((song) => (
-                  <Link to={`/songs/${song.id}`} key={song.id}>
-                    <Card className="h-full hover:bg-accent/50 transition-colors">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Music className="h-4 w-4" />
-                          {song.title}
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">{song.author}</p>
-                      </CardHeader>
-                    </Card>
-                  </Link>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12">
-                  <Music className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-medium mb-2">No hay canciones compartidas</h3>
-                  <p className="text-muted-foreground">
-                    Este grupo aún no tiene canciones compartidas
-                  </p>
-                </div>
-              )}
-            </div>
+            <GroupSongsTab songs={songs} />
           </TabsContent>
 
           <TabsContent value="services" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {services.length > 0 ? (
-                services.map((service) => (
-                  <Link to={`/services/${service.id}`} key={service.id}>
-                    <Card className="h-full hover:bg-accent/50 transition-colors">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          {service.title}
-                        </CardTitle>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                          <Clock className="h-4 w-4" />
-                          {service.date}
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  </Link>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12">
-                  <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-medium mb-2">No hay servicios compartidos</h3>
-                  <p className="text-muted-foreground">
-                    Este grupo aún no tiene servicios compartidos
-                  </p>
-                </div>
-              )}
-            </div>
+            <GroupServicesTab services={services} />
           </TabsContent>
 
           <TabsContent value="chat" className="space-y-4">
@@ -433,26 +322,12 @@ const GroupDetail = () => {
           </TabsContent>
         </Tabs>
         
-        {/* Diálogo de confirmación para eliminar miembro */}
-        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Eliminar miembro</DialogTitle>
-              <DialogDescription>
-                ¿Estás seguro de que deseas eliminar a {memberToRemove?.username} del grupo?
-                Esta acción no se puede deshacer.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-                Cancelar
-              </Button>
-              <Button variant="destructive" onClick={handleRemoveMember}>
-                Eliminar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <GroupDeleteMemberDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          memberToRemove={memberToRemove}
+          onConfirmRemove={handleRemoveMember}
+        />
       </main>
     </div>
   );
