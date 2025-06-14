@@ -1,8 +1,16 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, Music, Search, Settings, Home, BookOpen, Users } from "lucide-react";
+import { Menu, Music, Search, Settings, Home, BookOpen, Users, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { 
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ModeToggle } from "@/components/ModeToggle";
 import { ProfileButton } from "@/components/auth/ProfileButton";
@@ -19,6 +27,11 @@ const Navbar = () => {
     { title: "Grupos", path: "/groups", icon: <Users className="h-5 w-5 mr-2" /> },
     { title: "Buscar", path: "/search", icon: <Search className="h-5 w-5 mr-2" /> },
     { title: "Ajustes", path: "/settings", icon: <Settings className="h-5 w-5 mr-2" /> },
+  ];
+
+  const exploreItems = [
+    { title: "Canciones Públicas", path: "/explore/songs", description: "Descubre canciones compartidas por la comunidad" },
+    { title: "Servicios Públicos", path: "/explore/services", description: "Explora servicios compartidos por otros usuarios" },
   ];
 
   return (
@@ -56,6 +69,20 @@ const Navbar = () => {
                         {item.title}
                       </Link>
                     ))}
+                    <div className="px-3 py-2 text-sm font-semibold text-muted-foreground">
+                      Explorar
+                    </div>
+                    {exploreItems.map((item) => (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className="flex items-center px-3 py-3 text-base hover:bg-accent rounded-md"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Globe className="h-5 w-5 mr-2" />
+                        {item.title}
+                      </Link>
+                    ))}
                   </div>
                   <div className="p-4 border-t flex items-center justify-between">
                     <ModeToggle />
@@ -77,6 +104,34 @@ const Navbar = () => {
                 {item.title}
               </Link>
             ))}
+            
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="hover:text-primary transition-colors text-sm sm:text-base">
+                    <Globe className="h-4 w-4 mr-1" />
+                    Explorar
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid gap-3 p-4 md:w-[400px] lg:w-[500px]">
+                      {exploreItems.map((item) => (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                        >
+                          <div className="text-sm font-medium leading-none">{item.title}</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            {item.description}
+                          </p>
+                        </Link>
+                      ))}
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+            
             <div className="flex items-center gap-2">
               <NotificationBell />
               <ModeToggle />

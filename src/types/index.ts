@@ -1,26 +1,22 @@
 export interface Song {
   id: string;
   title: string;
-  lyrics?: string;
-  author?: string;
-  key?: string;
-  tempo?: number;
-  style?: string;
-  duration?: number;
-  notes?: string;
-  attachments?: Attachment[];
-  categories: string[];
+  author: string;
+  key: string;
+  lyrics: string;
+  tempo?: number | null;
   tags: string[];
-  isFavorite: boolean;
+  categories: string[];
   createdAt: string;
   updatedAt: string;
-  audioUrl?: string;
-  videoUrl?: string;
-  usageCount?: number;
-  userId: string; // ID del usuario propietario
-  isPublic?: boolean; // Indica si la canción es pública (visible para todos)
-  sharedWith?: string[]; // IDs de usuarios con los que se ha compartido
-  rating?: number; // Rating from 0 to 5 stars
+  userId: string;
+  isFavorite: boolean;
+  style?: string | null;
+  duration?: number | null;
+  notes?: string | null;
+  isPublic: boolean;
+  sharedWith: string[];
+  createdBy?: string; // Nombre del usuario que creó la canción
 }
 
 export interface Attachment {
@@ -34,16 +30,17 @@ export interface Service {
   id: string;
   title: string;
   date: string;
-  theme?: string;
-  preacher?: string;
-  notes?: string;
+  theme?: string | null;
+  preacher?: string | null;
+  notes?: string | null;
   songs: ServiceSong[];
   createdAt: string;
   updatedAt: string;
-  sections?: ServiceSection[];
-  userId: string; // ID del usuario propietario
-  isPublic?: boolean; // Indica si el servicio es público
-  sharedWith?: string[]; // IDs de usuarios con los que se ha compartido
+  sections: ServiceSection[];
+  userId: string;
+  isPublic: boolean;
+  sharedWith: string[];
+  createdBy?: string; // Nombre del usuario que creó el servicio
 }
 
 export interface ServiceSong {
