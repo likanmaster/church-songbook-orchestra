@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Music, Heart, Upload } from "lucide-react";
+import { User, Music, Heart, Upload, BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { getAuth, updateProfile } from "firebase/auth";
@@ -156,7 +156,7 @@ const Profile = () => {
                   <p className="text-sm text-muted-foreground">Favoritos</p>
                 </Card>
                 <Card className="p-4 flex flex-col items-center justify-center text-center">
-                  <Music className="h-8 w-8 mb-2 text-primary" />
+                  <BookOpen className="h-8 w-8 mb-2 text-primary" />
                   <h3 className="text-2xl font-bold">{stats.services}</h3>
                   <p className="text-sm text-muted-foreground">Servicios</p>
                 </Card>
