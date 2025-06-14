@@ -1,4 +1,3 @@
-
 export interface Song {
   id: string;
   title: string;
@@ -103,6 +102,16 @@ export interface Group {
   members: GroupMember[];
   sharedSongs: string[]; // IDs de canciones compartidas
   sharedServices: string[]; // IDs de servicios compartidos
+  messages?: GroupMessage[]; // Mensajes del chat del grupo
+}
+
+export interface GroupMessage {
+  id: string;
+  userId: string;
+  username: string;
+  message: string;
+  timestamp: string;
+  type?: 'text' | 'system'; // Para mensajes del sistema como "usuario se unió"
 }
 
 export interface GroupMember {

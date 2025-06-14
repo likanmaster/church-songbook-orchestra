@@ -1,18 +1,18 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Group, Song, ServiceItemType } from "@/types";
+import { Group, Song, ServiceItemType, GroupMessage } from "@/types";
 import Navbar from "@/components/layout/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Music, Users, BookOpen, Clock, Calendar, UserMinus, Share, UserPlus, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Music, Users, BookOpen, Clock, Calendar, UserMinus, Share, UserPlus, AlertTriangle, ArrowLeft, MessageCircle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { db, GROUPS_COLLECTION, SONGS_COLLECTION, SERVICES_COLLECTION } from "@/hooks/use-auth-context";
-import { doc, getDoc, deleteDoc, updateDoc, arrayRemove, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, deleteDoc, updateDoc, arrayRemove, serverTimestamp, arrayUnion } from "firebase/firestore";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/use-auth-context";
+import GroupChat from "@/components/groups/GroupChat";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +34,7 @@ const GroupDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<{ id: string; username: string } | null>(null);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
   
   useEffect(() => {
     const fetchGroupData = async () => {
@@ -169,6 +170,45 @@ const GroupDetail = () => {
     }
   };
 
+  const handleSendMessage = async (messageText: string) => {
+    if (!id || !group || !user || !messageText.trim()) return;
+    
+    try {
+      setIsSendingMessage(true);
+      
+      const newMessage: GroupMessage = {
+        id: `${Date.now()}_${user.id}`,
+        userId: user.id,
+        username: user.username,
+        message: messageText,
+        timestamp: new Date().toISOString(),
+        type: 'text'
+      };
+      
+      const groupRef = doc(db, GROUPS_COLLECTION, id);
+      
+      await updateDoc(groupRef, {
+        messages: arrayUnion(newMessage),
+        updatedAt: serverTimestamp(),
+      });
+      
+      // Actualizar el estado local
+      setGroup(prevGroup => ({
+        ...prevGroup!,
+        messages: [...(prevGroup?.messages || []), newMessage]
+      }));
+    } catch (error) {
+      console.error("Error al enviar mensaje:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo enviar el mensaje",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -277,6 +317,10 @@ const GroupDetail = () => {
               <BookOpen className="h-4 w-4" />
               Servicios ({services.length})
             </TabsTrigger>
+            <TabsTrigger value="chat" className="gap-2">
+              <MessageCircle className="h-4 w-4" />
+              Chat ({group.messages?.length || 0})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="members" className="space-y-4">
@@ -377,6 +421,15 @@ const GroupDetail = () => {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="chat" className="space-y-4">
+            <GroupChat
+              groupId={id!}
+              messages={group.messages || []}
+              onSendMessage={handleSendMessage}
+              isLoading={isSendingMessage}
+            />
           </TabsContent>
         </Tabs>
         
