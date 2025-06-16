@@ -2,15 +2,26 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, UserPlus, Share } from "lucide-react";
+import RehearsalNotificationDialog from "./RehearsalNotificationDialog";
+import { GroupMember } from "@/types";
 
 interface GroupHeaderProps {
   groupId: string;
   groupName: string;
   groupDescription?: string;
   isUserAdmin: boolean;
+  members?: GroupMember[];
+  currentUserId?: string;
 }
 
-const GroupHeader = ({ groupId, groupName, groupDescription, isUserAdmin }: GroupHeaderProps) => {
+const GroupHeader = ({ 
+  groupId, 
+  groupName, 
+  groupDescription, 
+  isUserAdmin,
+  members = [],
+  currentUserId
+}: GroupHeaderProps) => {
   return (
     <>
       <div className="flex items-center gap-4 mb-2">
@@ -32,6 +43,12 @@ const GroupHeader = ({ groupId, groupName, groupDescription, isUserAdmin }: Grou
               Invitar Miembros
             </Link>
           </Button>
+          <RehearsalNotificationDialog
+            groupId={groupId}
+            groupName={groupName}
+            members={members}
+            currentUserId={currentUserId}
+          />
           <Button variant="outline" size="sm">
             <Share className="mr-2 h-4 w-4" />
             Compartir Grupo

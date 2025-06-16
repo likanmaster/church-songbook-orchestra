@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Group, Song, GroupMessage } from "@/types";
@@ -273,6 +272,8 @@ const GroupDetail = () => {
           groupName={group.name}
           groupDescription={group.description}
           isUserAdmin={isUserAdmin()}
+          members={group.members}
+          currentUserId={user?.id}
         />
 
         <Tabs defaultValue="members" className="space-y-4">

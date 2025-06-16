@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Music, Users, BookOpen } from "lucide-react";
 
-type NotificationType = 'group_invite' | 'new_song' | 'new_service';
+type NotificationType = 'group_invite' | 'new_song' | 'new_service' | 'rehearsal';
 
 type Notification = {
   id: string;
@@ -41,6 +40,9 @@ type Notification = {
   contentId?: string;
   contentName?: string;
   read: boolean;
+  date?: string;
+  time?: string;
+  notes?: string;
 };
 
 export const NotificationBell = () => {
@@ -73,7 +75,10 @@ export const NotificationBell = () => {
           createdAt: data.createdAt,
           contentId: data.contentId,
           contentName: data.contentName,
-          read: data.read || false
+          read: data.read || false,
+          date: data.date,
+          time: data.time,
+          notes: data.notes
         });
       });
       
@@ -179,6 +184,8 @@ export const NotificationBell = () => {
         return <Music className="h-4 w-4 text-green-500" />;
       case 'new_service':
         return <BookOpen className="h-4 w-4 text-purple-500" />;
+      case 'rehearsal':
+        return <Users className="h-4 w-4 text-orange-500" />;
       default:
         return <Bell className="h-4 w-4" />;
     }
@@ -206,6 +213,23 @@ export const NotificationBell = () => {
             Nuevo servicio <span className="font-medium">{notification.contentName}</span> añadido 
             al grupo <span className="font-medium">{notification.groupName}</span>
           </p>
+        );
+      case 'rehearsal':
+        return (
+          <div className="text-sm">
+            <p>
+              <span className="font-medium">{notification.from}</span> ha programado un ensayo 
+              para el grupo <span className="font-medium">{notification.groupName}</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              📅 {notification.date} a las {notification.time}
+            </p>
+            {notification.notes && (
+              <p className="text-xs text-muted-foreground mt-1">
+                📝 {notification.notes}
+              </p>
+            )}
+          </div>
         );
       default:
         return <p className="text-sm">Notificación</p>;
