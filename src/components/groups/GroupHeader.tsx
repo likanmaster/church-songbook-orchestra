@@ -3,25 +3,25 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, UserPlus, Share } from "lucide-react";
 import RehearsalNotificationDialog from "./RehearsalNotificationDialog";
-import { GroupMember } from "@/types";
+import GroupSettingsDialog from "./GroupSettingsDialog";
+import { Group, GroupMember } from "@/types";
 
 interface GroupHeaderProps {
-  groupId: string;
-  groupName: string;
-  groupDescription?: string;
+  group: Group;
   isUserAdmin: boolean;
-  members?: GroupMember[];
   currentUserId?: string;
+  onGroupUpdate: (updatedGroup: Partial<Group>) => void;
 }
 
 const GroupHeader = ({ 
-  groupId, 
-  groupName, 
-  groupDescription, 
+  group,
   isUserAdmin,
-  members = [],
-  currentUserId
+  currentUserId,
+  onGroupUpdate
 }: GroupHeaderProps) => {
+  // Verificar si el usuario puede enviar notificaciones
+  const canSendNotifications = isUserAdmin || (group.settings?.allowMemberNotifications ?? true);
+
   return (
     <>
       <div className="flex items-center gap-4 mb-2">
@@ -30,25 +30,27 @@ const GroupHeader = ({
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold">{groupName}</h1>
+        <h1 className="text-3xl font-bold">{group.name}</h1>
       </div>
       
-      <p className="text-muted-foreground mb-6">{groupDescription}</p>
+      <p className="text-muted-foreground mb-6">{group.description}</p>
       
       <div className="flex flex-wrap gap-2 mb-6">
-        {/* Botón de notificar ensayo - disponible para todos los miembros */}
-        <RehearsalNotificationDialog
-          groupId={groupId}
-          groupName={groupName}
-          members={members}
-          currentUserId={currentUserId}
-        />
+        {/* Botón de notificar ensayo - según configuración del grupo */}
+        {canSendNotifications && (
+          <RehearsalNotificationDialog
+            groupId={group.id}
+            groupName={group.name}
+            members={group.members}
+            currentUserId={currentUserId}
+          />
+        )}
         
         {/* Botones solo para administradores */}
         {isUserAdmin && (
           <>
             <Button asChild variant="outline" size="sm">
-              <Link to={`/groups/${groupId}/invite`}>
+              <Link to={`/groups/${group.id}/invite`}>
                 <UserPlus className="mr-2 h-4 w-4" />
                 Invitar Miembros
               </Link>
@@ -57,6 +59,10 @@ const GroupHeader = ({
               <Share className="mr-2 h-4 w-4" />
               Compartir Grupo
             </Button>
+            <GroupSettingsDialog
+              group={group}
+              onGroupUpdate={onGroupUpdate}
+            />
           </>
         )}
       </div>

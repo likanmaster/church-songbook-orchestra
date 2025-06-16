@@ -1,4 +1,3 @@
-
 export interface Song {
   id: string;
   title: string;
@@ -104,6 +103,12 @@ export interface Group {
   sharedSongs: string[]; // IDs de canciones compartidas
   sharedServices: string[]; // IDs de servicios compartidos
   messages?: GroupMessage[]; // Mensajes del chat del grupo
+  settings?: GroupSettings; // Configuraciones del grupo
+}
+
+export interface GroupSettings {
+  allowMemberNotifications?: boolean; // Permitir que miembros envíen notificaciones de ensayo
+  chatEnabled?: boolean; // Habilitar/deshabilitar chat
 }
 
 export interface GroupMessage {

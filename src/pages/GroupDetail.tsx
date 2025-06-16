@@ -29,6 +29,15 @@ const GroupDetail = () => {
   const [memberToRemove, setMemberToRemove] = useState<{ id: string; username: string } | null>(null);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   
+  const handleGroupUpdate = (updatedData: Partial<Group>) => {
+    if (group) {
+      setGroup({
+        ...group,
+        ...updatedData,
+      });
+    }
+  };
+
   useEffect(() => {
     const fetchGroupData = async () => {
       if (!id) return;
@@ -199,6 +208,9 @@ const GroupDetail = () => {
     setShowDeleteDialog(true);
   };
 
+  // Verificar si el chat está habilitado
+  const isChatEnabled = group?.settings?.chatEnabled ?? true;
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -268,12 +280,10 @@ const GroupDetail = () => {
       
       <main className="container mx-auto px-4 py-6">
         <GroupHeader
-          groupId={id!}
-          groupName={group.name}
-          groupDescription={group.description}
+          group={group}
           isUserAdmin={isUserAdmin()}
-          members={group.members}
           currentUserId={user?.id}
+          onGroupUpdate={handleGroupUpdate}
         />
 
         <Tabs defaultValue="members" className="space-y-4">
@@ -290,10 +300,12 @@ const GroupDetail = () => {
               <BookOpen className="h-4 w-4" />
               Servicios ({services.length})
             </TabsTrigger>
-            <TabsTrigger value="chat" className="gap-2">
-              <MessageCircle className="h-4 w-4" />
-              Chat ({group.messages?.length || 0})
-            </TabsTrigger>
+            {isChatEnabled && (
+              <TabsTrigger value="chat" className="gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Chat ({group.messages?.length || 0})
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="members" className="space-y-4">
@@ -313,14 +325,16 @@ const GroupDetail = () => {
             <GroupServicesTab services={services} />
           </TabsContent>
 
-          <TabsContent value="chat" className="space-y-4">
-            <GroupChat
-              groupId={id!}
-              messages={group.messages || []}
-              onSendMessage={handleSendMessage}
-              isLoading={isSendingMessage}
-            />
-          </TabsContent>
+          {isChatEnabled && (
+            <TabsContent value="chat" className="space-y-4">
+              <GroupChat
+                groupId={id!}
+                messages={group.messages || []}
+                onSendMessage={handleSendMessage}
+                isLoading={isSendingMessage}
+              />
+            </TabsContent>
+          )}
         </Tabs>
         
         <GroupDeleteMemberDialog
