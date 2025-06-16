@@ -57,7 +57,8 @@ const GroupSettingsDialog = ({ group, onGroupUpdate }: GroupSettingsDialogProps)
       setIsUpdating(true);
       const groupRef = doc(db, GROUPS_COLLECTION, group.id);
       
-      const updatedData = {
+      // Data to update in Firestore (with serverTimestamp)
+      const firebaseUpdateData = {
         name: groupName.trim(),
         description: groupDescription.trim(),
         settings: {
@@ -67,9 +68,20 @@ const GroupSettingsDialog = ({ group, onGroupUpdate }: GroupSettingsDialogProps)
         updatedAt: serverTimestamp(),
       };
 
-      await updateDoc(groupRef, updatedData);
+      await updateDoc(groupRef, firebaseUpdateData);
 
-      onGroupUpdate(updatedData);
+      // Data to update in local state (with string timestamp)
+      const localUpdateData: Partial<Group> = {
+        name: groupName.trim(),
+        description: groupDescription.trim(),
+        settings: {
+          allowMemberNotifications,
+          chatEnabled,
+        },
+        updatedAt: new Date().toISOString(),
+      };
+
+      onGroupUpdate(localUpdateData);
 
       toast({
         title: "Configuración actualizada",
@@ -99,7 +111,10 @@ const GroupSettingsDialog = ({ group, onGroupUpdate }: GroupSettingsDialogProps)
         updatedAt: serverTimestamp(),
       });
 
-      onGroupUpdate({ messages: [] });
+      onGroupUpdate({ 
+        messages: [],
+        updatedAt: new Date().toISOString()
+      });
 
       toast({
         title: "Chat limpiado",
