@@ -35,26 +35,31 @@ const GroupHeader = ({
       
       <p className="text-muted-foreground mb-6">{groupDescription}</p>
       
-      {isUserAdmin && (
-        <div className="flex flex-wrap gap-2 mb-6">
-          <Button asChild variant="outline" size="sm">
-            <Link to={`/groups/${groupId}/invite`}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Invitar Miembros
-            </Link>
-          </Button>
-          <RehearsalNotificationDialog
-            groupId={groupId}
-            groupName={groupName}
-            members={members}
-            currentUserId={currentUserId}
-          />
-          <Button variant="outline" size="sm">
-            <Share className="mr-2 h-4 w-4" />
-            Compartir Grupo
-          </Button>
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {/* Botón de notificar ensayo - disponible para todos los miembros */}
+        <RehearsalNotificationDialog
+          groupId={groupId}
+          groupName={groupName}
+          members={members}
+          currentUserId={currentUserId}
+        />
+        
+        {/* Botones solo para administradores */}
+        {isUserAdmin && (
+          <>
+            <Button asChild variant="outline" size="sm">
+              <Link to={`/groups/${groupId}/invite`}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Invitar Miembros
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm">
+              <Share className="mr-2 h-4 w-4" />
+              Compartir Grupo
+            </Button>
+          </>
+        )}
+      </div>
     </>
   );
 };
