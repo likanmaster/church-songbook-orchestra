@@ -11,13 +11,15 @@ interface GroupHeaderProps {
   isUserAdmin: boolean;
   currentUserId?: string;
   onGroupUpdate: (updatedGroup: Partial<Group>) => void;
+  onLeaveGroup?: () => void;
 }
 
 const GroupHeader = ({ 
   group,
   isUserAdmin,
   currentUserId,
-  onGroupUpdate
+  onGroupUpdate,
+  onLeaveGroup
 }: GroupHeaderProps) => {
   // Verificar si el usuario puede enviar notificaciones
   const canSendNotifications = isUserAdmin || (group.settings?.allowMemberNotifications ?? true);
@@ -59,12 +61,17 @@ const GroupHeader = ({
               <Share className="mr-2 h-4 w-4" />
               Compartir Grupo
             </Button>
-            <GroupSettingsDialog
-              group={group}
-              onGroupUpdate={onGroupUpdate}
-            />
           </>
         )}
+
+        {/* Configuración/Opciones del grupo - visible para todos los miembros */}
+        <GroupSettingsDialog
+          group={group}
+          onGroupUpdate={onGroupUpdate}
+          isUserAdmin={isUserAdmin}
+          currentUserId={currentUserId}
+          onLeaveGroup={onLeaveGroup}
+        />
       </div>
     </>
   );

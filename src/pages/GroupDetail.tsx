@@ -38,6 +38,11 @@ const GroupDetail = () => {
     }
   };
 
+  const handleLeaveGroup = () => {
+    // Redirigir a la página de grupos después de salir
+    navigate('/groups');
+  };
+
   useEffect(() => {
     const fetchGroupData = async () => {
       if (!id) return;
@@ -284,6 +289,7 @@ const GroupDetail = () => {
           isUserAdmin={isUserAdmin()}
           currentUserId={user?.id}
           onGroupUpdate={handleGroupUpdate}
+          onLeaveGroup={handleLeaveGroup}
         />
 
         <Tabs defaultValue="members" className="space-y-4">
