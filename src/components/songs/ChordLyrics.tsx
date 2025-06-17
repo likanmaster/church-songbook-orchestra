@@ -1,5 +1,6 @@
 
 import React from "react";
+import RichTextDisplay from "./RichTextDisplay";
 
 interface ChordLyricsProps {
   lyrics: string;
@@ -9,7 +10,19 @@ interface ChordLyricsProps {
 }
 
 const ChordLyrics: React.FC<ChordLyricsProps> = ({ lyrics, showChords, transposedKey, originalKey }) => {
-  // Función para procesar las letras y acordes
+  // Verificar si el contenido es HTML (texto enriquecido)
+  const isRichText = lyrics.includes('<') && lyrics.includes('>');
+  
+  if (isRichText) {
+    // Renderizar texto enriquecido
+    return (
+      <div className="rich-lyrics-container">
+        <RichTextDisplay content={lyrics} />
+      </div>
+    );
+  }
+
+  // Función para procesar las letras y acordes (modo simple)
   const processLyrics = (text: string) => {
     if (!text) return [];
     

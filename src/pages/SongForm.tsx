@@ -31,6 +31,7 @@ import Navbar from "@/components/layout/Navbar";
 import SongView from "@/components/songs/SongView";
 import { Song } from "@/types";
 import ChordButtonGroup from "@/components/songs/ChordButtonGroup";
+import RichTextEditor from "@/components/songs/RichTextEditor";
 import { 
   getSongById, 
   createSong, 
@@ -67,6 +68,7 @@ const SongForm = () => {
   const [isLoading, setIsLoading] = useState(id ? true : false);
   const [isSaving, setIsSaving] = useState(false);
   const [availableCategories, setAvailableCategories] = useState<{id: string, name: string}[]>([]);
+  const [editorMode, setEditorMode] = useState<"rich" | "simple">("rich");
   const isNewSong = !id;
   const lyricsTextareaRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
@@ -337,24 +339,55 @@ const SongForm = () => {
                             name="lyrics"
                             render={({ field }) => (
                               <FormItem>
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between mb-2">
                                   <FormLabel>Letra</FormLabel>
-                                  <div className="text-xs text-muted-foreground">
-                                    Usa [acorde] para insertar acordes
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      type="button"
+                                      variant={editorMode === "rich" ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => setEditorMode("rich")}
+                                    >
+                                      Editor Rico
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={editorMode === "simple" ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => setEditorMode("simple")}
+                                    >
+                                      Editor Simple
+                                    </Button>
                                   </div>
                                 </div>
                                 
                                 <div className="space-y-2">
-                                  <ChordButtonGroup onInsertChord={insertChordAtCursor} />
+                                  {editorMode === "simple" && (
+                                    <ChordButtonGroup onInsertChord={insertChordAtCursor} />
+                                  )}
                                   
                                   <FormControl>
-                                    <Textarea 
-                                      placeholder="Ingresa la letra de la canción con acordes entre corchetes: [C] [G] [Am]" 
-                                      rows={10}
-                                      {...field}
-                                      ref={lyricsTextareaRef}
-                                    />
+                                    {editorMode === "rich" ? (
+                                      <RichTextEditor
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        placeholder="Ingresa la letra de la canción con formato..."
+                                      />
+                                    ) : (
+                                      <Textarea 
+                                        placeholder="Ingresa la letra de la canción con acordes entre corchetes: [C] [G] [Am]" 
+                                        rows={10}
+                                        {...field}
+                                        ref={lyricsTextareaRef}
+                                      />
+                                    )}
                                   </FormControl>
+                                  
+                                  {editorMode === "simple" && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Usa [acorde] para insertar acordes
+                                    </div>
+                                  )}
                                 </div>
                               </FormItem>
                             )}
