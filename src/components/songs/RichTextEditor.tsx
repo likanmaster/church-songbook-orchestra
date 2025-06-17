@@ -47,7 +47,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       quill.insertText(index + chord.length + 2, ' ');
       
       // Posicionar el cursor después del acorde insertado
-      quill.setSelection(index + chord.length + 3);
+      quill.setSelection(index + chord.length + 3, 0);
       
       // Actualizar el valor
       onChange(quill.root.innerHTML);
