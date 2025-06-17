@@ -339,54 +339,21 @@ const SongForm = () => {
                             name="lyrics"
                             render={({ field }) => (
                               <FormItem>
-                                <div className="flex items-center justify-between mb-2">
-                                  <FormLabel>Letra</FormLabel>
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      type="button"
-                                      variant={editorMode === "rich" ? "default" : "outline"}
-                                      size="sm"
-                                      onClick={() => setEditorMode("rich")}
-                                    >
-                                      Editor Rico
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant={editorMode === "simple" ? "default" : "outline"}
-                                      size="sm"
-                                      onClick={() => setEditorMode("simple")}
-                                    >
-                                      Editor Simple
-                                    </Button>
-                                  </div>
-                                </div>
+                                <FormLabel>Letra</FormLabel>
                                 
                                 <div className="space-y-2">
+                                  <ChordButtonGroup onInsertChord={insertChordAtCursor} />
                                   <FormControl>
-                                    {editorMode === "rich" ? (
-                                      <RichTextEditor
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                        placeholder="Ingresa la letra de la canción con formato..."
-                                      />
-                                    ) : (
-                                      <>
-                                        <ChordButtonGroup onInsertChord={insertChordAtCursor} />
-                                        <Textarea 
-                                          placeholder="Ingresa la letra de la canción con acordes entre corchetes: [C] [G] [Am]" 
-                                          rows={10}
-                                          {...field}
-                                          ref={lyricsTextareaRef}
-                                        />
-                                      </>
-                                    )}
+                                    <Textarea 
+                                      placeholder="Ingresa la letra de la canción con acordes entre corchetes: [C] [G] [Am]" 
+                                      rows={10}
+                                      {...field}
+                                      ref={lyricsTextareaRef}
+                                    />
                                   </FormControl>
                                   
                                   <div className="text-xs text-muted-foreground">
-                                    {editorMode === "rich" 
-                                      ? "Usa los botones de acordes para insertar acordes con formato"
-                                      : "Usa [acorde] para insertar acordes"
-                                    }
+                                    Usa los botones de acordes o escribe [acorde] para insertar acordes
                                   </div>
                                 </div>
                               </FormItem>
