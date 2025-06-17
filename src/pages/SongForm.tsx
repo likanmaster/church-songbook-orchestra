@@ -362,10 +362,6 @@ const SongForm = () => {
                                 </div>
                                 
                                 <div className="space-y-2">
-                                  {editorMode === "simple" && (
-                                    <ChordButtonGroup onInsertChord={insertChordAtCursor} />
-                                  )}
-                                  
                                   <FormControl>
                                     {editorMode === "rich" ? (
                                       <RichTextEditor
@@ -374,20 +370,24 @@ const SongForm = () => {
                                         placeholder="Ingresa la letra de la canción con formato..."
                                       />
                                     ) : (
-                                      <Textarea 
-                                        placeholder="Ingresa la letra de la canción con acordes entre corchetes: [C] [G] [Am]" 
-                                        rows={10}
-                                        {...field}
-                                        ref={lyricsTextareaRef}
-                                      />
+                                      <>
+                                        <ChordButtonGroup onInsertChord={insertChordAtCursor} />
+                                        <Textarea 
+                                          placeholder="Ingresa la letra de la canción con acordes entre corchetes: [C] [G] [Am]" 
+                                          rows={10}
+                                          {...field}
+                                          ref={lyricsTextareaRef}
+                                        />
+                                      </>
                                     )}
                                   </FormControl>
                                   
-                                  {editorMode === "simple" && (
-                                    <div className="text-xs text-muted-foreground">
-                                      Usa [acorde] para insertar acordes
-                                    </div>
-                                  )}
+                                  <div className="text-xs text-muted-foreground">
+                                    {editorMode === "rich" 
+                                      ? "Usa los botones de acordes para insertar acordes con formato"
+                                      : "Usa [acorde] para insertar acordes"
+                                    }
+                                  </div>
                                 </div>
                               </FormItem>
                             )}
