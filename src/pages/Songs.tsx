@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Music, Edit, Trash2, Star, Copy, Filter, X } from "lucide-react";
@@ -20,8 +19,8 @@ const SongsPage = () => {
   const [songs, setSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedKey, setSelectedKey] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedKey, setSelectedKey] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -142,25 +141,28 @@ const SongsPage = () => {
 
   const clearAllFilters = () => {
     setSearch("");
-    setSelectedKey("");
-    setSelectedCategory("");
+    setSelectedKey("all");
+    setSelectedCategory("all");
     setShowFavoritesOnly(false);
   };
 
   const filteredSongs = songs.filter((song) => {
-    // First filter by user ownership
-    const isUserSong = song.userId === user?.id;
-    if (!isUserSong) return false;
+    // First filter by user ownership - keep all songs that belong to user or are accessible
+    const isAccessible = song.userId === user?.id || 
+                         song.isPublic || 
+                         (Array.isArray(song.sharedWith) && song.sharedWith.includes(user?.id || ""));
+    
+    if (!isAccessible) return false;
 
     // Search filter
     const matchesSearch = song.title.toLowerCase().includes(search.toLowerCase()) ||
                          (song.author && song.author.toLowerCase().includes(search.toLowerCase()));
     
     // Key filter
-    const matchesKey = !selectedKey || song.key === selectedKey;
+    const matchesKey = selectedKey === "all" || song.key === selectedKey;
     
     // Category filter
-    const matchesCategory = !selectedCategory || 
+    const matchesCategory = selectedCategory === "all" || 
                            (song.categories && song.categories.includes(selectedCategory));
     
     // Favorites filter
@@ -183,7 +185,7 @@ const SongsPage = () => {
     );
   };
 
-  const hasActiveFilters = search || selectedKey || selectedCategory || showFavoritesOnly;
+  const hasActiveFilters = search || selectedKey !== "all" || selectedCategory !== "all" || showFavoritesOnly;
 
   if (isLoading) {
     return (
@@ -246,7 +248,7 @@ const SongsPage = () => {
                     <SelectValue placeholder="Todas las tonalidades" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas las tonalidades</SelectItem>
+                    <SelectItem value="all">Todas las tonalidades</SelectItem>
                     {uniqueKeys.map((key) => (
                       <SelectItem key={key} value={key}>
                         {key}
@@ -264,7 +266,7 @@ const SongsPage = () => {
                     <SelectValue placeholder="Todas las categorías" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas las categorías</SelectItem>
+                    <SelectItem value="all">Todas las categorías</SelectItem>
                     {uniqueCategories.map((category) => (
                       <SelectItem key={category} value={category}>
                         {category}
@@ -309,16 +311,16 @@ const SongsPage = () => {
                     <X className="h-3 w-3 cursor-pointer" onClick={() => setSearch("")} />
                   </Badge>
                 )}
-                {selectedKey && (
+                {selectedKey !== "all" && (
                   <Badge variant="secondary" className="gap-1">
                     Tonalidad: {selectedKey}
-                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedKey("")} />
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedKey("all")} />
                   </Badge>
                 )}
-                {selectedCategory && (
+                {selectedCategory !== "all" && (
                   <Badge variant="secondary" className="gap-1">
                     Categoría: {selectedCategory}
-                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedCategory("")} />
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedCategory("all")} />
                   </Badge>
                 )}
                 {showFavoritesOnly && (
@@ -336,9 +338,9 @@ const SongsPage = () => {
           <CardHeader>
             <CardTitle>
               Lista de Canciones 
-              {filteredSongs.length !== songs.filter(s => s.userId === user?.id).length && (
+              {filteredSongs.length !== songs.length && (
                 <span className="text-sm text-muted-foreground ml-2">
-                  ({filteredSongs.length} de {songs.filter(s => s.userId === user?.id).length})
+                  ({filteredSongs.length} de {songs.length})
                 </span>
               )}
             </CardTitle>
