@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Music, Edit, Trash2, Star, Copy } from "lucide-react";
+import { Plus, Music, Edit, Trash2, Star, Copy, Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import { Song } from "@/types";
@@ -18,9 +20,16 @@ const SongsPage = () => {
   const [songs, setSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedKey, setSelectedKey] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const [copyingSong, setCopyingSong] = useState<string | null>(null);
+
+  // Get unique keys and categories from songs
+  const uniqueKeys = [...new Set(songs.filter(song => song.key).map(song => song.key))].sort();
+  const uniqueCategories = [...new Set(songs.flatMap(song => song.categories || []))].sort();
 
   useEffect(() => {
     loadSongs();
@@ -131,12 +140,33 @@ const SongsPage = () => {
     }
   };
 
+  const clearAllFilters = () => {
+    setSearch("");
+    setSelectedKey("");
+    setSelectedCategory("");
+    setShowFavoritesOnly(false);
+  };
+
   const filteredSongs = songs.filter((song) => {
-    // First filter by user ownership, then by search term
+    // First filter by user ownership
     const isUserSong = song.userId === user?.id;
-    const matchesSearch = song.title.toLowerCase().includes(search.toLowerCase());
+    if (!isUserSong) return false;
+
+    // Search filter
+    const matchesSearch = song.title.toLowerCase().includes(search.toLowerCase()) ||
+                         (song.author && song.author.toLowerCase().includes(search.toLowerCase()));
     
-    return isUserSong && matchesSearch;
+    // Key filter
+    const matchesKey = !selectedKey || song.key === selectedKey;
+    
+    // Category filter
+    const matchesCategory = !selectedCategory || 
+                           (song.categories && song.categories.includes(selectedCategory));
+    
+    // Favorites filter
+    const matchesFavorites = !showFavoritesOnly || song.isFavorite;
+    
+    return matchesSearch && matchesKey && matchesCategory && matchesFavorites;
   });
 
   // Helper to render star rating
@@ -152,6 +182,8 @@ const SongsPage = () => {
       </div>
     );
   };
+
+  const hasActiveFilters = search || selectedKey || selectedCategory || showFavoritesOnly;
 
   if (isLoading) {
     return (
@@ -186,29 +218,147 @@ const SongsPage = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Canciones</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtros y Búsqueda
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="mb-4">
+          <CardContent className="space-y-4">
+            {/* Search Input */}
+            <div>
               <Label htmlFor="search">Buscar canción:</Label>
               <Input
                 type="text"
                 id="search"
-                placeholder="Buscar por título..."
+                placeholder="Buscar por título o autor..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             
-            <Separator />
-            
+            {/* Filters Row */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Key Filter */}
+              <div>
+                <Label>Tonalidad:</Label>
+                <Select value={selectedKey} onValueChange={setSelectedKey}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas las tonalidades" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas las tonalidades</SelectItem>
+                    {uniqueKeys.map((key) => (
+                      <SelectItem key={key} value={key}>
+                        {key}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Category Filter */}
+              <div>
+                <Label>Categoría:</Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas las categorías" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas las categorías</SelectItem>
+                    {uniqueCategories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Favorites Filter */}
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="favorites-only"
+                  checked={showFavoritesOnly}
+                  onCheckedChange={setShowFavoritesOnly}
+                />
+                <Label htmlFor="favorites-only">Solo favoritas</Label>
+              </div>
+
+              {/* Clear Filters Button */}
+              <div className="flex items-end">
+                {hasActiveFilters && (
+                  <Button
+                    variant="outline"
+                    onClick={clearAllFilters}
+                    className="w-full"
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Limpiar filtros
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Active Filters Display */}
+            {hasActiveFilters && (
+              <div className="flex flex-wrap gap-2">
+                <span className="text-sm text-muted-foreground">Filtros activos:</span>
+                {search && (
+                  <Badge variant="secondary" className="gap-1">
+                    Búsqueda: "{search}"
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSearch("")} />
+                  </Badge>
+                )}
+                {selectedKey && (
+                  <Badge variant="secondary" className="gap-1">
+                    Tonalidad: {selectedKey}
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedKey("")} />
+                  </Badge>
+                )}
+                {selectedCategory && (
+                  <Badge variant="secondary" className="gap-1">
+                    Categoría: {selectedCategory}
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedCategory("")} />
+                  </Badge>
+                )}
+                {showFavoritesOnly && (
+                  <Badge variant="secondary" className="gap-1">
+                    Solo favoritas
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setShowFavoritesOnly(false)} />
+                  </Badge>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>
+              Lista de Canciones 
+              {filteredSongs.length !== songs.filter(s => s.userId === user?.id).length && (
+                <span className="text-sm text-muted-foreground ml-2">
+                  ({filteredSongs.length} de {songs.filter(s => s.userId === user?.id).length})
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             {filteredSongs.length === 0 ? (
               <div className="text-center py-8">
                 <Music className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No se encontraron canciones</p>
+                <p className="text-muted-foreground">
+                  {hasActiveFilters ? "No se encontraron canciones con los filtros aplicados" : "No se encontraron canciones"}
+                </p>
+                {hasActiveFilters && (
+                  <Button variant="outline" onClick={clearAllFilters} className="mt-2">
+                    <X className="mr-2 h-4 w-4" />
+                    Limpiar filtros
+                  </Button>
+                )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredSongs.map((song) => (
                   <Card key={song.id} className="overflow-hidden">
                     <CardHeader className="pb-2">
