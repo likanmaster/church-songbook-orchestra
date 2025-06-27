@@ -40,6 +40,7 @@ import {
   updateSongPublicStatus,
   updateSongRating
 } from "@/services/song-service";
+import { getUserMusicStyles } from "@/services/user-service";
 import { useAuth } from "@/hooks/use-auth-context";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -68,6 +69,7 @@ const SongForm = () => {
   const [isLoading, setIsLoading] = useState(id ? true : false);
   const [isSaving, setIsSaving] = useState(false);
   const [availableCategories, setAvailableCategories] = useState<{id: string, name: string}[]>([]);
+  const [userMusicStyles, setUserMusicStyles] = useState<string[]>([]);
   const [editorMode, setEditorMode] = useState<"rich" | "simple">("rich");
   const isNewSong = !id;
   const lyricsTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -92,9 +94,15 @@ const SongForm = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Cargar categorías disponibles
+        // Caregar categorías disponibles
         const categories = await getAllCategories();
         setAvailableCategories(categories);
+        
+        // Cargar estilos musicales del usuario
+        if (user) {
+          const styles = await getUserMusicStyles(user.id);
+          setUserMusicStyles(styles);
+        }
         
         // Cargar canción si estamos editando
         if (id) {
@@ -131,7 +139,7 @@ const SongForm = () => {
     };
     
     fetchData();
-  }, [id, navigate, form]);
+  }, [id, navigate, form, user]);
 
   // Función para insertar acordes en la posición del cursor
   const insertChordAtCursor = (chord: string) => {
@@ -159,7 +167,6 @@ const SongForm = () => {
   };
   
   const keyOptions = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  const styleOptions = ["Contemporáneo", "Himno", "Gospel", "Balada", "Rock", "Pop", "Acústico", "Coral"];
   
   const handleSubmit = async (data: SongFormData) => {
     setIsSaving(true);
@@ -411,21 +418,40 @@ const SongForm = () => {
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Estilo Musical</FormLabel>
-                                  <Select
-                                    onValueChange={field.onChange}
-                                    value={field.value}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona estilo" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {styleOptions.map((s) => (
-                                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  {userMusicStyles.length > 0 ? (
+                                    <Select
+                                      onValueChange={field.onChange}
+                                      value={field.value}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Selecciona estilo" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        {userMusicStyles.map((style) => (
+                                          <SelectItem key={style} value={style}>{style}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <div className="flex flex-col space-y-2">
+                                      <div className="p-3 rounded-md border border-dashed border-muted-foreground/25 bg-muted/50">
+                                        <p className="text-sm text-muted-foreground text-center">
+                                          No tienes estilos musicales configurados
+                                        </p>
+                                        <Button
+                                          type="button"
+                                          variant="link"
+                                          size="sm"
+                                          onClick={() => navigate("/settings")}
+                                          className="w-full p-0 h-auto font-normal text-primary"
+                                        >
+                                          Agrega estilos musicales en la página de ajustes
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
                                 </FormItem>
                               )}
                             />
