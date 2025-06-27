@@ -1,3 +1,4 @@
+
 export interface Song {
   id: string;
   title: string;
@@ -137,4 +138,5 @@ export interface User {
   photoURL?: string;
   songs?: string[]; // IDs de canciones propias
   groups?: string[]; // IDs de grupos a los que pertenece
+  musicStyles?: string[]; // Estilos musicales personalizados del usuario
 }

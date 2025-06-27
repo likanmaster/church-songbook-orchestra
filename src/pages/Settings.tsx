@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/hooks/use-theme";
 import { Moon, Sun, Bell, Palette } from "lucide-react";
+import MusicStylesManager from "@/components/settings/MusicStylesManager";
 
 const Settings = () => {
   const { theme, setTheme, color, setColor } = useTheme();
@@ -59,6 +60,8 @@ const Settings = () => {
             </CardContent>
           </Card>
 
+          <MusicStylesManager />
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -98,4 +101,3 @@ const Settings = () => {
 };
 
 export default Settings;
-
