@@ -21,14 +21,16 @@ const SongsPage = () => {
   const [search, setSearch] = useState("");
   const [selectedKey, setSelectedKey] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedStyle, setSelectedStyle] = useState<string>("all");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const [copyingSong, setCopyingSong] = useState<string | null>(null);
 
-  // Get unique keys and categories from songs
+  // Get unique keys, categories, and styles from songs
   const uniqueKeys = [...new Set(songs.filter(song => song.key).map(song => song.key))].sort();
   const uniqueCategories = [...new Set(songs.flatMap(song => song.categories || []))].sort();
+  const uniqueStyles = [...new Set(songs.filter(song => song.style).map(song => song.style))].sort();
 
   useEffect(() => {
     loadSongs();
@@ -143,6 +145,7 @@ const SongsPage = () => {
     setSearch("");
     setSelectedKey("all");
     setSelectedCategory("all");
+    setSelectedStyle("all");
     setShowFavoritesOnly(false);
   };
 
@@ -165,10 +168,13 @@ const SongsPage = () => {
     const matchesCategory = selectedCategory === "all" || 
                            (song.categories && song.categories.includes(selectedCategory));
     
+    // Style filter
+    const matchesStyle = selectedStyle === "all" || song.style === selectedStyle;
+    
     // Favorites filter
     const matchesFavorites = !showFavoritesOnly || song.isFavorite;
     
-    return matchesSearch && matchesKey && matchesCategory && matchesFavorites;
+    return matchesSearch && matchesKey && matchesCategory && matchesStyle && matchesFavorites;
   });
 
   // Helper to render star rating
@@ -185,7 +191,7 @@ const SongsPage = () => {
     );
   };
 
-  const hasActiveFilters = search || selectedKey !== "all" || selectedCategory !== "all" || showFavoritesOnly;
+  const hasActiveFilters = search || selectedKey !== "all" || selectedCategory !== "all" || selectedStyle !== "all" || showFavoritesOnly;
 
   if (isLoading) {
     return (
@@ -239,7 +245,7 @@ const SongsPage = () => {
             </div>
             
             {/* Filters Row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Key Filter */}
               <div>
                 <Label>Tonalidad:</Label>
@@ -270,6 +276,24 @@ const SongsPage = () => {
                     {uniqueCategories.map((category) => (
                       <SelectItem key={category} value={category}>
                         {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Style Filter */}
+              <div>
+                <Label>Estilo musical:</Label>
+                <Select value={selectedStyle} onValueChange={setSelectedStyle}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos los estilos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estilos</SelectItem>
+                    {uniqueStyles.map((style) => (
+                      <SelectItem key={style} value={style}>
+                        {style}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -321,6 +345,12 @@ const SongsPage = () => {
                   <Badge variant="secondary" className="gap-1">
                     Categoría: {selectedCategory}
                     <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedCategory("all")} />
+                  </Badge>
+                )}
+                {selectedStyle !== "all" && (
+                  <Badge variant="secondary" className="gap-1">
+                    Estilo: {selectedStyle}
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedStyle("all")} />
                   </Badge>
                 )}
                 {showFavoritesOnly && (
