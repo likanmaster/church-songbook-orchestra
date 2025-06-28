@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Calendar, Plus, Edit, Trash2, Eye, Music, User, FolderOpen, Folder } from "lucide-react";
@@ -56,14 +55,20 @@ const ServicesPage = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
+      console.log("🔄 Cargando datos para usuario:", user?.id);
+      
       const [servicesData, groupsData] = await Promise.all([
         getAllServices(user?.id || ''),
         getAllServiceGroups(user?.id || '')
       ]);
+      
+      console.log("📊 Servicios cargados:", servicesData.length);
+      console.log("🏷️ Grupos cargados:", groupsData.length, groupsData);
+      
       setServices(servicesData);
       setServiceGroups(groupsData);
     } catch (error) {
-      console.error("Error al cargar los datos:", error);
+      console.error("❌ Error al cargar los datos:", error);
       toast({
         title: "Error",
         description: "No se pudieron cargar los datos",
@@ -125,10 +130,16 @@ const ServicesPage = () => {
 
   const handleCreateGroup = async (groupData: Omit<ServiceGroup, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
+      console.log("➕ Creando grupo desde Services.tsx:", groupData);
       const newGroup = await createServiceGroup(groupData, user?.id || '');
-      setServiceGroups(prev => [newGroup, ...prev]);
+      console.log("✅ Grupo creado, actualizando estado:", newGroup);
+      setServiceGroups(prev => {
+        const updated = [newGroup, ...prev];
+        console.log("📋 Estado actualizado de grupos:", updated);
+        return updated;
+      });
     } catch (error) {
-      console.error("Error al crear grupo:", error);
+      console.error("❌ Error al crear grupo:", error);
       throw error;
     }
   };

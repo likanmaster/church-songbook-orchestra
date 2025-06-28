@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Plus, Edit, Trash2, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -51,6 +50,8 @@ const ServiceGroupManager = ({
   });
   const { toast } = useToast();
 
+  console.log("🎯 ServiceGroupManager renderizado con grupos:", groups);
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -73,7 +74,10 @@ const ServiceGroupManager = ({
     }
 
     try {
+      console.log("🚀 Iniciando creación/edición de grupo:", formData);
+      
       if (editingGroup) {
+        console.log("✏️ Editando grupo existente:", editingGroup.id);
         await onUpdateGroup(editingGroup.id, {
           name: formData.name.trim(),
           description: formData.description.trim() || undefined,
@@ -84,12 +88,14 @@ const ServiceGroupManager = ({
           description: "Grupo actualizado correctamente",
         });
       } else {
+        console.log("➕ Creando nuevo grupo");
         await onCreateGroup({
           name: formData.name.trim(),
           description: formData.description.trim() || undefined,
           color: formData.color,
           userId: ""
         });
+        console.log("✅ Grupo creado, cerrando modal");
         toast({
           title: "Éxito",
           description: "Grupo creado correctamente",
@@ -99,7 +105,7 @@ const ServiceGroupManager = ({
       resetForm();
       setIsCreateOpen(false);
     } catch (error) {
-      console.error("Error al gestionar grupo:", error);
+      console.error("❌ Error al gestionar grupo:", error);
       toast({
         title: "Error",
         description: "No se pudo guardar el grupo",
