@@ -49,26 +49,37 @@ const ServicesPage = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    loadData();
+    console.log("🔄 [ServicesPage] useEffect ejecutado, user:", user?.id);
+    if (user?.id) {
+      loadData();
+    }
   }, [user]);
 
   const loadData = async () => {
+    console.log("🔄 [ServicesPage] loadData iniciado");
     setIsLoading(true);
     try {
-      console.log("🔄 Cargando datos para usuario:", user?.id);
+      console.log("🔄 [ServicesPage] Cargando datos para usuario:", user?.id);
       
-      const [servicesData, groupsData] = await Promise.all([
-        getAllServices(user?.id || ''),
-        getAllServiceGroups(user?.id || '')
-      ]);
+      if (!user?.id) {
+        console.warn("⚠️ [ServicesPage] No hay usuario logueado");
+        return;
+      }
       
-      console.log("📊 Servicios cargados:", servicesData.length);
-      console.log("🏷️ Grupos cargados:", groupsData.length, groupsData);
+      console.log("📊 [ServicesPage] Llamando a getAllServices...");
+      const servicesData = await getAllServices(user.id);
+      console.log("📊 [ServicesPage] Servicios obtenidos:", servicesData.length);
+      
+      console.log("🏷️ [ServicesPage] Llamando a getAllServiceGroups...");
+      const groupsData = await getAllServiceGroups(user.id);
+      console.log("🏷️ [ServicesPage] Grupos obtenidos:", groupsData.length, groupsData);
       
       setServices(servicesData);
       setServiceGroups(groupsData);
+      
+      console.log("✅ [ServicesPage] Estado actualizado - Servicios:", servicesData.length, "Grupos:", groupsData.length);
     } catch (error) {
-      console.error("❌ Error al cargar los datos:", error);
+      console.error("❌ [ServicesPage] Error al cargar los datos:", error);
       toast({
         title: "Error",
         description: "No se pudieron cargar los datos",
@@ -130,16 +141,30 @@ const ServicesPage = () => {
 
   const handleCreateGroup = async (groupData: Omit<ServiceGroup, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      console.log("➕ Creando grupo desde Services.tsx:", groupData);
-      const newGroup = await createServiceGroup(groupData, user?.id || '');
-      console.log("✅ Grupo creado, actualizando estado:", newGroup);
+      console.log("➕ [ServicesPage] handleCreateGroup llamado con:", groupData);
+      console.log("👤 [ServicesPage] Usuario actual:", user?.id);
+      
+      if (!user?.id) {
+        throw new Error("No hay usuario logueado");
+      }
+      
+      const newGroup = await createServiceGroup(groupData, user.id);
+      console.log("✅ [ServicesPage] Grupo creado exitosamente:", newGroup);
+      
       setServiceGroups(prev => {
         const updated = [newGroup, ...prev];
-        console.log("📋 Estado actualizado de grupos:", updated);
+        console.log("📋 [ServicesPage] Estado de grupos actualizado:", updated);
         return updated;
       });
+      
+      // Recargar datos para verificar persistencia
+      console.log("🔄 [ServicesPage] Recargando datos después de crear grupo...");
+      setTimeout(() => {
+        loadData();
+      }, 1000);
+      
     } catch (error) {
-      console.error("❌ Error al crear grupo:", error);
+      console.error("❌ [ServicesPage] Error al crear grupo:", error);
       throw error;
     }
   };
