@@ -1,4 +1,3 @@
-
 export interface Song {
   id: string;
   title: string;
@@ -45,6 +44,7 @@ export interface Service {
   isPublic: boolean;
   sharedWith: string[];
   createdBy?: string; // Nombre del usuario que creó el servicio
+  groupId?: string | null; // ID del grupo al que pertenece el servicio
 }
 
 export interface ServiceSong {
@@ -139,4 +139,14 @@ export interface User {
   songs?: string[]; // IDs de canciones propias
   groups?: string[]; // IDs de grupos a los que pertenece
   musicStyles?: string[]; // Estilos musicales personalizados del usuario
+}
+
+export interface ServiceGroup {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
 }

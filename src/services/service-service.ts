@@ -1,4 +1,3 @@
-
 import { db, SERVICES_COLLECTION, USERS_COLLECTION } from "@/hooks/use-auth-context";
 import { Service, ServiceSong } from "@/types";
 import { 
@@ -138,7 +137,8 @@ export const createService = async (serviceData: Omit<Service, 'id' | 'createdAt
       sections: serviceData.sections || [],
       userId: userId,
       isPublic: serviceData.isPublic || false,
-      sharedWith: serviceData.sharedWith || []
+      sharedWith: serviceData.sharedWith || [],
+      groupId: serviceData.groupId || null
     };
     
     return newService;
@@ -234,6 +234,125 @@ export const deleteService = async (id: string, userId: string): Promise<void> =
     
   } catch (error) {
     console.error("Error al eliminar servicio:", error);
+    throw error;
+  }
+};
+
+// Funciones para gestionar grupos de servicios
+const SERVICE_GROUPS_COLLECTION = "serviceGroups";
+
+export const getAllServiceGroups = async (userId: string): Promise<import("@/types").ServiceGroup[]> => {
+  try {
+    const groupsQuery = query(
+      collection(db, SERVICE_GROUPS_COLLECTION),
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc")
+    );
+    
+    const querySnapshot = await getDocs(groupsQuery);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      name: doc.data().name,
+      description: doc.data().description || undefined,
+      color: doc.data().color || "#3b82f6",
+      createdAt: doc.data().createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+      updatedAt: doc.data().updatedAt?.toDate()?.toISOString() || new Date().toISOString(),
+      userId: doc.data().userId
+    }));
+  } catch (error) {
+    console.error("Error al obtener grupos de servicios:", error);
+    return [];
+  }
+};
+
+export const createServiceGroup = async (groupData: Omit<import("@/types").ServiceGroup, 'id' | 'createdAt' | 'updatedAt'>, userId: string): Promise<import("@/types").ServiceGroup> => {
+  try {
+    const groupToSave = {
+      ...groupData,
+      userId: userId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+    
+    const docRef = await addDoc(collection(db, SERVICE_GROUPS_COLLECTION), groupToSave);
+    
+    return {
+      id: docRef.id,
+      name: groupData.name,
+      description: groupData.description,
+      color: groupData.color || "#3b82f6",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      userId: userId
+    };
+  } catch (error) {
+    console.error("Error al crear grupo de servicios:", error);
+    throw error;
+  }
+};
+
+export const updateServiceGroup = async (id: string, groupData: Partial<import("@/types").ServiceGroup>, userId: string): Promise<void> => {
+  try {
+    const groupRef = doc(db, SERVICE_GROUPS_COLLECTION, id);
+    
+    // Verificar que el usuario sea propietario del grupo
+    const groupDoc = await getDoc(groupRef);
+    if (!groupDoc.exists()) {
+      throw new Error("El grupo no existe");
+    }
+    
+    const groupOwner = groupDoc.data().userId;
+    if (groupOwner !== userId) {
+      throw new Error("No tienes permiso para editar este grupo");
+    }
+    
+    const { id: _, createdAt, updatedAt, userId: __, ...dataToUpdate } = groupData as any;
+    
+    const updateData = {
+      ...dataToUpdate,
+      updatedAt: serverTimestamp()
+    };
+    
+    await updateDoc(groupRef, updateData);
+  } catch (error) {
+    console.error("Error al actualizar grupo de servicios:", error);
+    throw error;
+  }
+};
+
+export const deleteServiceGroup = async (id: string, userId: string): Promise<void> => {
+  try {
+    const groupRef = doc(db, SERVICE_GROUPS_COLLECTION, id);
+    
+    // Verificar que el usuario sea propietario del grupo
+    const groupDoc = await getDoc(groupRef);
+    if (!groupDoc.exists()) {
+      throw new Error("El grupo no existe");
+    }
+    
+    const groupOwner = groupDoc.data().userId;
+    if (groupOwner !== userId) {
+      throw new Error("No tienes permiso para eliminar este grupo");
+    }
+    
+    // Desagrupar todos los servicios de este grupo
+    const servicesQuery = query(
+      collection(db, SERVICES_COLLECTION),
+      where("groupId", "==", id),
+      where("userId", "==", userId)
+    );
+    
+    const servicesSnapshot = await getDocs(servicesQuery);
+    const updatePromises = servicesSnapshot.docs.map(serviceDoc => 
+      updateDoc(serviceDoc.ref, { groupId: null })
+    );
+    
+    await Promise.all(updatePromises);
+    
+    // Eliminar el grupo
+    await deleteDoc(groupRef);
+  } catch (error) {
+    console.error("Error al eliminar grupo de servicios:", error);
     throw error;
   }
 };
