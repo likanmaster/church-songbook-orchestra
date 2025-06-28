@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
@@ -25,8 +26,8 @@ import { format } from "date-fns";
 import { DatePicker } from "@/components/ui/date-picker";
 import Navbar from "@/components/layout/Navbar";
 import SongSearch from "@/components/SongSearch";
-import { Service, ServiceSong, ServiceSection, Song } from "@/types";
-import { getServiceById, createService, updateService } from "@/services/service-service";
+import { Service, ServiceSong, ServiceSection, Song, ServiceGroup } from "@/types";
+import { getServiceById, createService, updateService, getAllServiceGroups } from "@/services/service-service";
 import { useAuth } from "@/hooks/use-auth-context";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -36,6 +37,8 @@ const ServiceForm = () => {
   const [theme, setTheme] = useState("");
   const [preacher, setPreacher] = useState("");
   const [notes, setNotes] = useState("");
+  const [groupId, setGroupId] = useState<string | null>(null);
+  const [serviceGroups, setServiceGroups] = useState<ServiceGroup[]>([]);
   const [songs, setSongs] = useState<
     (Song & { order: number; serviceNotes?: string })[]
   >([]);
@@ -48,6 +51,12 @@ const ServiceForm = () => {
   const isEditing = !!serviceId;
 
   useEffect(() => {
+    if (user?.id) {
+      loadServiceGroups();
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (isEditing && serviceId) {
       loadService(serviceId);
     } else {
@@ -55,6 +64,19 @@ const ServiceForm = () => {
       setSections([{ id: uuidv4(), text: "Introducción", order: 0 }]);
     }
   }, [serviceId, isEditing]);
+
+  const loadServiceGroups = async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log("🏷️ [ServiceForm] Cargando grupos de servicios...");
+      const groups = await getAllServiceGroups(user.id);
+      console.log("🏷️ [ServiceForm] Grupos cargados:", groups);
+      setServiceGroups(groups);
+    } catch (error) {
+      console.error("❌ [ServiceForm] Error al cargar grupos:", error);
+    }
+  };
 
   const loadService = async (id: string) => {
     setIsLoading(true);
@@ -66,12 +88,15 @@ const ServiceForm = () => {
         setTheme(service.theme || "");
         setPreacher(service.preacher || "");
         setNotes(service.notes || "");
+        setGroupId(service.groupId || null);
+        console.log("📋 [ServiceForm] Servicio cargado con groupId:", service.groupId);
+        // ... keep existing code (songs and sections loading)
         setSongs(
           service.songs
             .sort((a, b) => a.order - b.order)
             .map((serviceSong, index) => ({
               ...serviceSong,
-              id: serviceSong.songId, // Asumiendo que serviceSong tiene un songId
+              id: serviceSong.songId,
               order: index,
               serviceNotes: serviceSong.notes,
             })) as any
@@ -126,12 +151,15 @@ const ServiceForm = () => {
     setIsLoading(true);
 
     try {
+      console.log("💾 [ServiceForm] Guardando servicio con groupId:", groupId);
+      
       const serviceData: Omit<Service, 'id' | 'createdAt' | 'updatedAt'> = {
         title,
         date: date?.toISOString() || new Date().toISOString(),
         theme: theme || null,
         preacher: preacher || null,
         notes: notes || null,
+        groupId: groupId || null, // Asegurar que se incluye el groupId
         songs: songs.map((song, index) => ({
           id: `${song.id}-${index}`,
           songId: song.id,
@@ -144,15 +172,19 @@ const ServiceForm = () => {
           order: index,
         })),
         userId: user.id,
-        isPublic: false, // Default to private
-        sharedWith: [], // Empty array initially
+        isPublic: false,
+        sharedWith: [],
       };
+
+      console.log("💾 [ServiceForm] Datos del servicio a guardar:", serviceData);
 
       let result;
       if (isEditing && serviceId) {
         result = await updateService(serviceId, serviceData, user.id);
+        console.log("✅ [ServiceForm] Servicio actualizado:", result);
       } else {
         result = await createService(serviceData, user.id);
+        console.log("✅ [ServiceForm] Servicio creado:", result);
       }
 
       toast({
@@ -162,7 +194,7 @@ const ServiceForm = () => {
 
       navigate("/services");
     } catch (error) {
-      console.error("Error al guardar el servicio:", error);
+      console.error("❌ [ServiceForm] Error al guardar el servicio:", error);
       toast({
         title: "Error",
         description: "No se pudo guardar el servicio",
@@ -211,7 +243,6 @@ const ServiceForm = () => {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    // Actualizar el estado con el nuevo orden y las propiedades necesarias
     setSongs(
       items.map((song, index) => ({
         ...song,
@@ -292,6 +323,32 @@ const ServiceForm = () => {
                   onChange={(e) => setPreacher(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="group">Grupo de Servicio (opcional)</Label>
+              <Select value={groupId || "none"} onValueChange={(value) => {
+                console.log("📋 [ServiceForm] Seleccionando grupo:", value);
+                setGroupId(value === "none" ? null : value);
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin grupo</SelectItem>
+                  {serviceGroups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: group.color }}
+                        />
+                        {group.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div>

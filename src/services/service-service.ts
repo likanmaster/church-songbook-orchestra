@@ -1,4 +1,3 @@
-
 import { db, SERVICES_COLLECTION, USERS_COLLECTION } from "@/hooks/use-auth-context";
 import { Service, ServiceSong } from "@/types";
 import { 
@@ -32,7 +31,8 @@ const convertFirestoreDataToService = (id: string, data: any): Service => {
     sections: data.sections || [],
     userId: data.userId || "",
     isPublic: data.isPublic || false,
-    sharedWith: data.sharedWith || []
+    sharedWith: data.sharedWith || [],
+    groupId: data.groupId || null // Asegurar que se incluye groupId
   };
 };
 
@@ -102,18 +102,27 @@ export const getServiceById = async (id: string, userId?: string): Promise<Servi
 // Crear nuevo servicio
 export const createService = async (serviceData: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>, userId: string): Promise<Service> => {
   try {
-    // Limpiamos cualquier propiedad undefined o null
+    console.log("💾 [createService] Creando servicio con datos:", serviceData);
+    
+    // Limpiamos cualquier propiedad undefined o null excepto groupId que puede ser null
     const cleanedData = Object.fromEntries(
-      Object.entries(serviceData).filter(([_, v]) => v != null)
+      Object.entries(serviceData).filter(([key, value]) => {
+        // Permitir groupId como null explícitamente
+        if (key === 'groupId') return true;
+        return value != null;
+      })
     );
     
     const serviceToSave = {
       ...cleanedData,
-      title: serviceData.title || "", // Ensure title is defined
+      title: serviceData.title || "",
       userId: userId,
+      groupId: serviceData.groupId, // Asegurar que se incluye groupId (puede ser null)
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
+    
+    console.log("💾 [createService] Datos finales a guardar:", serviceToSave);
     
     const docRef = await addDoc(collection(db, SERVICES_COLLECTION), serviceToSave);
     
@@ -127,7 +136,7 @@ export const createService = async (serviceData: Omit<Service, 'id' | 'createdAt
     // Construimos un objeto Service con los datos que acabamos de guardar
     const newService: Service = {
       id: docRef.id,
-      title: serviceData.title || "", // Ensure title is included
+      title: serviceData.title || "",
       date: serviceData.date,
       theme: serviceData.theme || null,
       preacher: serviceData.preacher || null,
@@ -142,9 +151,10 @@ export const createService = async (serviceData: Omit<Service, 'id' | 'createdAt
       groupId: serviceData.groupId || null
     };
     
+    console.log("✅ [createService] Servicio creado exitosamente:", newService);
     return newService;
   } catch (error) {
-    console.error("Error al crear servicio:", error);
+    console.error("❌ [createService] Error al crear servicio:", error);
     throw error;
   }
 };
@@ -152,6 +162,8 @@ export const createService = async (serviceData: Omit<Service, 'id' | 'createdAt
 // Actualizar servicio existente
 export const updateService = async (id: string, serviceData: Partial<Service>, userId: string): Promise<Service> => {
   try {
+    console.log("📝 [updateService] Actualizando servicio:", id, "con datos:", serviceData);
+    
     const serviceRef = doc(db, SERVICES_COLLECTION, id);
     
     // Verificar que el usuario sea propietario del servicio
@@ -168,15 +180,20 @@ export const updateService = async (id: string, serviceData: Partial<Service>, u
     // Eliminar propiedades que no queremos actualizar en Firestore
     const { id: _, createdAt, updatedAt, userId: __, ...dataToUpdate } = serviceData as any;
     
-    // Limpiamos cualquier propiedad undefined o null
+    // Limpiamos cualquier propiedad undefined pero permitimos null para groupId
     const cleanedData = Object.fromEntries(
-      Object.entries(dataToUpdate).filter(([_, v]) => v != null)
+      Object.entries(dataToUpdate).filter(([key, value]) => {
+        if (key === 'groupId') return true; // Permitir groupId null
+        return value != null;
+      })
     );
     
     const updateData = {
       ...cleanedData,
       updatedAt: serverTimestamp()
     };
+    
+    console.log("💾 [updateService] Datos finales a actualizar:", updateData);
     
     await updateDoc(serviceRef, updateData);
     
@@ -198,12 +215,14 @@ export const updateService = async (id: string, serviceData: Partial<Service>, u
       updatedAt: new Date().toISOString(),
       userId: currentData?.userId || userId,
       isPublic: serviceData.isPublic !== undefined ? serviceData.isPublic : currentData?.isPublic || false,
-      sharedWith: serviceData.sharedWith !== undefined ? serviceData.sharedWith : currentData?.sharedWith || []
+      sharedWith: serviceData.sharedWith !== undefined ? serviceData.sharedWith : currentData?.sharedWith || [],
+      groupId: serviceData.groupId !== undefined ? serviceData.groupId : (currentData?.groupId || null)
     };
     
+    console.log("✅ [updateService] Servicio actualizado exitosamente:", updatedService);
     return updatedService;
   } catch (error) {
-    console.error("Error al actualizar servicio:", error);
+    console.error("❌ [updateService] Error al actualizar servicio:", error);
     throw error;
   }
 };
