@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, FileText, File, FileJson } from "lucide-react";
@@ -61,44 +60,75 @@ const SongImporter = () => {
   const processJsonSingle = async (fileContent: string) => {
     try {
       const jsonData: ImportedSongData = JSON.parse(fileContent);
+      console.log("📄 [SongImporter] JSON parseado:", jsonData);
       
       // Construir la URL con los parámetros de la canción importada
       const params = new URLSearchParams();
       
       // Mapear los campos del JSON a nuestro formato
-      if (jsonData.title) params.set('title', jsonData.title);
-      if (jsonData.artist) params.set('author', jsonData.artist);
-      if (jsonData.author && !jsonData.artist) params.set('author', jsonData.author);
-      if (jsonData.key) params.set('key', jsonData.key);
-      if (jsonData.note) params.set('notes', jsonData.note);
-      if (jsonData.copyright) params.set('copyright', jsonData.copyright);
+      if (jsonData.title) {
+        params.set('title', jsonData.title);
+        console.log("📄 [SongImporter] Agregando título:", jsonData.title);
+      }
+      
+      if (jsonData.artist) {
+        params.set('author', jsonData.artist);
+        console.log("📄 [SongImporter] Agregando artista como autor:", jsonData.artist);
+      } else if (jsonData.author) {
+        params.set('author', jsonData.author);
+        console.log("📄 [SongImporter] Agregando autor:", jsonData.author);
+      }
+      
+      if (jsonData.key) {
+        params.set('key', jsonData.key);
+        console.log("📄 [SongImporter] Agregando tonalidad:", jsonData.key);
+      }
+      
+      if (jsonData.note) {
+        params.set('notes', jsonData.note);
+        console.log("📄 [SongImporter] Agregando notas:", jsonData.note);
+      }
+      
+      if (jsonData.copyright) {
+        params.set('copyright', jsonData.copyright);
+        console.log("📄 [SongImporter] Agregando copyright:", jsonData.copyright);
+      }
       
       // Procesar la letra - usar full_text si está disponible
       let lyricsContent = '';
       if (jsonData.lyrics?.full_text) {
         lyricsContent = jsonData.lyrics.full_text;
+        console.log("📄 [SongImporter] Usando full_text para letra:", lyricsContent.substring(0, 100) + "...");
       } else if (jsonData.lyrics?.paragraphs) {
         // Si no hay full_text, construir desde paragraphs
         lyricsContent = jsonData.lyrics.paragraphs
           .sort((a, b) => a.number - b.number)
           .map(p => p.text)
           .join('\n\n');
+        console.log("📄 [SongImporter] Construyendo letra desde párrafos:", lyricsContent.substring(0, 100) + "...");
       }
       
       if (lyricsContent) {
         params.set('lyrics', lyricsContent);
+        console.log("📄 [SongImporter] Agregando letra al parámetro");
       }
       
       // Agregar enlaces de streaming si existen
       if (jsonData.streaming?.audio?.youtube) {
         params.set('youtubeUrl', jsonData.streaming.audio.youtube);
+        console.log("📄 [SongImporter] Agregando YouTube URL:", jsonData.streaming.audio.youtube);
       }
       if (jsonData.streaming?.audio?.spotify) {
         params.set('spotifyUrl', jsonData.streaming.audio.spotify);
+        console.log("📄 [SongImporter] Agregando Spotify URL:", jsonData.streaming.audio.spotify);
       }
       
+      const finalUrl = `/songs/new?${params.toString()}`;
+      console.log("📄 [SongImporter] URL final de navegación:", finalUrl);
+      console.log("📄 [SongImporter] Parámetros construidos:", Object.fromEntries(params));
+      
       // Navegar al formulario de nueva canción con los datos precargados
-      navigate(`/songs/new?${params.toString()}`);
+      navigate(finalUrl);
       
       toast({
         title: "Canción importada",
@@ -106,7 +136,7 @@ const SongImporter = () => {
       });
       
     } catch (error) {
-      console.error("Error al procesar JSON:", error);
+      console.error("📄 [SongImporter] Error al procesar JSON:", error);
       toast({
         title: "Error de formato",
         description: "El archivo JSON no tiene el formato esperado",
@@ -126,9 +156,11 @@ const SongImporter = () => {
     }
 
     setIsImporting(true);
+    console.log("📄 [SongImporter] Iniciando importación:", { fileName: selectedFile.name, type: importType });
 
     try {
       const fileContent = await selectedFile.text();
+      console.log("📄 [SongImporter] Contenido del archivo leído, primeros 200 caracteres:", fileContent.substring(0, 200));
 
       switch (importType) {
         case "json-single":
@@ -163,7 +195,7 @@ const SongImporter = () => {
           });
       }
     } catch (error) {
-      console.error("Error al importar archivo:", error);
+      console.error("📄 [SongImporter] Error al importar archivo:", error);
       toast({
         title: "Error de importación",
         description: "No se pudo procesar el archivo seleccionado",
