@@ -35,6 +35,12 @@ const SongForm = () => {
   const { id: songId } = useParams<{ id: string }>();
   const isEditing = !!songId;
 
+  // Función para convertir texto plano a HTML preservando saltos de línea
+  const convertPlainTextToHtml = (text: string) => {
+    if (!text) return "";
+    return text.replace(/\n/g, '<br>');
+  };
+
   useEffect(() => {
     loadCategories();
   }, []);
@@ -84,8 +90,10 @@ const SongForm = () => {
       console.log("🎵 [SongForm] Tonalidad cargada:", keyParam);
     }
     if (lyricsParam) {
-      setLyrics(lyricsParam);
-      console.log("🎵 [SongForm] Letra cargada, longitud:", lyricsParam.length);
+      // Convertir el texto plano a HTML para ReactQuill
+      const htmlLyrics = convertPlainTextToHtml(lyricsParam);
+      setLyrics(htmlLyrics);
+      console.log("🎵 [SongForm] Letra cargada y convertida a HTML, longitud:", htmlLyrics.length);
     }
     if (notesParam) {
       setNotes(notesParam);
