@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Music, Edit, Trash2, Star, Copy, Filter, X } from "lucide-react";
+import { Plus, Music, Edit, Trash2, Star, Copy, Filter, X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,10 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from "@/components/layout/Navbar";
+import SongImporter from "@/components/songs/SongImporter";
 import { Song } from "@/types";
 import { getAllSongs, deleteSong, toggleSongFavorite, updateSongPublicStatus, copySongToUserAccount } from "@/services/song-service";
 import { useAuth } from "@/hooks/use-auth-context";
@@ -216,12 +218,25 @@ const SongsPage = () => {
       <main className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold">Canciones</h1>
-          <Button asChild>
-            <Link to="/songs/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Añadir Canción
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Importar
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <SongImporter />
+              </DialogContent>
+            </Dialog>
+            <Button asChild>
+              <Link to="/songs/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Añadir Canción
+              </Link>
+            </Button>
+          </div>
         </div>
         
         <Card>
