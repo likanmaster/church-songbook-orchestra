@@ -58,58 +58,22 @@ const SongForm = () => {
     console.log("🎵 [SongForm] Cargando datos desde parámetros URL");
     
     const titleParam = searchParams.get('title');
-    const authorParam = searchParams.get('author');
-    const keyParam = searchParams.get('key');
     const lyricsParam = searchParams.get('lyrics');
-    const notesParam = searchParams.get('notes');
-    const copyrightParam = searchParams.get('copyright');
-    const youtubeParam = searchParams.get('youtubeUrl');
-    const spotifyParam = searchParams.get('spotifyUrl');
 
     console.log("🎵 [SongForm] Parámetros encontrados:", {
       title: titleParam,
-      author: authorParam,
-      key: keyParam,
       lyrics: lyricsParam ? lyricsParam.substring(0, 100) + "..." : null,
-      notes: notesParam,
-      copyright: copyrightParam,
-      youtubeUrl: youtubeParam,
-      spotifyUrl: spotifyParam
     });
 
     if (titleParam) {
       setTitle(titleParam);
       console.log("🎵 [SongForm] Título cargado:", titleParam);
     }
-    if (authorParam) {
-      setAuthor(authorParam);
-      console.log("🎵 [SongForm] Autor cargado:", authorParam);
-    }
-    if (keyParam) {
-      setKey(keyParam);
-      console.log("🎵 [SongForm] Tonalidad cargada:", keyParam);
-    }
     if (lyricsParam) {
       // Convertir el texto plano a HTML para ReactQuill
       const htmlLyrics = convertPlainTextToHtml(lyricsParam);
       setLyrics(htmlLyrics);
       console.log("🎵 [SongForm] Letra cargada y convertida a HTML, longitud:", htmlLyrics.length);
-    }
-    if (notesParam) {
-      setNotes(notesParam);
-      console.log("🎵 [SongForm] Notas cargadas:", notesParam);
-    }
-    if (copyrightParam) {
-      setCopyright(copyrightParam);
-      console.log("🎵 [SongForm] Copyright cargado:", copyrightParam);
-    }
-    if (youtubeParam) {
-      setYoutubeUrl(youtubeParam);
-      console.log("🎵 [SongForm] YouTube URL cargada:", youtubeParam);
-    }
-    if (spotifyParam) {
-      setSpotifyUrl(spotifyParam);
-      console.log("🎵 [SongForm] Spotify URL cargada:", spotifyParam);
     }
   };
 

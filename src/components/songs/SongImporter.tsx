@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, FileText, File, FileJson } from "lucide-react";
@@ -10,36 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ImportedSongData {
   title: string;
-  artist?: string;
-  author?: string;
-  note?: string;
-  copyright?: string;
-  key?: string;
-  bpm?: number;
-  time_sig?: string;
-  order?: string;
   lyrics?: {
     full_text?: string;
-    paragraphs?: Array<{
-      number: number;
-      description: string;
-      text: string;
-    }>;
-  };
-  streaming?: {
-    audio?: {
-      spotify?: string;
-      youtube?: string;
-      deezer?: string;
-    };
-    backing_track?: {
-      spotify?: string;
-      youtube?: string;
-      deezer?: string;
-    };
-  };
-  extras?: {
-    extra?: string;
   };
 }
 
@@ -62,65 +35,19 @@ const SongImporter = () => {
       const jsonData: ImportedSongData = JSON.parse(fileContent);
       console.log("📄 [SongImporter] JSON parseado:", jsonData);
       
-      // Construir la URL con los parámetros de la canción importada
+      // Construir la URL con solo los parámetros necesarios
       const params = new URLSearchParams();
       
-      // Mapear los campos del JSON a nuestro formato
+      // Solo extraer título y letra
       if (jsonData.title) {
         params.set('title', jsonData.title);
         console.log("📄 [SongImporter] Agregando título:", jsonData.title);
       }
       
-      if (jsonData.artist) {
-        params.set('author', jsonData.artist);
-        console.log("📄 [SongImporter] Agregando artista como autor:", jsonData.artist);
-      } else if (jsonData.author) {
-        params.set('author', jsonData.author);
-        console.log("📄 [SongImporter] Agregando autor:", jsonData.author);
-      }
-      
-      if (jsonData.key) {
-        params.set('key', jsonData.key);
-        console.log("📄 [SongImporter] Agregando tonalidad:", jsonData.key);
-      }
-      
-      if (jsonData.note) {
-        params.set('notes', jsonData.note);
-        console.log("📄 [SongImporter] Agregando notas:", jsonData.note);
-      }
-      
-      if (jsonData.copyright) {
-        params.set('copyright', jsonData.copyright);
-        console.log("📄 [SongImporter] Agregando copyright:", jsonData.copyright);
-      }
-      
-      // Procesar la letra - usar full_text si está disponible
-      let lyricsContent = '';
+      // Procesar solo el full_text de la letra
       if (jsonData.lyrics?.full_text) {
-        lyricsContent = jsonData.lyrics.full_text;
-        console.log("📄 [SongImporter] Usando full_text para letra:", lyricsContent.substring(0, 100) + "...");
-      } else if (jsonData.lyrics?.paragraphs) {
-        // Si no hay full_text, construir desde paragraphs
-        lyricsContent = jsonData.lyrics.paragraphs
-          .sort((a, b) => a.number - b.number)
-          .map(p => p.text)
-          .join('\n\n');
-        console.log("📄 [SongImporter] Construyendo letra desde párrafos:", lyricsContent.substring(0, 100) + "...");
-      }
-      
-      if (lyricsContent) {
-        params.set('lyrics', lyricsContent);
-        console.log("📄 [SongImporter] Agregando letra al parámetro");
-      }
-      
-      // Agregar enlaces de streaming si existen
-      if (jsonData.streaming?.audio?.youtube) {
-        params.set('youtubeUrl', jsonData.streaming.audio.youtube);
-        console.log("📄 [SongImporter] Agregando YouTube URL:", jsonData.streaming.audio.youtube);
-      }
-      if (jsonData.streaming?.audio?.spotify) {
-        params.set('spotifyUrl', jsonData.streaming.audio.spotify);
-        console.log("📄 [SongImporter] Agregando Spotify URL:", jsonData.streaming.audio.spotify);
+        params.set('lyrics', jsonData.lyrics.full_text);
+        console.log("📄 [SongImporter] Agregando letra:", jsonData.lyrics.full_text.substring(0, 100) + "...");
       }
       
       const finalUrl = `/songs/new?${params.toString()}`;
