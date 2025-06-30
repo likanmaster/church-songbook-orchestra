@@ -1,9 +1,10 @@
+
 export interface Song {
   id: string;
   title: string;
-  author: string;
-  key: string;
-  lyrics: string;
+  author: string | null;
+  key: string | null;
+  lyrics: string | null;
   tempo?: number | null;
   tags: string[];
   categories: string[];
@@ -14,11 +15,14 @@ export interface Song {
   style?: string | null;
   duration?: number | null;
   notes?: string | null;
+  copyright?: string | null;
+  youtubeUrl?: string | null;
+  spotifyUrl?: string | null;
   isPublic: boolean;
   sharedWith: string[];
   createdBy?: string; // Nombre del usuario que creó la canción
   usageCount?: number; // Contador de uso en servicios
-  rating?: number; // Puntuación de la canción
+  rating?: number | null; // Puntuación de la canción
   attachments?: Attachment[]; // Archivos adjuntos de la canción
 }
 

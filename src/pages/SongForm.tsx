@@ -179,6 +179,7 @@ const SongForm = () => {
         sharedWith: [],
         isFavorite: false,
         rating: null,
+        tags: [],
       };
 
       if (isEditing && songId) {
@@ -276,7 +277,7 @@ const SongForm = () => {
                     <SelectValue placeholder="Select key" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No key</SelectItem>
+                    <SelectItem value="no-key">No key</SelectItem>
                     <SelectItem value="C">C</SelectItem>
                     <SelectItem value="C#">C#</SelectItem>
                     <SelectItem value="Db">Db</SelectItem>
@@ -299,7 +300,7 @@ const SongForm = () => {
               </div>
               <div>
                 <Label htmlFor="style">Musical Style</Label>
-                <CustomStyleSelect value={style} onValueChange={setStyle} />
+                <CustomStyleSelect value={style} onChange={setStyle} />
               </div>
             </div>
             
