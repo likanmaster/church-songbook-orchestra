@@ -1,244 +1,216 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Music, X, Plus, Save, Pencil, BookOpen, Loader2, Star } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import Navbar from "@/components/layout/Navbar";
-import SongView from "@/components/songs/SongView";
-import { Song } from "@/types";
-import ChordButtonGroup from "@/components/songs/ChordButtonGroup";
-import RichTextEditor from "@/components/songs/RichTextEditor";
-import { 
-  getSongById, 
-  createSong, 
-  updateSong, 
-  getAllCategories,
-  updateSongPublicStatus,
-  updateSongRating
-} from "@/services/song-service";
-import { getUserMusicStyles } from "@/services/user-service";
-import { useAuth } from "@/hooks/use-auth-context";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-
-// Define the SongFormData type
-interface SongFormData {
-  title: string;
-  author: string;
-  lyrics: string;
-  key: string;
-  tempo: string;
-  style: string;
-  duration: string;
-  notes: string;
-  isFavorite: boolean;
-}
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import Navbar from "@/components/layout/Navbar";
+import RichTextEditor from "@/components/songs/RichTextEditor";
+import CustomStyleSelect from "@/components/songs/CustomStyleSelect";
+import { Song, Category } from "@/types";
+import { getSongById, createSong, updateSong, getAllCategories } from "@/services/song-service";
+import { useAuth } from "@/hooks/use-auth-context";
 
 const SongForm = () => {
-  const navigate = useNavigate();
-  const { id } = useParams();
-  const [mode, setMode] = useState<"edit" | "view">(id ? "view" : "edit");
+  const [searchParams] = useSearchParams();
+  const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [key, setKey] = useState("");
+  const [lyrics, setLyrics] = useState("");
+  const [notes, setNotes] = useState("");
+  const [copyright, setCopyright] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [spotifyUrl, setSpotifyUrl] = useState("");
+  const [style, setStyle] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [newTagInput, setNewTagInput] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [song, setSong] = useState<Song | null>(null);
-  const [isLoading, setIsLoading] = useState(id ? true : false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [availableCategories, setAvailableCategories] = useState<{id: string, name: string}[]>([]);
-  const [userMusicStyles, setUserMusicStyles] = useState<string[]>([]);
-  const [editorMode, setEditorMode] = useState<"rich" | "simple">("rich");
-  const isNewSong = !id;
-  const lyricsTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const { user } = useAuth();
-  
-  // Crear el form usando useForm
-  const form = useForm<SongFormData>({
-    defaultValues: {
-      title: "",
-      author: "",
-      lyrics: "",
-      key: "",
-      tempo: "",
-      style: "",
-      duration: "",
-      notes: "",
-      isFavorite: false
-    }
-  });
-  
-  // Cargar datos de Firebase
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Caregar categorías disponibles
-        const categories = await getAllCategories();
-        setAvailableCategories(categories);
-        
-        // Cargar estilos musicales del usuario
-        if (user) {
-          const styles = await getUserMusicStyles(user.id);
-          setUserMusicStyles(styles);
-        }
-        
-        // Cargar canción si estamos editando
-        if (id) {
-          setIsLoading(true);
-          // Fix here: Remove the second argument as getSongById now expects only one parameter
-          const fetchedSong = await getSongById(id);
-          
-          if (fetchedSong) {
-            setSong(fetchedSong);
-            form.reset({
-              title: fetchedSong.title,
-              author: fetchedSong.author || "",
-              lyrics: fetchedSong.lyrics || "",
-              key: fetchedSong.key || "",
-              tempo: fetchedSong.tempo?.toString() || "",
-              style: fetchedSong.style || "",
-              duration: fetchedSong.duration?.toString() || "",
-              notes: fetchedSong.notes || "",
-              isFavorite: fetchedSong.isFavorite
-            });
-            setSelectedCategories(fetchedSong.categories || []);
-            setTags(fetchedSong.tags || []);
-          } else {
-            toast.error("No se encontró la canción");
-            navigate("/songs");
-          }
-        }
-      } catch (error) {
-        console.error("Error al cargar datos:", error);
-        toast.error("Error al cargar los datos");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [id, navigate, form, user]);
+  const { id: songId } = useParams<{ id: string }>();
+  const isEditing = !!songId;
 
-  // Función para insertar acordes en la posición del cursor
-  const insertChordAtCursor = (chord: string) => {
-    const textarea = lyricsTextareaRef.current;
-    if (!textarea) return;
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    if (isEditing && songId) {
+      loadSong(songId);
+    } else {
+      // Cargar datos desde parámetros URL (importación)
+      loadFromUrlParams();
+    }
+  }, [songId, isEditing, searchParams]);
+
+  const loadFromUrlParams = () => {
+    console.log("🎵 [SongForm] Cargando datos desde parámetros URL");
     
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    
-    const textBefore = text.substring(0, start);
-    const textAfter = text.substring(end);
-    
-    const newText = `${textBefore}[${chord}]${textAfter}`;
-    
-    // Actualizamos el valor en el formulario
-    form.setValue("lyrics", newText);
-    
-    // Colocamos el cursor después del acorde insertado
-    setTimeout(() => {
-      textarea.focus();
-      const newCursorPos = start + chord.length + 2; // +2 por los corchetes
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    }, 10);
+    const titleParam = searchParams.get('title');
+    const authorParam = searchParams.get('author');
+    const keyParam = searchParams.get('key');
+    const lyricsParam = searchParams.get('lyrics');
+    const notesParam = searchParams.get('notes');
+    const copyrightParam = searchParams.get('copyright');
+    const youtubeParam = searchParams.get('youtubeUrl');
+    const spotifyParam = searchParams.get('spotifyUrl');
+
+    console.log("🎵 [SongForm] Parámetros encontrados:", {
+      title: titleParam,
+      author: authorParam,
+      key: keyParam,
+      lyrics: lyricsParam ? lyricsParam.substring(0, 100) + "..." : null,
+      notes: notesParam,
+      copyright: copyrightParam,
+      youtubeUrl: youtubeParam,
+      spotifyUrl: spotifyParam
+    });
+
+    if (titleParam) {
+      setTitle(titleParam);
+      console.log("🎵 [SongForm] Título cargado:", titleParam);
+    }
+    if (authorParam) {
+      setAuthor(authorParam);
+      console.log("🎵 [SongForm] Autor cargado:", authorParam);
+    }
+    if (keyParam) {
+      setKey(keyParam);
+      console.log("🎵 [SongForm] Tonalidad cargada:", keyParam);
+    }
+    if (lyricsParam) {
+      setLyrics(lyricsParam);
+      console.log("🎵 [SongForm] Letra cargada, longitud:", lyricsParam.length);
+    }
+    if (notesParam) {
+      setNotes(notesParam);
+      console.log("🎵 [SongForm] Notas cargadas:", notesParam);
+    }
+    if (copyrightParam) {
+      setCopyright(copyrightParam);
+      console.log("🎵 [SongForm] Copyright cargado:", copyrightParam);
+    }
+    if (youtubeParam) {
+      setYoutubeUrl(youtubeParam);
+      console.log("🎵 [SongForm] YouTube URL cargada:", youtubeParam);
+    }
+    if (spotifyParam) {
+      setSpotifyUrl(spotifyParam);
+      console.log("🎵 [SongForm] Spotify URL cargada:", spotifyParam);
+    }
   };
-  
-  const keyOptions = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  
-  const handleSubmit = async (data: SongFormData) => {
-    setIsSaving(true);
+
+  const loadCategories = async () => {
     try {
-      // Preparar los datos completos de la canción
-      const songData: Partial<Song> = {
-        ...data,
-        categories: selectedCategories,
-        tags,
-        tempo: data.tempo ? parseInt(data.tempo) : undefined,
-        duration: data.duration ? parseInt(data.duration) : undefined,
-        userId: user?.id || ''
-      };
-      
-      if (isNewSong) {
-        await createSong(songData as Omit<Song, 'id' | 'createdAt' | 'updatedAt'>, user?.id || '');
-        toast.success("Canción creada con éxito");
-      } else if (id) {
-        await updateSong(id, songData, user?.id || '');
-        toast.success("Canción actualizada con éxito");
+      const categoriesData = await getAllCategories();
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error("Error loading categories:", error);
+    }
+  };
+
+  const loadSong = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const song = await getSongById(id);
+      if (song) {
+        setTitle(song.title);
+        setAuthor(song.author || "");
+        setKey(song.key || "");
+        setLyrics(song.lyrics || "");
+        setNotes(song.notes || "");
+        setCopyright(song.copyright || "");
+        setYoutubeUrl(song.youtubeUrl || "");
+        setSpotifyUrl(song.spotifyUrl || "");
+        setStyle(song.style || "");
+        setSelectedCategories(song.categories || []);
+      } else {
+        toast({
+          title: "Error",
+          description: "Song not found",
+          variant: "destructive",
+        });
+        navigate("/songs");
       }
-      
-      // Redirigimos a la página de canciones
+    } catch (error) {
+      console.error("Error loading song:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load song",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a song",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const songData: Omit<Song, 'id' | 'createdAt' | 'updatedAt'> = {
+        title,
+        author: author || null,
+        key: key || null,
+        lyrics: lyrics || null,
+        notes: notes || null,
+        copyright: copyright || null,
+        youtubeUrl: youtubeUrl || null,
+        spotifyUrl: spotifyUrl || null,
+        style: style || null,
+        categories: selectedCategories,
+        userId: user.id,
+        isPublic: false,
+        sharedWith: [],
+        isFavorite: false,
+        rating: null,
+      };
+
+      if (isEditing && songId) {
+        await updateSong(songId, songData, user.id);
+      } else {
+        await createSong(songData, user.id);
+      }
+
+      toast({
+        title: "Success",
+        description: isEditing ? "Song updated successfully" : "Song created successfully",
+      });
+
       navigate("/songs");
     } catch (error) {
-      console.error("Error al guardar:", error);
-      toast.error("Error al guardar la canción");
+      console.error("Error saving song:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save song",
+        variant: "destructive",
+      });
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
-  };
-  
-  const handleCategoryToggle = (category: string) => {
-    if (selectedCategories.includes(category)) {
-      setSelectedCategories(selectedCategories.filter(cat => cat !== category));
-    } else {
-      setSelectedCategories([...selectedCategories, category]);
-    }
-  };
-  
-  const handleAddTag = () => {
-    if (newTagInput.trim() && !tags.includes(newTagInput.trim())) {
-      setTags([...tags, newTagInput.trim()]);
-      setNewTagInput("");
-    }
-  };
-  
-  const handleRemoveTag = (tag: string) => {
-    setTags(tags.filter(t => t !== tag));
   };
 
-  // Construir el objeto de canción para el modo de vista
-  const viewSong: Song = {
-    id: id || "new",
-    title: form.getValues("title") || "Nueva Canción",
-    author: form.getValues("author"),
-    lyrics: form.getValues("lyrics"),
-    key: form.getValues("key"),
-    tempo: form.getValues("tempo") ? parseInt(form.getValues("tempo")) : undefined,
-    style: form.getValues("style"),
-    duration: form.getValues("duration") ? parseInt(form.getValues("duration")) : undefined,
-    notes: form.getValues("notes"),
-    categories: selectedCategories,
-    tags,
-    isFavorite: form.getValues("isFavorite"),
-    createdAt: song?.createdAt || new Date().toISOString(),
-    updatedAt: song?.updatedAt || new Date().toISOString(),
-    userId: user?.id || '',
-    isPublic: song?.isPublic || false,
-    sharedWith: song?.sharedWith || [],
-    usageCount: song?.usageCount || 0,
-    rating: song?.rating || 0
+  const handleCategoryChange = (categoryId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCategories([...selectedCategories, categoryId]);
+    } else {
+      setSelectedCategories(selectedCategories.filter(id => id !== categoryId));
+    }
   };
 
   if (isLoading) {
@@ -249,7 +221,7 @@ const SongForm = () => {
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-4 text-muted-foreground">Cargando canción...</p>
+              <p className="mt-4 text-muted-foreground">Loading song...</p>
             </div>
           </div>
         </main>
@@ -262,431 +234,159 @@ const SongForm = () => {
       <Navbar />
       
       <main className="container mx-auto px-4 py-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
-          <div className="flex items-center">
-            <Music className="h-8 w-8 mr-3 text-primary" />
-            <h1 className="text-3xl font-bold">{isNewSong ? "Nueva Canción" : song?.title || "Canción"}</h1>
-          </div>
-          
-          <div className="flex gap-2 mt-4 sm:mt-0">
-            {!isNewSong && (
-              <Tabs value={mode} onValueChange={(value) => setMode(value as "edit" | "view")}>
-                <TabsList>
-                  <TabsTrigger value="view">
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Lectura
-                  </TabsTrigger>
-                  <TabsTrigger value="edit">
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Editar
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            )}
-            
-            <Button variant="ghost" onClick={() => navigate("/songs")}>
-              Cancelar
-            </Button>
-            {mode === "edit" && (
-              <Button onClick={form.handleSubmit(handleSubmit)}>
-                <Save className="mr-2 h-4 w-4" />
-                Guardar
-              </Button>
-            )}
-          </div>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">{isEditing ? "Edit Song" : "New Song"}</h1>
         </div>
         
-        {mode === "view" ? (
-          // Modo de lectura
-          <SongView song={viewSong} />
-        ) : (
-          // Modo de edición
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)}>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                          <FormField
-                            control={form.control}
-                            name="title"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Título de la Canción *</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="Ingresa el título de la canción" 
-                                    {...field}
-                                    required
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="author"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Autor / Compositor</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="Nombre del autor" 
-                                    {...field}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="lyrics"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Letra</FormLabel>
-                                
-                                <div className="space-y-2">
-                                  <ChordButtonGroup onInsertChord={insertChordAtCursor} />
-                                  <FormControl>
-                                    <Textarea 
-                                      placeholder="Ingresa la letra de la canción con acordes entre corchetes: [C] [G] [Am]" 
-                                      rows={10}
-                                      {...field}
-                                      ref={lyricsTextareaRef}
-                                    />
-                                  </FormControl>
-                                  
-                                  <div className="text-xs text-muted-foreground">
-                                    Usa los botones de acordes o escribe [acorde] para insertar acordes
-                                  </div>
-                                </div>
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="key"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Tonalidad</FormLabel>
-                                  <Select 
-                                    onValueChange={field.onChange}
-                                    value={field.value}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona tonalidad" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {keyOptions.map((k) => (
-                                        <SelectItem key={k} value={k}>{k}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={form.control}
-                              name="tempo"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Tempo (BPM)</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="number" 
-                                      placeholder="Ej: 80" 
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="style"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Estilo Musical</FormLabel>
-                                  {userMusicStyles.length > 0 ? (
-                                    <Select
-                                      onValueChange={field.onChange}
-                                      value={field.value}
-                                    >
-                                      <FormControl>
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Selecciona estilo" />
-                                        </SelectTrigger>
-                                      </FormControl>
-                                      <SelectContent>
-                                        {userMusicStyles.map((style) => (
-                                          <SelectItem key={style} value={style}>{style}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  ) : (
-                                    <div className="flex flex-col space-y-2">
-                                      <div className="p-3 rounded-md border border-dashed border-muted-foreground/25 bg-muted/50">
-                                        <p className="text-sm text-muted-foreground text-center">
-                                          No tienes estilos musicales configurados
-                                        </p>
-                                        <Button
-                                          type="button"
-                                          variant="link"
-                                          size="sm"
-                                          onClick={() => navigate("/settings")}
-                                          className="w-full p-0 h-auto font-normal text-primary"
-                                        >
-                                          Agrega estilos musicales en la página de ajustes
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  )}
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={form.control}
-                              name="duration"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Duración (segundos)</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="number" 
-                                      placeholder="Ej: 240 (4 minutos)" 
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormDescription>
-                                    {field.value ? `${Math.floor(Number(field.value) / 60)}:${String(Number(field.value) % 60).padStart(2, "0")} minutos` : ""}
-                                  </FormDescription>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          
-                          <FormField
-                            control={form.control}
-                            name="notes"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Notas Adicionales</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Instrucciones especiales o notas para recordar" 
-                                    rows={4}
-                                    {...field}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <div>
-                  <Card className="mb-6">
-                    <CardContent className="pt-6">
-                      <FormField
-                        control={form.control}
-                        name="isFavorite"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base">Marcar como favorita</FormLabel>
-                              <FormDescription>
-                                Agrega esta canción a tus favoritos
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>{isEditing ? "Edit song details" : "Enter song details"}</CardTitle>
+            <CardDescription>
+              Fill out the form to {isEditing ? "update" : "create"} a song.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  type="text"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="author">Author</Label>
+                <Input
+                  type="text"
+                  id="author"
+                  value={author}
+                  onChange={(e) => setAuthor(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="key">Key</Label>
+                <Select value={key} onValueChange={setKey}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select key" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No key</SelectItem>
+                    <SelectItem value="C">C</SelectItem>
+                    <SelectItem value="C#">C#</SelectItem>
+                    <SelectItem value="Db">Db</SelectItem>
+                    <SelectItem value="D">D</SelectItem>
+                    <SelectItem value="D#">D#</SelectItem>
+                    <SelectItem value="Eb">Eb</SelectItem>
+                    <SelectItem value="E">E</SelectItem>
+                    <SelectItem value="F">F</SelectItem>
+                    <SelectItem value="F#">F#</SelectItem>
+                    <SelectItem value="Gb">Gb</SelectItem>
+                    <SelectItem value="G">G</SelectItem>
+                    <SelectItem value="G#">G#</SelectItem>
+                    <SelectItem value="Ab">Ab</SelectItem>
+                    <SelectItem value="A">A</SelectItem>
+                    <SelectItem value="A#">A#</SelectItem>
+                    <SelectItem value="Bb">Bb</SelectItem>
+                    <SelectItem value="B">B</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="style">Musical Style</Label>
+                <CustomStyleSelect value={style} onValueChange={setStyle} />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="lyrics">Lyrics</Label>
+              <RichTextEditor
+                value={lyrics}
+                onChange={setLyrics}
+                placeholder="Enter song lyrics here..."
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Additional notes about the song..."
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="copyright">Copyright</Label>
+              <Input
+                type="text"
+                id="copyright"
+                value={copyright}
+                onChange={(e) => setCopyright(e.target.value)}
+                placeholder="Copyright information..."
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="youtubeUrl">YouTube URL</Label>
+                <Input
+                  type="url"
+                  id="youtubeUrl"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                />
+              </div>
+              <div>
+                <Label htmlFor="spotifyUrl">Spotify URL</Label>
+                <Input
+                  type="url"
+                  id="spotifyUrl"
+                  value={spotifyUrl}
+                  onChange={(e) => setSpotifyUrl(e.target.value)}
+                  placeholder="https://open.spotify.com/track/..."
+                />
+              </div>
+            </div>
+            
+            {categories.length > 0 && (
+              <div>
+                <Label>Categories</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                  {categories.map((category) => (
+                    <div key={category.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={category.id}
+                        checked={selectedCategories.includes(category.id)}
+                        onCheckedChange={(checked) => 
+                          handleCategoryChange(category.id, checked as boolean)
+                        }
                       />
-                      
-                      {/* Nuevo switch para visibilidad pública */}
-                      <div className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <Label className="text-base">Canción pública</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Permite que otros usuarios encuentren esta canción
-                          </p>
-                        </div>
-                        <Switch 
-                          checked={song?.isPublic || false}
-                          onCheckedChange={(checked) => {
-                            if (id && user) {
-                              updateSongPublicStatus(id, checked, user.id)
-                                .then(() => {
-                                  if (song) {
-                                    setSong({...song, isPublic: checked});
-                                  }
-                                  toast.success(checked ? "Canción hecha pública" : "Canción hecha privada");
-                                })
-                                .catch(error => {
-                                  toast.error("Error al cambiar visibilidad: " + error.message);
-                                });
-                            }
-                          }}
-                        />
-                      </div>
-                      
-                      {/* Sistema de puntuación con estrellas */}
-                      <div className="rounded-lg border p-4">
-                        <Label className="text-base mb-2 block">Puntuación</Label>
-                        <div className="flex items-center space-x-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              type="button"
-                              className="text-2xl focus:outline-none"
-                              onClick={() => {
-                                if (id && user) {
-                                  updateSongRating(id, star, user.id)
-                                    .then(() => {
-                                      if (song) {
-                                        setSong({...song, rating: star});
-                                      }
-                                      toast.success(`Puntuación actualizada: ${star} estrellas`);
-                                    })
-                                    .catch(error => {
-                                      toast.error("Error al actualizar puntuación: " + error.message);
-                                    });
-                                }
-                              }}
-                            >
-                              {song?.rating && star <= song.rating ? (
-                                <Star className="h-6 w-6 fill-yellow-500 text-yellow-500" />
-                              ) : (
-                                <Star className="h-6 w-6 text-muted-foreground" />
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          {song?.rating ? `${song.rating} de 5 estrellas` : "Sin puntuación"}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="mb-6">
-                    <CardContent className="pt-6">
-                      <h3 className="text-lg font-medium mb-4">Categorías</h3>
-                      <div className="space-y-2">
-                        {availableCategories.map((category) => (
-                          <div
-                            key={category.id}
-                            className={`p-2 rounded-md cursor-pointer border transition-colors ${
-                              selectedCategories.includes(category.name)
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-secondary border-transparent hover:border-primary/50"
-                            }`}
-                            onClick={() => handleCategoryToggle(category.name)}
-                          >
-                            {category.name}
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {selectedCategories.length > 0 && (
-                        <>
-                          <Separator className="my-4" />
-                          <div className="flex flex-wrap gap-2">
-                            {selectedCategories.map((category) => (
-                              <Badge key={category} variant="outline">{category}</Badge>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardContent className="pt-6">
-                      <h3 className="text-lg font-medium mb-4">Etiquetas</h3>
-                      
-                      <div className="flex items-center mb-4">
-                        <Input
-                          placeholder="Nueva etiqueta"
-                          value={newTagInput}
-                          onChange={(e) => setNewTagInput(e.target.value)}
-                          className="flex-grow"
-                          onKeyPress={(e) => e.key === "Enter" && handleAddTag()}
-                        />
-                        <Button
-                          type="button"
-                          size="icon"
-                          onClick={handleAddTag}
-                          className="ml-2"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2">
-                        {tags.map((tag) => (
-                          <Badge key={tag} className="flex items-center gap-1 px-3 py-1">
-                            {tag}
-                            <X
-                              className="h-3 w-3 cursor-pointer"
-                              onClick={() => handleRemoveTag(tag)}
-                            />
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                      <Label 
+                        htmlFor={category.id}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {category.name}
+                      </Label>
+                    </div>
+                  ))}
                 </div>
               </div>
-              
-              <div className="mt-6 flex justify-end">
-                <Button 
-                  variant="ghost" 
-                  onClick={() => navigate("/songs")} 
-                  className="mr-2" 
-                  type="button"
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Guardar
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        )}
+            )}
+          </CardContent>
+          <CardFooter>
+            <Button onClick={handleSubmit} disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save Song"}
+            </Button>
+          </CardFooter>
+        </Card>
       </main>
     </div>
   );
