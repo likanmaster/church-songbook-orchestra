@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { createSong } from "@/services/song-service";
+import { useAuth } from "@/hooks/use-auth-context";
 
 interface ImportedSongData {
   title: string;
@@ -16,12 +18,15 @@ interface ImportedSongData {
   };
 }
 
+interface ImportedMultipleSongsData extends Array<ImportedSongData> {}
+
 const SongImporter = () => {
   const [importType, setImportType] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -64,6 +69,95 @@ const SongImporter = () => {
     }
   };
 
+  const processJsonMultiple = async (fileContent: string) => {
+    try {
+      const jsonData: ImportedMultipleSongsData = JSON.parse(fileContent);
+      
+      if (!Array.isArray(jsonData)) {
+        throw new Error("El JSON debe ser un array de canciones");
+      }
+
+      if (!user?.id) {
+        toast({
+          title: "Error de autenticación",
+          description: "Debes iniciar sesión para importar canciones",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      let importedCount = 0;
+      let errorCount = 0;
+
+      // Procesar cada canción del array
+      for (const songData of jsonData) {
+        try {
+          // Solo extraer título y full_text
+          const title = songData.title?.trim();
+          const lyricsText = songData.lyrics?.full_text;
+
+          if (!title) {
+            console.warn("Canción sin título omitida:", songData);
+            errorCount++;
+            continue;
+          }
+
+          // Crear la canción con solo título y letra
+          const newSongData = {
+            title,
+            lyrics: lyricsText || null,
+            author: null,
+            key: null,
+            tempo: null,
+            style: null,
+            duration: null,
+            notes: null,
+            categories: [],
+            tags: [],
+            isFavorite: false,
+            isPublic: false,
+            sharedWith: [],
+            attachments: [],
+          };
+
+          await createSong(newSongData, user.id);
+          importedCount++;
+          
+          console.log(`✅ Canción "${title}" importada exitosamente`);
+          
+        } catch (songError) {
+          console.error(`❌ Error al importar canción "${songData.title}":`, songError);
+          errorCount++;
+        }
+      }
+
+      // Mostrar resultado final
+      if (importedCount > 0) {
+        toast({
+          title: "Importación completada",
+          description: `${importedCount} canciones importadas exitosamente${errorCount > 0 ? ` (${errorCount} errores)` : ''}`,
+        });
+        
+        // Navegar a la página de canciones para ver las importadas
+        navigate("/songs");
+      } else {
+        toast({
+          title: "Error de importación",
+          description: "No se pudo importar ninguna canción",
+          variant: "destructive",
+        });
+      }
+      
+    } catch (error) {
+      console.error("Error al procesar JSON múltiple:", error);
+      toast({
+        title: "Error de formato",
+        description: "El archivo JSON no tiene el formato esperado para múltiples canciones",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleImport = async () => {
     if (!selectedFile || !importType) {
       toast({
@@ -84,11 +178,7 @@ const SongImporter = () => {
           await processJsonSingle(fileContent);
           break;
         case "json-multiple":
-          toast({
-            title: "En desarrollo",
-            description: "La importación de múltiples canciones JSON estará disponible próximamente",
-            variant: "destructive",
-          });
+          await processJsonMultiple(fileContent);
           break;
         case "word":
           toast({
