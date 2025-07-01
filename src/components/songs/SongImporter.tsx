@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, FileText, File, FileJson } from "lucide-react";
@@ -118,6 +117,7 @@ const SongImporter = () => {
             isPublic: false,
             sharedWith: [],
             attachments: [],
+            userId: user.id,
           };
 
           await createSong(newSongData, user.id);
