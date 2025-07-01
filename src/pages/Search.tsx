@@ -52,7 +52,6 @@ const SearchPage = () => {
   const [durationRange, setDurationRange] = useState<[number, number]>([0, 600]);
   const [songs, setSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showOnlyPublic, setShowOnlyPublic] = useState(true);
   
   const { user } = useAuth();
   const currentUserId = user?.id || "";
@@ -178,17 +177,9 @@ const SearchPage = () => {
   };
   
   const filteredSongs = songs.filter((song) => {
-    // Solo mostrar canciones públicas o del usuario actual
-    if (showOnlyPublic) {
-      const isAccessible = 
-        song.isPublic || 
-        song.userId === currentUserId || 
-        (song.sharedWith && song.sharedWith.includes(currentUserId));
-        
-      if (!isAccessible) return false;
-    } else {
-      // Si no muestra solo públicas, entonces solo mostrar las propias
-      if (song.userId !== currentUserId) return false;
+    // Solo mostrar canciones públicas que NO sean del usuario actual
+    if (!song.isPublic || song.userId === currentUserId) {
+      return false;
     }
     
     const matchesSearch = !filters.search || 
@@ -276,7 +267,7 @@ const SearchPage = () => {
       <Navbar />
       
       <main className="container mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold mb-6">Buscador de Canciones</h1>
+        <h1 className="text-3xl font-bold mb-6">Explorar Canciones Públicas</h1>
         
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-grow">
@@ -308,24 +299,11 @@ const SearchPage = () => {
                   Filtros Avanzados
                 </SheetTitle>
                 <SheetDescription>
-                  Encuentra canciones que se ajusten a tus necesidades específicas
+                  Encuentra canciones públicas que se ajusten a tus necesidades específicas
                 </SheetDescription>
               </SheetHeader>
               
               <div className="mt-6 space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium">Mostrar Canciones Públicas</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Incluye canciones públicas y compartidas contigo
-                    </p>
-                  </div>
-                  <Switch
-                    checked={showOnlyPublic}
-                    onCheckedChange={setShowOnlyPublic}
-                  />
-                </div>
-                
                 <div>
                   <h3 className="text-sm font-medium mb-3">Categorías</h3>
                   <div className="flex flex-wrap gap-2">
@@ -516,7 +494,7 @@ const SearchPage = () => {
         )}
         
         <div className="mb-8">
-          <h2 className="text-xl font-medium mb-4">Canciones Populares</h2>
+          <h2 className="text-xl font-medium mb-4">Canciones Públicas Populares</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {sortedSongs.length > 0 ? (
               sortedSongs.map((song) => (
@@ -525,11 +503,9 @@ const SearchPage = () => {
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-lg">
                         {song.title}
-                        {song.isPublic && (
-                          <Badge variant="outline" className="ml-2 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                            Público
-                          </Badge>
-                        )}
+                        <Badge variant="outline" className="ml-2 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                          Público
+                        </Badge>
                       </CardTitle>
                       <Button
                         variant="ghost"
@@ -600,7 +576,7 @@ const SearchPage = () => {
             ) : (
               <div className="col-span-full text-center py-8">
                 <SearchIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-medium mb-2">No se encontraron canciones</h3>
+                <h3 className="text-xl font-medium mb-2">No se encontraron canciones públicas</h3>
                 <p className="text-muted-foreground mb-6">Intenta con diferentes filtros o términos de búsqueda</p>
                 <Button onClick={handleResetFilters}>
                   Limpiar Filtros
