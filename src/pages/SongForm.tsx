@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Music, X, Plus, Save, Pencil, BookOpen, Loader2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +61,7 @@ interface SongFormData {
 const SongForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<"edit" | "view">(id ? "view" : "edit");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState("");
@@ -90,7 +91,7 @@ const SongForm = () => {
     }
   });
   
-  // Cargar datos de Firebase
+  // Cargar datos de Firebase y procesar parámetros URL
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -107,7 +108,6 @@ const SongForm = () => {
         // Cargar canción si estamos editando
         if (id) {
           setIsLoading(true);
-          // Fix here: Remove the second argument as getSongById now expects only one parameter
           const fetchedSong = await getSongById(id);
           
           if (fetchedSong) {
@@ -129,6 +129,35 @@ const SongForm = () => {
             toast.error("No se encontró la canción");
             navigate("/songs");
           }
+        } else {
+          // Procesar parámetros URL para canciones importadas
+          const urlTitle = searchParams.get('title');
+          const urlLyrics = searchParams.get('lyrics');
+          
+          if (urlTitle || urlLyrics) {
+            // Convertir saltos de línea \n a saltos reales
+            const formattedLyrics = urlLyrics ? urlLyrics.replace(/\\n/g, '\n') : '';
+            
+            form.reset({
+              title: urlTitle || "",
+              author: "",
+              lyrics: formattedLyrics,
+              key: "",
+              tempo: "",
+              style: "",
+              duration: "",
+              notes: "",
+              isFavorite: false
+            });
+            
+            console.log("📥 [SongForm] Datos importados cargados:", {
+              title: urlTitle,
+              lyrics: formattedLyrics
+            });
+            
+            // Mostrar mensaje de confirmación
+            toast.success("Canción importada cargada. Revisa los datos antes de guardar.");
+          }
         }
       } catch (error) {
         console.error("Error al cargar datos:", error);
@@ -139,7 +168,7 @@ const SongForm = () => {
     };
     
     fetchData();
-  }, [id, navigate, form, user]);
+  }, [id, navigate, form, user, searchParams]);
 
   // Función para insertar acordes en la posición del cursor
   const insertChordAtCursor = (chord: string) => {
