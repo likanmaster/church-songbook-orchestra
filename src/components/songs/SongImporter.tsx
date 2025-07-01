@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { createSong } from "@/services/song-service";
 import { useAuth } from "@/hooks/use-auth-context";
 
@@ -23,6 +24,8 @@ const SongImporter = () => {
   const [importType, setImportType] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [currentImportStatus, setCurrentImportStatus] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -87,10 +90,18 @@ const SongImporter = () => {
 
       let importedCount = 0;
       let errorCount = 0;
+      const totalSongs = jsonData.length;
 
       // Procesar cada canción del array
-      for (const songData of jsonData) {
+      for (let i = 0; i < jsonData.length; i++) {
+        const songData = jsonData[i];
+        
         try {
+          // Actualizar progreso y estado
+          const progress = ((i + 1) / totalSongs) * 100;
+          setImportProgress(progress);
+          setCurrentImportStatus(`Importando canción ${i + 1} de ${totalSongs}: ${songData.title || 'Sin título'}`);
+
           // Solo extraer título y full_text
           const title = songData.title?.trim();
           const lyricsText = songData.lyrics?.full_text;
@@ -125,6 +136,9 @@ const SongImporter = () => {
           
           console.log(`✅ Canción "${title}" importada exitosamente`);
           
+          // Pequeña pausa para mostrar el progreso
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
         } catch (songError) {
           console.error(`❌ Error al importar canción "${songData.title}":`, songError);
           errorCount++;
@@ -138,8 +152,8 @@ const SongImporter = () => {
           description: `${importedCount} canciones importadas exitosamente${errorCount > 0 ? ` (${errorCount} errores)` : ''}`,
         });
         
-        // Navegar a la página de canciones para ver las importadas
-        navigate("/songs");
+        // Recargar la página para mostrar las nuevas canciones
+        window.location.reload();
       } else {
         toast({
           title: "Error de importación",
@@ -169,6 +183,8 @@ const SongImporter = () => {
     }
 
     setIsImporting(true);
+    setImportProgress(0);
+    setCurrentImportStatus("");
 
     try {
       const fileContent = await selectedFile.text();
@@ -210,6 +226,8 @@ const SongImporter = () => {
       });
     } finally {
       setIsImporting(false);
+      setImportProgress(0);
+      setCurrentImportStatus("");
     }
   };
 
@@ -282,6 +300,19 @@ const SongImporter = () => {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {getFileIcon()}
             <span>{selectedFile.name}</span>
+          </div>
+        )}
+
+        {isImporting && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Progreso:</span>
+              <span>{Math.round(importProgress)}%</span>
+            </div>
+            <Progress value={importProgress} className="w-full" />
+            {currentImportStatus && (
+              <p className="text-xs text-muted-foreground">{currentImportStatus}</p>
+            )}
           </div>
         )}
 

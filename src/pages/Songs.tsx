@@ -29,10 +29,13 @@ const SongsPage = () => {
   const { user } = useAuth();
   const [copyingSong, setCopyingSong] = useState<string | null>(null);
 
-  // Get unique keys, categories, and styles from songs
-  const uniqueKeys = [...new Set(songs.filter(song => song.key).map(song => song.key))].sort();
-  const uniqueCategories = [...new Set(songs.flatMap(song => song.categories || []))].sort();
-  const uniqueStyles = [...new Set(songs.filter(song => song.style).map(song => song.style))].sort();
+  // Filtrar solo canciones del usuario actual
+  const userOwnedSongs = songs.filter(song => song.userId === user?.id);
+
+  // Get unique keys, categories, and styles from user's songs only
+  const uniqueKeys = [...new Set(userOwnedSongs.filter(song => song.key).map(song => song.key))].sort();
+  const uniqueCategories = [...new Set(userOwnedSongs.flatMap(song => song.categories || []))].sort();
+  const uniqueStyles = [...new Set(userOwnedSongs.filter(song => song.style).map(song => song.style))].sort();
 
   useEffect(() => {
     loadSongs();
@@ -151,14 +154,8 @@ const SongsPage = () => {
     setShowFavoritesOnly(false);
   };
 
-  const filteredSongs = songs.filter((song) => {
-    // First filter by user ownership - keep all songs that belong to user or are accessible
-    const isAccessible = song.userId === user?.id || 
-                         song.isPublic || 
-                         (Array.isArray(song.sharedWith) && song.sharedWith.includes(user?.id || ""));
-    
-    if (!isAccessible) return false;
-
+  // Filtrar solo las canciones del usuario
+  const filteredSongs = userOwnedSongs.filter((song) => {
     // Search filter
     const matchesSearch = song.title.toLowerCase().includes(search.toLowerCase()) ||
                          (song.author && song.author.toLowerCase().includes(search.toLowerCase()));
@@ -217,7 +214,7 @@ const SongsPage = () => {
       
       <main className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-bold">Canciones</h1>
+          <h1 className="text-3xl font-bold">Mis Canciones</h1>
           <div className="flex gap-2">
             <Dialog>
               <DialogTrigger asChild>
@@ -381,11 +378,14 @@ const SongsPage = () => {
 
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle>
-              Lista de Canciones 
-              {filteredSongs.length !== songs.length && (
+            <CardTitle className="flex items-center gap-2">
+              Lista de Canciones
+              <Badge variant="secondary" className="ml-2">
+                {userOwnedSongs.length} {userOwnedSongs.length === 1 ? 'canción' : 'canciones'}
+              </Badge>
+              {filteredSongs.length !== userOwnedSongs.length && (
                 <span className="text-sm text-muted-foreground ml-2">
-                  ({filteredSongs.length} de {songs.length})
+                  ({filteredSongs.length} mostradas)
                 </span>
               )}
             </CardTitle>
@@ -395,7 +395,7 @@ const SongsPage = () => {
               <div className="text-center py-8">
                 <Music className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
                 <p className="text-muted-foreground">
-                  {hasActiveFilters ? "No se encontraron canciones con los filtros aplicados" : "No se encontraron canciones"}
+                  {hasActiveFilters ? "No se encontraron canciones con los filtros aplicados" : "No tienes canciones aún"}
                 </p>
                 {hasActiveFilters && (
                   <Button variant="outline" onClick={clearAllFilters} className="mt-2">
@@ -434,22 +434,16 @@ const SongsPage = () => {
                     
                     <CardContent className="pt-0">
                       <div className="flex justify-between items-center mb-2">
-                        {song.userId === user?.id ? (
-                          <div className="flex items-center">
-                            <Label htmlFor={`public-${song.id}`} className="mr-2 text-xs">
-                              {song.isPublic ? "Pública" : "Privada"}
-                            </Label>
-                            <Switch 
-                              id={`public-${song.id}`}
-                              checked={song.isPublic || false}
-                              onCheckedChange={(checked) => togglePublic(song, checked)}
-                            />
-                          </div>
-                        ) : (
-                          <Badge variant={song.isPublic ? "secondary" : "outline"} className="text-xs">
-                            {song.isPublic ? "Pública" : "Compartida"}
-                          </Badge>
-                        )}
+                        <div className="flex items-center">
+                          <Label htmlFor={`public-${song.id}`} className="mr-2 text-xs">
+                            {song.isPublic ? "Pública" : "Privada"}
+                          </Label>
+                          <Switch 
+                            id={`public-${song.id}`}
+                            checked={song.isPublic || false}
+                            onCheckedChange={(checked) => togglePublic(song, checked)}
+                          />
+                        </div>
                       </div>
                       
                       <div className="flex flex-wrap gap-1 mt-2">
@@ -477,39 +471,22 @@ const SongsPage = () => {
                           </Link>
                         </Button>
                         
-                        {song.userId === user?.id ? (
-                          <Button variant="outline" size="sm" asChild>
-                            <Link to={`/songs/${song.id}/edit`}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Editar
-                            </Link>
-                          </Button>
-                        ) : (
-                          // If the song is public or shared and not owned by the user, show the copy button
-                          (song.isPublic || (Array.isArray(song.sharedWith) && song.sharedWith.includes(user?.id || ""))) && (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={() => handleCopySong(song.id)}
-                              disabled={copyingSong === song.id}
-                            >
-                              <Copy className="mr-2 h-4 w-4" />
-                              {copyingSong === song.id ? 'Copiando...' : 'Copiar'}
-                            </Button>
-                          )
-                        )}
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/songs/${song.id}/edit`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </Link>
+                        </Button>
                       </div>
                       
-                      {song.userId === user?.id && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(song.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-100"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(song.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </CardFooter>
                   </Card>
                 ))}
