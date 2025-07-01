@@ -11,36 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ImportedSongData {
   title: string;
-  artist?: string;
-  author?: string;
-  note?: string;
-  copyright?: string;
-  key?: string;
-  bpm?: number;
-  time_sig?: string;
-  order?: string;
   lyrics?: {
     full_text?: string;
-    paragraphs?: Array<{
-      number: number;
-      description: string;
-      text: string;
-    }>;
-  };
-  streaming?: {
-    audio?: {
-      spotify?: string;
-      youtube?: string;
-      deezer?: string;
-    };
-    backing_track?: {
-      spotify?: string;
-      youtube?: string;
-      deezer?: string;
-    };
-  };
-  extras?: {
-    extra?: string;
   };
 }
 
@@ -62,42 +34,19 @@ const SongImporter = () => {
     try {
       const jsonData: ImportedSongData = JSON.parse(fileContent);
       
-      // Construir la URL con los parámetros de la canción importada
+      // Construir la URL con solo título y letra
       const params = new URLSearchParams();
       
-      // Mapear los campos del JSON a nuestro formato
-      if (jsonData.title) params.set('title', jsonData.title);
-      if (jsonData.artist) params.set('author', jsonData.artist);
-      if (jsonData.author && !jsonData.artist) params.set('author', jsonData.author);
-      if (jsonData.key) params.set('key', jsonData.key);
-      if (jsonData.note) params.set('notes', jsonData.note);
-      if (jsonData.copyright) params.set('copyright', jsonData.copyright);
+      // Solo extraer título y full_text
+      if (jsonData.title) {
+        params.set('title', jsonData.title);
+      }
       
-      // Procesar la letra - usar full_text si está disponible
-      let lyricsContent = '';
       if (jsonData.lyrics?.full_text) {
-        lyricsContent = jsonData.lyrics.full_text;
-      } else if (jsonData.lyrics?.paragraphs) {
-        // Si no hay full_text, construir desde paragraphs
-        lyricsContent = jsonData.lyrics.paragraphs
-          .sort((a, b) => a.number - b.number)
-          .map(p => p.text)
-          .join('\n\n');
+        params.set('lyrics', jsonData.lyrics.full_text);
       }
       
-      if (lyricsContent) {
-        params.set('lyrics', lyricsContent);
-      }
-      
-      // Agregar enlaces de streaming si existen
-      if (jsonData.streaming?.audio?.youtube) {
-        params.set('youtubeUrl', jsonData.streaming.audio.youtube);
-      }
-      if (jsonData.streaming?.audio?.spotify) {
-        params.set('spotifyUrl', jsonData.streaming.audio.spotify);
-      }
-      
-      // Navegar al formulario de nueva canción con los datos precargados
+      // Navegar al formulario de nueva canción con solo estos datos
       navigate(`/songs/new?${params.toString()}`);
       
       toast({
