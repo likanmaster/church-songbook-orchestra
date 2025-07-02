@@ -177,8 +177,8 @@ const SearchPage = () => {
   };
   
   const filteredSongs = songs.filter((song) => {
-    // Solo mostrar canciones públicas que NO sean del usuario actual
-    if (!song.isPublic || song.userId === currentUserId) {
+    // Mostrar todas las canciones públicas (incluyendo las del usuario actual)
+    if (!song.isPublic) {
       return false;
     }
     
