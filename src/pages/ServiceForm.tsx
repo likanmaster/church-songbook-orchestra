@@ -90,7 +90,6 @@ const ServiceForm = () => {
         setNotes(service.notes || "");
         setGroupId(service.groupId || null);
         console.log("📋 [ServiceForm] Servicio cargado con groupId:", service.groupId);
-        // ... keep existing code (songs and sections loading)
         setSongs(
           service.songs
             .sort((a, b) => a.order - b.order)
@@ -239,16 +238,35 @@ const ServiceForm = () => {
       return;
     }
 
-    const items = Array.from(songs);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+    const { source, destination, draggableId } = result;
 
-    setSongs(
-      items.map((song, index) => ({
-        ...song,
-        order: index,
-      }))
-    );
+    // Verificar si es de la lista de canciones
+    if (source.droppableId === "songs" && destination.droppableId === "songs") {
+      const items = Array.from(songs);
+      const [reorderedItem] = items.splice(source.index, 1);
+      items.splice(destination.index, 0, reorderedItem);
+
+      setSongs(
+        items.map((song, index) => ({
+          ...song,
+          order: index,
+        }))
+      );
+    }
+
+    // Verificar si es de la lista de secciones
+    if (source.droppableId === "sections" && destination.droppableId === "sections") {
+      const items = Array.from(sections);
+      const [reorderedItem] = items.splice(source.index, 1);
+      items.splice(destination.index, 0, reorderedItem);
+
+      setSections(
+        items.map((section, index) => ({
+          ...section,
+          order: index,
+        }))
+      );
+    }
   };
 
   if (isLoading) {
@@ -362,18 +380,18 @@ const ServiceForm = () => {
             
             <Separator />
             
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Canciones</h3>
-              <SongSearch onSelect={addSong} />
-              
-              {songs.length > 0 && (
-                <DragDropContext onDragEnd={onDragEnd}>
+            <DragDropContext onDragEnd={onDragEnd}>
+              <div>
+                <h3 className="text-xl font-semibold mb-4">Canciones</h3>
+                <SongSearch onSelect={addSong} />
+                
+                {songs.length > 0 && (
                   <Droppable droppableId="songs">
                     {(provided) => (
                       <ul
                         {...provided.droppableProps}
                         ref={provided.innerRef}
-                        className="space-y-2"
+                        className="space-y-2 mt-4"
                       >
                         {songs.map((song, index) => (
                           <Draggable key={song.id} draggableId={song.id} index={index}>
@@ -418,62 +436,84 @@ const ServiceForm = () => {
                       </ul>
                     )}
                   </Droppable>
-                </DragDropContext>
-              )}
-            </div>
-            
-            <Separator />
-            
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">Secciones</h3>
-                <Button type="button" variant="outline" size="sm" onClick={addSection}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Añadir Sección
-                </Button>
+                )}
               </div>
               
-              <div className="space-y-4">
-                {sections.map((section) => (
-                  <div key={section.id} className="flex items-start gap-4">
-                    <Textarea
-                      placeholder="Contenido de la sección"
-                      value={section.text}
-                      onChange={(e) => updateSection(section.id, e.target.value)}
-                      className="flex-1"
-                    />
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 rounded-full text-red-500 hover:bg-red-100"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Se eliminará la sección
-                            permanentemente.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>
-                            Cancelar
-                          </AlertDialogCancel>
-                          <AlertDialogAction onClick={() => removeSection(section.id)}>
-                            Eliminar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                ))}
+              <Separator />
+              
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold">Secciones</h3>
+                  <Button type="button" variant="outline" size="sm" onClick={addSection}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Añadir Sección
+                  </Button>
+                </div>
+                
+                {sections.length > 0 && (
+                  <Droppable droppableId="sections">
+                    {(provided) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className="space-y-4"
+                      >
+                        {sections.map((section, index) => (
+                          <Draggable key={section.id} draggableId={section.id} index={index}>
+                            {(provided) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className="flex items-start gap-4 p-3 bg-secondary rounded-md"
+                              >
+                                <div {...provided.dragHandleProps} className="cursor-grab mt-2">
+                                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <Textarea
+                                  placeholder="Contenido de la sección"
+                                  value={section.text}
+                                  onChange={(e) => updateSection(section.id, e.target.value)}
+                                  className="flex-1"
+                                />
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-8 w-8 rounded-full text-red-500 hover:bg-red-100 mt-2"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Esta acción no se puede deshacer. Se eliminará la sección
+                                        permanentemente.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>
+                                        Cancelar
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => removeSection(section.id)}>
+                                        Eliminar
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                )}
               </div>
-            </div>
+            </DragDropContext>
           </CardContent>
           <CardFooter>
             <Button onClick={handleSubmit} disabled={isLoading}>
