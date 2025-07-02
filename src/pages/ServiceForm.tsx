@@ -447,7 +447,7 @@ const ServiceForm = () => {
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className="space-y-3"
+                      className="space-y-2"
                     >
                       {serviceItems.map((item, index) => (
                         <Draggable key={item.id} draggableId={item.id} index={index}>
@@ -455,9 +455,9 @@ const ServiceForm = () => {
                             <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
-                              className="flex items-start gap-3 p-4 bg-secondary rounded-md"
+                              className="flex items-center gap-3 p-3 bg-secondary rounded-md"
                             >
-                              <div {...provided.dragHandleProps} className="cursor-grab mt-2">
+                              <div {...provided.dragHandleProps} className="cursor-grab">
                                 <GripVertical className="h-4 w-4 text-muted-foreground" />
                               </div>
                               
@@ -475,7 +475,7 @@ const ServiceForm = () => {
                                       placeholder="Notas para esta canción..."
                                       value={(item.data as Song & { serviceNotes?: string }).serviceNotes || ""}
                                       onChange={(e) => updateItem(item.id, { serviceNotes: e.target.value })}
-                                      className="text-sm"
+                                      className="text-sm h-8"
                                     />
                                   </div>
                                 ) : (
@@ -484,11 +484,11 @@ const ServiceForm = () => {
                                       <FileText className="h-4 w-4 text-green-500" />
                                       <span className="text-sm text-muted-foreground">Sección</span>
                                     </div>
-                                    <Textarea
-                                      placeholder="Contenido de la sección..."
+                                    <Input
+                                      placeholder="Nombre de la sección (ej: Bienvenida, Ofrenda, etc.)"
                                       value={(item.data as { text: string }).text}
                                       onChange={(e) => updateItem(item.id, { text: e.target.value })}
-                                      className="min-h-[60px]"
+                                      className="text-sm h-8"
                                     />
                                   </div>
                                 )}
@@ -499,7 +499,7 @@ const ServiceForm = () => {
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="h-8 w-8 rounded-full text-red-500 hover:bg-red-100 mt-1"
+                                    className="h-8 w-8 rounded-full text-red-500 hover:bg-red-100"
                                   >
                                     <X className="h-4 w-4" />
                                   </Button>
