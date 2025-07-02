@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, X, GripVertical } from "lucide-react";
+import { Plus, X, GripVertical, Music, FileText } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,13 @@ import { getServiceById, createService, updateService, getAllServiceGroups } fro
 import { useAuth } from "@/hooks/use-auth-context";
 import { v4 as uuidv4 } from 'uuid';
 
+type ServiceItem = {
+  id: string;
+  type: 'song' | 'section';
+  order: number;
+  data: Song & { serviceNotes?: string } | { text: string };
+};
+
 const ServiceForm = () => {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -39,10 +47,7 @@ const ServiceForm = () => {
   const [notes, setNotes] = useState("");
   const [groupId, setGroupId] = useState<string | null>(null);
   const [serviceGroups, setServiceGroups] = useState<ServiceGroup[]>([]);
-  const [songs, setSongs] = useState<
-    (Song & { order: number; serviceNotes?: string })[]
-  >([]);
-  const [sections, setSections] = useState<ServiceSection[]>([]);
+  const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -61,7 +66,12 @@ const ServiceForm = () => {
       loadService(serviceId);
     } else {
       // Inicializar con una sección por defecto al crear un nuevo servicio
-      setSections([{ id: uuidv4(), text: "Introducción", order: 0 }]);
+      setServiceItems([{
+        id: uuidv4(),
+        type: 'section',
+        order: 0,
+        data: { text: "Inicio del servicio" }
+      }]);
     }
   }, [serviceId, isEditing]);
 
@@ -89,24 +99,37 @@ const ServiceForm = () => {
         setPreacher(service.preacher || "");
         setNotes(service.notes || "");
         setGroupId(service.groupId || null);
-        console.log("📋 [ServiceForm] Servicio cargado con groupId:", service.groupId);
-        setSongs(
-          service.songs
-            .sort((a, b) => a.order - b.order)
-            .map((serviceSong, index) => ({
+        
+        // Combinar canciones y secciones en una sola lista
+        const items: ServiceItem[] = [];
+        
+        // Agregar canciones
+        service.songs.forEach((serviceSong, index) => {
+          items.push({
+            id: `song-${serviceSong.songId}`,
+            type: 'song',
+            order: serviceSong.order,
+            data: {
               ...serviceSong,
               id: serviceSong.songId,
-              order: index,
               serviceNotes: serviceSong.notes,
-            })) as any
-        );
-        setSections(
-          service.sections.sort((a, b) => a.order - b.order).map((section) => ({
-            id: section.id,
-            text: section.text,
+            } as any
+          });
+        });
+        
+        // Agregar secciones
+        service.sections.forEach((section) => {
+          items.push({
+            id: `section-${section.id}`,
+            type: 'section',
             order: section.order,
-          }))
-        );
+            data: { text: section.text }
+          });
+        });
+        
+        // Ordenar por orden
+        items.sort((a, b) => a.order - b.order);
+        setServiceItems(items);
       } else {
         toast({
           title: "Error",
@@ -138,10 +161,10 @@ const ServiceForm = () => {
       return;
     }
 
-    if (songs.length === 0) {
+    if (serviceItems.length === 0) {
       toast({
         title: "Error",
-        description: "Debes agregar al menos una canción",
+        description: "Debes agregar al menos un elemento al servicio",
         variant: "destructive",
       });
       return;
@@ -152,24 +175,38 @@ const ServiceForm = () => {
     try {
       console.log("💾 [ServiceForm] Guardando servicio con groupId:", groupId);
       
+      // Separar canciones y secciones
+      const songs: ServiceSong[] = [];
+      const sections: ServiceSection[] = [];
+      
+      serviceItems.forEach((item, index) => {
+        if (item.type === 'song') {
+          const songData = item.data as Song & { serviceNotes?: string };
+          songs.push({
+            id: `${songData.id}-${index}`,
+            songId: songData.id,
+            order: index,
+            notes: songData.serviceNotes || "",
+          });
+        } else {
+          const sectionData = item.data as { text: string };
+          sections.push({
+            id: item.id.replace('section-', ''),
+            text: sectionData.text,
+            order: index,
+          });
+        }
+      });
+      
       const serviceData: Omit<Service, 'id' | 'createdAt' | 'updatedAt'> = {
         title,
         date: date?.toISOString() || new Date().toISOString(),
         theme: theme || null,
         preacher: preacher || null,
         notes: notes || null,
-        groupId: groupId || null, // Asegurar que se incluye el groupId
-        songs: songs.map((song, index) => ({
-          id: `${song.id}-${index}`,
-          songId: song.id,
-          order: index,
-          notes: song.serviceNotes || "",
-        })),
-        sections: sections.map((section, index) => ({
-          id: section.id,
-          text: section.text,
-          order: index,
-        })),
+        groupId: groupId || null,
+        songs,
+        sections,
         userId: user.id,
         isPublic: false,
         sharedWith: [],
@@ -205,8 +242,18 @@ const ServiceForm = () => {
   };
 
   const addSong = (song: Song) => {
-    if (!songs.find((s) => s.id === song.id)) {
-      setSongs([...songs, { ...song, order: songs.length }]);
+    const existingSong = serviceItems.find(item => 
+      item.type === 'song' && (item.data as Song).id === song.id
+    );
+    
+    if (!existingSong) {
+      const newItem: ServiceItem = {
+        id: `song-${song.id}`,
+        type: 'song',
+        order: serviceItems.length,
+        data: { ...song, serviceNotes: "" }
+      };
+      setServiceItems([...serviceItems, newItem]);
     } else {
       toast({
         title: "Advertencia",
@@ -215,22 +262,24 @@ const ServiceForm = () => {
     }
   };
 
-  const removeSong = (songId: string) => {
-    setSongs(songs.filter((song) => song.id !== songId));
-  };
-
   const addSection = () => {
-    setSections([...sections, { id: uuidv4(), text: "", order: sections.length }]);
+    const newItem: ServiceItem = {
+      id: `section-${uuidv4()}`,
+      type: 'section',
+      order: serviceItems.length,
+      data: { text: "" }
+    };
+    setServiceItems([...serviceItems, newItem]);
   };
 
-  const updateSection = (id: string, text: string) => {
-    setSections(
-      sections.map((section) => (section.id === id ? { ...section, text } : section))
-    );
+  const updateItem = (id: string, newData: any) => {
+    setServiceItems(serviceItems.map(item => 
+      item.id === id ? { ...item, data: { ...item.data, ...newData } } : item
+    ));
   };
 
-  const removeSection = (id: string) => {
-    setSections(sections.filter((section) => section.id !== id));
+  const removeItem = (id: string) => {
+    setServiceItems(serviceItems.filter(item => item.id !== id));
   };
 
   const onDragEnd = (result: any) => {
@@ -238,35 +287,16 @@ const ServiceForm = () => {
       return;
     }
 
-    const { source, destination, draggableId } = result;
+    const items = Array.from(serviceItems);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
 
-    // Verificar si es de la lista de canciones
-    if (source.droppableId === "songs" && destination.droppableId === "songs") {
-      const items = Array.from(songs);
-      const [reorderedItem] = items.splice(source.index, 1);
-      items.splice(destination.index, 0, reorderedItem);
-
-      setSongs(
-        items.map((song, index) => ({
-          ...song,
-          order: index,
-        }))
-      );
-    }
-
-    // Verificar si es de la lista de secciones
-    if (source.droppableId === "sections" && destination.droppableId === "sections") {
-      const items = Array.from(sections);
-      const [reorderedItem] = items.splice(source.index, 1);
-      items.splice(destination.index, 0, reorderedItem);
-
-      setSections(
-        items.map((section, index) => ({
-          ...section,
-          order: index,
-        }))
-      );
-    }
+    setServiceItems(
+      items.map((item, index) => ({
+        ...item,
+        order: index,
+      }))
+    );
   };
 
   if (isLoading) {
@@ -380,140 +410,128 @@ const ServiceForm = () => {
             
             <Separator />
             
-            <DragDropContext onDragEnd={onDragEnd}>
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Canciones</h3>
-                <SongSearch onSelect={addSong} />
-                
-                {songs.length > 0 && (
-                  <Droppable droppableId="songs">
-                    {(provided) => (
-                      <ul
-                        {...provided.droppableProps}
-                        ref={provided.innerRef}
-                        className="space-y-2 mt-4"
-                      >
-                        {songs.map((song, index) => (
-                          <Draggable key={song.id} draggableId={song.id} index={index}>
-                            {(provided) => (
-                              <li
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className="flex items-center justify-between p-3 bg-secondary rounded-md"
-                              >
-                                <div className="flex items-center">
-                                  <div {...provided.dragHandleProps} className="cursor-grab mr-2">
-                                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold">Contenido del Servicio</h3>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={addSection}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Agregar Sección
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => {
+                    // Mostrar el buscador de canciones
+                    const searchContainer = document.getElementById('song-search-container');
+                    if (searchContainer) {
+                      searchContainer.style.display = searchContainer.style.display === 'none' ? 'block' : 'none';
+                    }
+                  }}>
+                    <Music className="mr-2 h-4 w-4" />
+                    Agregar Canción
+                  </Button>
+                </div>
+              </div>
+
+              <div id="song-search-container" style={{ display: 'none' }} className="mb-4">
+                <SongSearch onSelect={(song) => {
+                  addSong(song);
+                  const searchContainer = document.getElementById('song-search-container');
+                  if (searchContainer) {
+                    searchContainer.style.display = 'none';
+                  }
+                }} />
+              </div>
+              
+              <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId="service-items">
+                  {(provided) => (
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                      className="space-y-3"
+                    >
+                      {serviceItems.map((item, index) => (
+                        <Draggable key={item.id} draggableId={item.id} index={index}>
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className="flex items-start gap-3 p-4 bg-secondary rounded-md"
+                            >
+                              <div {...provided.dragHandleProps} className="cursor-grab mt-2">
+                                <GripVertical className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                              
+                              <div className="flex-1">
+                                {item.type === 'song' ? (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <Music className="h-4 w-4 text-blue-500" />
+                                      <span className="font-medium">{(item.data as Song).title}</span>
+                                      {(item.data as Song).key && (
+                                        <Badge variant="outline">{(item.data as Song).key}</Badge>
+                                      )}
+                                    </div>
+                                    <Input
+                                      placeholder="Notas para esta canción..."
+                                      value={(item.data as Song & { serviceNotes?: string }).serviceNotes || ""}
+                                      onChange={(e) => updateItem(item.id, { serviceNotes: e.target.value })}
+                                      className="text-sm"
+                                    />
                                   </div>
-                                  <span className="text-sm">{song.title}</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <Input
-                                    type="text"
-                                    placeholder="Notas de la canción"
-                                    value={song.serviceNotes || ""}
-                                    onChange={(e) => {
-                                      const newSongs = [...songs];
-                                      newSongs[index].serviceNotes = e.target.value;
-                                      setSongs(newSongs);
-                                    }}
-                                    className="max-w-[200px] text-sm"
-                                  />
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-500 hover:bg-red-100"
-                                    onClick={() => removeSong(song.id)}
+                                ) : (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4 text-green-500" />
+                                      <span className="text-sm text-muted-foreground">Sección</span>
+                                    </div>
+                                    <Textarea
+                                      placeholder="Contenido de la sección..."
+                                      value={(item.data as { text: string }).text}
+                                      onChange={(e) => updateItem(item.id, { text: e.target.value })}
+                                      className="min-h-[60px]"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 rounded-full text-red-500 hover:bg-red-100 mt-1"
                                   >
                                     <X className="h-4 w-4" />
                                   </Button>
-                                </div>
-                              </li>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </ul>
-                    )}
-                  </Droppable>
-                )}
-              </div>
-              
-              <Separator />
-              
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold">Secciones</h3>
-                  <Button type="button" variant="outline" size="sm" onClick={addSection}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Añadir Sección
-                  </Button>
-                </div>
-                
-                {sections.length > 0 && (
-                  <Droppable droppableId="sections">
-                    {(provided) => (
-                      <div
-                        {...provided.droppableProps}
-                        ref={provided.innerRef}
-                        className="space-y-4"
-                      >
-                        {sections.map((section, index) => (
-                          <Draggable key={section.id} draggableId={section.id} index={index}>
-                            {(provided) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className="flex items-start gap-4 p-3 bg-secondary rounded-md"
-                              >
-                                <div {...provided.dragHandleProps} className="cursor-grab mt-2">
-                                  <GripVertical className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                                <Textarea
-                                  placeholder="Contenido de la sección"
-                                  value={section.text}
-                                  onChange={(e) => updateSection(section.id, e.target.value)}
-                                  className="flex-1"
-                                />
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-8 w-8 rounded-full text-red-500 hover:bg-red-100 mt-2"
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Esta acción no se puede deshacer. Se eliminará la sección
-                                        permanentemente.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Cancelar
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => removeSection(section.id)}>
-                                        Eliminar
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                )}
-              </div>
-            </DragDropContext>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Esta acción no se puede deshacer. Se eliminará este elemento
+                                      del servicio permanentemente.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancelar
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => removeItem(item.id)}>
+                                      Eliminar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
+            </div>
           </CardContent>
           <CardFooter>
             <Button onClick={handleSubmit} disabled={isLoading}>
