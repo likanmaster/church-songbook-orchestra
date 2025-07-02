@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Calendar, Music, Clock, Edit, ArrowLeft, Users, Printer, Copy } from "lucide-react";
+import { Calendar, Music, Clock, Edit, ArrowLeft, Users, Printer, Copy, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -528,90 +528,74 @@ const ServiceDetail = () => {
               <h2 className="text-xl font-bold">Orden del Servicio ({serviceItems.length} elementos)</h2>
             </div>
             
-            <div className="space-y-3">
-              {serviceItems.map((item, index) => (
-                <Card key={index}>
-                  <CardContent className="p-4">
-                    {item.type === 'song' && (
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center">
-                          <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center mr-3">
-                            {item.order}
+            <div className="bg-card rounded-lg border p-4">
+              <div className="space-y-2">
+                {serviceItems.map((item, index) => (
+                  <div key={index} className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
+                        {item.order + 1}
+                      </div>
+                      
+                      {item.type === 'song' ? (
+                        <>
+                          <Music className="h-4 w-4 text-blue-500" />
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{(item.content as ServiceSongDetails).title}</span>
+                            {(item.content as ServiceSongDetails).key && (
+                              <Badge variant="outline" className="text-xs">{(item.content as ServiceSongDetails).key}</Badge>
+                            )}
+                            {(item.content as ServiceSongDetails).duration && (
+                              <Badge variant="outline" className="text-xs">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {Math.floor((item.content as ServiceSongDetails).duration! / 60)}:{String((item.content as ServiceSongDetails).duration! % 60).padStart(2, "0")}
+                              </Badge>
+                            )}
                           </div>
-                          <div>
-                            <h3 className="font-medium">{(item.content as ServiceSongDetails).title}</h3>
-                            <p className="text-sm text-muted-foreground">{(item.content as ServiceSongDetails).author || '-'}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex gap-2">
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="h-4 w-4 text-green-500" />
+                          <span className="italic text-muted-foreground">{(item.content as ServiceSection).text}</span>
+                        </>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      {item.type === 'song' && (
+                        <>
                           <Link to={`/songs/${(item.content as ServiceSongDetails).id}`}>
-                            <Button variant="ghost" size="sm">
-                              <Music className="mr-1 h-4 w-4" />
-                              Ver Canción
+                            <Button variant="ghost" size="sm" className="h-8 px-2">
+                              <Music className="h-3 w-3" />
                             </Button>
                           </Link>
                           
-                          {/* Add copy button if the song is public or shared and not owned by the user */}
-                          {item.type === 'song' && 
-                           (item.content as ServiceSongDetails).userId !== user?.id &&
+                          {(item.content as ServiceSongDetails).userId !== user?.id &&
                            ((item.content as ServiceSongDetails).isPublic || 
                             (Array.isArray((item.content as ServiceSongDetails).sharedWith) && 
                              (item.content as ServiceSongDetails).sharedWith.includes(user?.id || ""))) && (
                             <Button 
                               variant="ghost" 
                               size="sm"
+                              className="h-8 px-2"
                               onClick={() => handleCopySong((item.content as ServiceSongDetails).id)}
                               disabled={copyingSongId === (item.content as ServiceSongDetails).id}
                             >
-                              <Copy className="mr-1 h-4 w-4" />
-                              {copyingSongId === (item.content as ServiceSongDetails).id ? 'Copiando...' : 'Copiar'}
+                              <Copy className="h-3 w-3" />
                             </Button>
                           )}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {item.type === 'song' && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge variant="outline" className="bg-secondary">
-                          {(item.content as ServiceSongDetails).key || 'C'}
-                        </Badge>
-                        {(item.content as ServiceSongDetails).duration && (
-                          <Badge variant="outline" className="bg-secondary">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {Math.floor((item.content as ServiceSongDetails).duration! / 60)}:{String((item.content as ServiceSongDetails).duration! % 60).padStart(2, "0")} min
-                          </Badge>
-                        )}
-                        {(item.content as ServiceSongDetails).categories?.map((category, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-xs">{category}</Badge>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {item.type === 'song' && (item.content as ServiceSongDetails).serviceNotes && (
-                      <div className="mt-2 text-sm italic border-l-2 border-primary pl-2">
-                        {(item.content as ServiceSongDetails).serviceNotes}
-                      </div>
-                    )}
-                    
-                    {item.type === 'section' && (
-                      <div className="flex items-center">
-                        <div className="bg-secondary text-secondary-foreground rounded-full w-6 h-6 flex items-center justify-center mr-3">
-                          {item.order}
-                        </div>
-                        <p className="italic">{(item.content as ServiceSection).text}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-              
-              {serviceItems.length === 0 && (
-                <div className="text-center py-10 text-muted-foreground">
-                  Este servicio no contiene canciones ni secciones.
-                </div>
-              )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                
+                {serviceItems.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Este servicio no contiene canciones ni secciones.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
