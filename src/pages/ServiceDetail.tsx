@@ -181,6 +181,17 @@ const ServiceDetail = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
+    // Create the service order list
+    const serviceOrderHtml = serviceItems.map((item) => {
+      if (item.type === 'song') {
+        const song = item.content as ServiceSongDetails;
+        return `<li>${song.title}</li>`;
+      } else {
+        const section = item.content as ServiceSection;
+        return `<li>${section.text}</li>`;
+      }
+    }).join('');
+
     const content = `
       <!DOCTYPE html>
       <html>
@@ -203,27 +214,17 @@ const ServiceDetail = () => {
             .section {
               margin-bottom: 20px;
             }
-            .song {
-              padding: 15px;
-              margin-bottom: 15px;
-              border-bottom: 1px solid #eee;
+            .service-order {
+              list-style: none;
+              padding: 0;
             }
-            .song-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
+            .service-order li {
+              padding: 8px 0;
+              border-bottom: 1px solid #f0f0f0;
+              font-size: 16px;
             }
-            .song-number {
-              font-weight: bold;
-              margin-right: 10px;
-              color: #666;
-            }
-            .song-title {
-              font-weight: bold;
-              font-size: 1.1em;
-            }
-            .song-key {
-              color: #666;
+            .service-order li:last-child {
+              border-bottom: none;
             }
             @media print {
               body { margin: 0; padding: 20px; }
@@ -239,35 +240,16 @@ const ServiceDetail = () => {
           </div>
           
           <div class="section">
-            <h2>Lista de Canciones</h2>
-            ${songs.map((song, index) => `
-              <div class="song">
-                <div class="song-header">
-                  <div>
-                    <span class="song-number">${index + 1}.</span>
-                    <span class="song-title">${song.title}</span>
-                  </div>
-                  <span class="song-key">Tonalidad: ${song.key || 'C'}</span>
-                </div>
-              </div>
-            `).join('')}
+            <h2>Orden del Servicio</h2>
+            <ul class="service-order">
+              ${serviceOrderHtml}
+            </ul>
           </div>
           
           ${service?.notes ? `
             <div class="section">
               <h2>Notas Adicionales</h2>
               <p>${service.notes}</p>
-            </div>
-          ` : ''}
-          
-          ${service?.sections && service.sections.length > 0 ? `
-            <div class="section">
-              <h2>Secciones del Servicio</h2>
-              <ul>
-                ${service.sections.map((section, index) => `
-                  <li><strong>${section.order}.</strong> ${section.text}</li>
-                `).join('')}
-              </ul>
             </div>
           ` : ''}
         </body>
