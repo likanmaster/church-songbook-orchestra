@@ -181,14 +181,14 @@ const ServiceDetail = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    // Create the service order list
+    // Create the service order list with icons
     const serviceOrderHtml = serviceItems.map((item) => {
       if (item.type === 'song') {
         const song = item.content as ServiceSongDetails;
-        return `<li>${song.title}</li>`;
+        return `<li><span class="icon music-icon">♪</span> ${song.title}</li>`;
       } else {
         const section = item.content as ServiceSection;
-        return `<li>${section.text}</li>`;
+        return `<li><span class="icon section-icon">📋</span> ${section.text}</li>`;
       }
     }).join('');
 
@@ -222,9 +222,23 @@ const ServiceDetail = () => {
               padding: 8px 0;
               border-bottom: 1px solid #f0f0f0;
               font-size: 16px;
+              display: flex;
+              align-items: center;
             }
             .service-order li:last-child {
               border-bottom: none;
+            }
+            .icon {
+              margin-right: 8px;
+              font-weight: bold;
+              min-width: 20px;
+            }
+            .music-icon {
+              color: #2563eb;
+              font-size: 18px;
+            }
+            .section-icon {
+              font-size: 14px;
             }
             @media print {
               body { margin: 0; padding: 20px; }
