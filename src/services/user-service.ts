@@ -89,13 +89,17 @@ export const editMusicStyle = async (userId: string, oldStyle: string, newStyle:
 };
 
 // Tipos para la plantilla de servicio
+export type DefaultServiceTemplateItem = {
+  id: string;
+  type: 'section' | 'song';
+  text?: string; // Para secciones
+  songId?: string; // Para canciones
+  order: number;
+};
+
 export type DefaultServiceTemplate = {
   title: string;
-  sections: Array<{
-    id: string;
-    text: string;
-    type: 'section';
-  }>;
+  items: DefaultServiceTemplateItem[];
 };
 
 // Obtener plantilla de servicio predeterminada del usuario

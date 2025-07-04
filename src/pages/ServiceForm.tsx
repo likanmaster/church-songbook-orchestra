@@ -108,12 +108,32 @@ const ServiceForm = () => {
       
       if (template) {
         console.log("📋 [ServiceForm] Plantilla encontrada:", template);
-        const templateItems: ServiceItem[] = template.sections.map((section, index) => ({
-          id: `section-${section.id}`,
-          type: 'section',
-          order: index,
-          data: { text: section.text }
-        }));
+        const templateItems: ServiceItem[] = [];
+        
+        for (const templateItem of template.items) {
+          if (templateItem.type === 'section') {
+            templateItems.push({
+              id: `section-${templateItem.id}`,
+              type: 'section',
+              order: templateItem.order,
+              data: { text: templateItem.text || "" }
+            });
+          } else if (templateItem.type === 'song' && templateItem.songId) {
+            // Buscar la canción en la biblioteca
+            const song = songsLibrary.find(s => s.id === templateItem.songId);
+            if (song) {
+              templateItems.push({
+                id: `song-${song.id}`,
+                type: 'song',
+                order: templateItem.order,
+                data: { ...song, serviceNotes: "" }
+              });
+            }
+          }
+        }
+        
+        // Ordenar por orden
+        templateItems.sort((a, b) => a.order - b.order);
         setServiceItems(templateItems);
       } else {
         console.log("📋 [ServiceForm] No hay plantilla, usando sección por defecto");
