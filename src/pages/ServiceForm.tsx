@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Plus, X, GripVertical, Music, FileText } from "lucide-react";
@@ -29,6 +28,7 @@ import Navbar from "@/components/layout/Navbar";
 import SongSearch from "@/components/SongSearch";
 import { Service, ServiceSong, ServiceSection, Song, ServiceGroup } from "@/types";
 import { getServiceById, createService, updateService, getAllServiceGroups } from "@/services/service-service";
+import { getAllSongs } from "@/services/song-service";
 import { useAuth } from "@/hooks/use-auth-context";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -49,6 +49,7 @@ const ServiceForm = () => {
   const [serviceGroups, setServiceGroups] = useState<ServiceGroup[]>([]);
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [songsLibrary, setSongsLibrary] = useState<Song[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -58,13 +59,14 @@ const ServiceForm = () => {
   useEffect(() => {
     if (user?.id) {
       loadServiceGroups();
+      loadSongsLibrary();
     }
   }, [user]);
 
   useEffect(() => {
-    if (isEditing && serviceId) {
+    if (isEditing && serviceId && songsLibrary.length > 0) {
       loadService(serviceId);
-    } else {
+    } else if (!isEditing) {
       // Inicializar con una sección por defecto al crear un nuevo servicio
       setServiceItems([{
         id: uuidv4(),
@@ -73,7 +75,20 @@ const ServiceForm = () => {
         data: { text: "Inicio del servicio" }
       }]);
     }
-  }, [serviceId, isEditing]);
+  }, [serviceId, isEditing, songsLibrary]);
+
+  const loadSongsLibrary = async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log("🎵 [ServiceForm] Cargando biblioteca de canciones...");
+      const songs = await getAllSongs(user.id);
+      console.log("🎵 [ServiceForm] Canciones cargadas:", songs.length);
+      setSongsLibrary(songs);
+    } catch (error) {
+      console.error("❌ [ServiceForm] Error al cargar canciones:", error);
+    }
+  };
 
   const loadServiceGroups = async () => {
     if (!user?.id) return;
@@ -103,18 +118,20 @@ const ServiceForm = () => {
         // Combinar canciones y secciones en una sola lista
         const items: ServiceItem[] = [];
         
-        // Agregar canciones
+        // Agregar canciones con los detalles completos de la biblioteca
         service.songs.forEach((serviceSong, index) => {
-          items.push({
-            id: `song-${serviceSong.songId}`,
-            type: 'song',
-            order: serviceSong.order,
-            data: {
-              ...serviceSong,
-              id: serviceSong.songId,
-              serviceNotes: serviceSong.notes,
-            } as any
-          });
+          const songDetails = songsLibrary.find(s => s.id === serviceSong.songId);
+          if (songDetails) {
+            items.push({
+              id: `song-${serviceSong.songId}`,
+              type: 'song',
+              order: serviceSong.order,
+              data: {
+                ...songDetails,
+                serviceNotes: serviceSong.notes,
+              }
+            });
+          }
         });
         
         // Agregar secciones
@@ -411,25 +428,7 @@ const ServiceForm = () => {
             <Separator />
             
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">Contenido del Servicio</h3>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={addSection}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Agregar Sección
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => {
-                    // Mostrar el buscador de canciones
-                    const searchContainer = document.getElementById('song-search-container');
-                    if (searchContainer) {
-                      searchContainer.style.display = searchContainer.style.display === 'none' ? 'block' : 'none';
-                    }
-                  }}>
-                    <Music className="mr-2 h-4 w-4" />
-                    Agregar Canción
-                  </Button>
-                </div>
-              </div>
+              <h3 className="text-xl font-semibold mb-4">Contenido del Servicio</h3>
 
               <div id="song-search-container" style={{ display: 'none' }} className="mb-4">
                 <SongSearch onSelect={(song) => {
@@ -447,7 +446,7 @@ const ServiceForm = () => {
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className="space-y-2"
+                      className="space-y-2 mb-4"
                     >
                       {serviceItems.map((item, index) => (
                         <Draggable key={item.id} draggableId={item.id} index={index}>
@@ -531,6 +530,23 @@ const ServiceForm = () => {
                   )}
                 </Droppable>
               </DragDropContext>
+
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={addSection}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Agregar Sección
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  // Mostrar el buscador de canciones
+                  const searchContainer = document.getElementById('song-search-container');
+                  if (searchContainer) {
+                    searchContainer.style.display = searchContainer.style.display === 'none' ? 'block' : 'none';
+                  }
+                }}>
+                  <Music className="mr-2 h-4 w-4" />
+                  Agregar Canción
+                </Button>
+              </div>
             </div>
           </CardContent>
           <CardFooter>
