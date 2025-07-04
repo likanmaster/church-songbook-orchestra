@@ -132,7 +132,7 @@ const DefaultServiceTemplateManager = () => {
   };
 
   const addSection = () => {
-    if (!template) return;
+    if (!template || !template.items) return;
     
     const newItem: DefaultServiceTemplateItem = {
       id: uuidv4(),
@@ -148,7 +148,7 @@ const DefaultServiceTemplateManager = () => {
   };
 
   const addSong = (song: Song) => {
-    if (!template) return;
+    if (!template || !template.items) return;
     
     const existingSong = template.items.find(item => 
       item.type === 'song' && item.songId === song.id
@@ -176,7 +176,7 @@ const DefaultServiceTemplateManager = () => {
   };
 
   const updateItem = (id: string, newData: Partial<DefaultServiceTemplateItem>) => {
-    if (!template) return;
+    if (!template || !template.items) return;
     
     setTemplate({
       ...template,
@@ -187,7 +187,7 @@ const DefaultServiceTemplateManager = () => {
   };
 
   const removeItem = (id: string) => {
-    if (!template) return;
+    if (!template || !template.items) return;
     
     setTemplate({
       ...template,
@@ -196,7 +196,7 @@ const DefaultServiceTemplateManager = () => {
   };
 
   const onDragEnd = (result: any) => {
-    if (!result.destination || !template) return;
+    if (!result.destination || !template || !template.items) return;
 
     const items = Array.from(template.items);
     const [reorderedItem] = items.splice(result.source.index, 1);
@@ -257,7 +257,7 @@ const DefaultServiceTemplateManager = () => {
                   <Label htmlFor="template-title">Nombre de la plantilla</Label>
                   <Input
                     id="template-title"
-                    value={template.title}
+                    value={template.title || ""}
                     onChange={(e) => setTemplate({ ...template, title: e.target.value })}
                   />
                 </div>
@@ -287,7 +287,7 @@ const DefaultServiceTemplateManager = () => {
                           ref={provided.innerRef}
                           className="space-y-2 mt-2"
                         >
-                          {template.items.map((item, index) => (
+                          {(template.items || []).map((item, index) => (
                             <Draggable key={item.id} draggableId={item.id} index={index}>
                               {(provided) => (
                                 <div
@@ -393,7 +393,7 @@ const DefaultServiceTemplateManager = () => {
                 <div>
                   <Label>Plantilla actual: {template.title}</Label>
                   <div className="mt-2 space-y-1">
-                    {template.items.map((item, index) => (
+                    {(template.items || []).map((item, index) => (
                       <div key={item.id} className="flex items-center gap-2 text-sm">
                         <Badge variant="outline" className="min-w-fit">
                           {index + 1}
