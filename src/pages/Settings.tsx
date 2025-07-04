@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/hooks/use-theme";
 import { Moon, Sun, Bell, Palette } from "lucide-react";
 import MusicStylesManager from "@/components/settings/MusicStylesManager";
+import DefaultServiceTemplateManager from "@/components/settings/DefaultServiceTemplateManager";
 
 const Settings = () => {
   const { theme, setTheme, color, setColor } = useTheme();
@@ -59,6 +60,8 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
+
+          <DefaultServiceTemplateManager />
 
           <MusicStylesManager />
 

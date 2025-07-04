@@ -29,6 +29,7 @@ import SongSearch from "@/components/SongSearch";
 import { Service, ServiceSong, ServiceSection, Song, ServiceGroup } from "@/types";
 import { getServiceById, createService, updateService, getAllServiceGroups } from "@/services/service-service";
 import { getAllSongs } from "@/services/song-service";
+import { getUserDefaultServiceTemplate } from "@/services/user-service";
 import { useAuth } from "@/hooks/use-auth-context";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -66,16 +67,11 @@ const ServiceForm = () => {
   useEffect(() => {
     if (isEditing && serviceId && songsLibrary.length > 0) {
       loadService(serviceId);
-    } else if (!isEditing) {
-      // Inicializar con una sección por defecto al crear un nuevo servicio
-      setServiceItems([{
-        id: uuidv4(),
-        type: 'section',
-        order: 0,
-        data: { text: "Inicio del servicio" }
-      }]);
+    } else if (!isEditing && user?.id) {
+      // Al crear un nuevo servicio, cargar la plantilla predeterminada
+      loadDefaultTemplate();
     }
-  }, [serviceId, isEditing, songsLibrary]);
+  }, [serviceId, isEditing, songsLibrary, user]);
 
   const loadSongsLibrary = async () => {
     if (!user?.id) return;
@@ -100,6 +96,44 @@ const ServiceForm = () => {
       setServiceGroups(groups);
     } catch (error) {
       console.error("❌ [ServiceForm] Error al cargar grupos:", error);
+    }
+  };
+
+  const loadDefaultTemplate = async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log("📋 [ServiceForm] Cargando plantilla predeterminada...");
+      const template = await getUserDefaultServiceTemplate(user.id);
+      
+      if (template) {
+        console.log("📋 [ServiceForm] Plantilla encontrada:", template);
+        const templateItems: ServiceItem[] = template.sections.map((section, index) => ({
+          id: `section-${section.id}`,
+          type: 'section',
+          order: index,
+          data: { text: section.text }
+        }));
+        setServiceItems(templateItems);
+      } else {
+        console.log("📋 [ServiceForm] No hay plantilla, usando sección por defecto");
+        // Si no hay plantilla, usar una sección por defecto
+        setServiceItems([{
+          id: uuidv4(),
+          type: 'section',
+          order: 0,
+          data: { text: "Inicio del servicio" }
+        }]);
+      }
+    } catch (error) {
+      console.error("❌ [ServiceForm] Error al cargar plantilla predeterminada:", error);
+      // En caso de error, usar sección por defecto
+      setServiceItems([{
+        id: uuidv4(),
+        type: 'section',
+        order: 0,
+        data: { text: "Inicio del servicio" }
+      }]);
     }
   };
 

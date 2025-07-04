@@ -1,4 +1,3 @@
-
 import { doc, updateDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { db, USERS_COLLECTION } from "@/hooks/use-auth-context";
 
@@ -85,6 +84,49 @@ export const editMusicStyle = async (userId: string, oldStyle: string, newStyle:
     return currentStyles;
   } catch (error) {
     console.error("Error al editar estilo musical:", error);
+    throw error;
+  }
+};
+
+// Tipos para la plantilla de servicio
+export type DefaultServiceTemplate = {
+  title: string;
+  sections: Array<{
+    id: string;
+    text: string;
+    type: 'section';
+  }>;
+};
+
+// Obtener plantilla de servicio predeterminada del usuario
+export const getUserDefaultServiceTemplate = async (userId: string): Promise<DefaultServiceTemplate | null> => {
+  try {
+    const userDocRef = doc(db, USERS_COLLECTION, userId);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      return userData.defaultServiceTemplate || null;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error al obtener plantilla de servicio predeterminada:", error);
+    return null;
+  }
+};
+
+// Actualizar plantilla de servicio predeterminada del usuario
+export const updateUserDefaultServiceTemplate = async (userId: string, template: DefaultServiceTemplate | null): Promise<void> => {
+  try {
+    const userDocRef = doc(db, USERS_COLLECTION, userId);
+    
+    await updateDoc(userDocRef, {
+      defaultServiceTemplate: template,
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Error al actualizar plantilla de servicio predeterminada:", error);
     throw error;
   }
 };
