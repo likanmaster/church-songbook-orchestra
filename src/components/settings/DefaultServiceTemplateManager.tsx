@@ -42,6 +42,7 @@ const DefaultServiceTemplateManager = () => {
     try {
       setIsLoading(true);
       const userTemplate = await getUserDefaultServiceTemplate(user.id);
+      console.log("Plantilla cargada:", userTemplate);
       setTemplate(userTemplate);
     } catch (error) {
       console.error("Error al cargar plantilla:", error);
@@ -60,6 +61,7 @@ const DefaultServiceTemplateManager = () => {
     
     try {
       const songsData = await getAllSongs(user.id);
+      console.log("Canciones cargadas:", songsData.length);
       setSongs(songsData);
     } catch (error) {
       console.error("Error al cargar canciones:", error);
@@ -71,6 +73,7 @@ const DefaultServiceTemplateManager = () => {
     
     try {
       setIsLoading(true);
+      console.log("Guardando plantilla:", template);
       await updateUserDefaultServiceTemplate(user.id, template);
       toast({
         title: "Éxito",
@@ -116,6 +119,7 @@ const DefaultServiceTemplateManager = () => {
   };
 
   const createNewTemplate = () => {
+    console.log("Creando nueva plantilla");
     const newTemplate: DefaultServiceTemplate = {
       title: "Mi Plantilla de Servicio",
       items: [
@@ -127,30 +131,45 @@ const DefaultServiceTemplateManager = () => {
         { id: uuidv4(), type: 'section', text: "Fin del servicio", order: 5 }
       ]
     };
+    console.log("Nueva plantilla creada:", newTemplate);
     setTemplate(newTemplate);
     setIsEditing(true);
   };
 
   const addSection = () => {
-    if (!template || !template.items) return;
+    console.log("Agregando sección");
+    if (!template) {
+      console.log("No hay plantilla, no se puede agregar sección");
+      return;
+    }
     
+    const items = template.items || [];
     const newItem: DefaultServiceTemplateItem = {
       id: uuidv4(),
       type: 'section',
-      text: "",
-      order: template.items.length
+      text: "Nueva sección",
+      order: items.length
     };
     
-    setTemplate({
+    const updatedTemplate = {
       ...template,
-      items: [...template.items, newItem]
-    });
+      items: [...items, newItem]
+    };
+    
+    console.log("Sección agregada:", newItem);
+    console.log("Plantilla actualizada:", updatedTemplate);
+    setTemplate(updatedTemplate);
   };
 
   const addSong = (song: Song) => {
-    if (!template || !template.items) return;
+    console.log("Agregando canción:", song);
+    if (!template) {
+      console.log("No hay plantilla, no se puede agregar canción");
+      return;
+    }
     
-    const existingSong = template.items.find(item => 
+    const items = template.items || [];
+    const existingSong = items.find(item => 
       item.type === 'song' && item.songId === song.id
     );
     
@@ -159,15 +178,20 @@ const DefaultServiceTemplateManager = () => {
         id: uuidv4(),
         type: 'song',
         songId: song.id,
-        order: template.items.length
+        order: items.length
       };
       
-      setTemplate({
+      const updatedTemplate = {
         ...template,
-        items: [...template.items, newItem]
-      });
+        items: [...items, newItem]
+      };
+      
+      console.log("Canción agregada:", newItem);
+      console.log("Plantilla actualizada:", updatedTemplate);
+      setTemplate(updatedTemplate);
       setShowSongSearch(false);
     } else {
+      console.log("La canción ya existe en la plantilla");
       toast({
         title: "Advertencia",
         description: "La canción ya está en la plantilla",
@@ -176,39 +200,53 @@ const DefaultServiceTemplateManager = () => {
   };
 
   const updateItem = (id: string, newData: Partial<DefaultServiceTemplateItem>) => {
-    if (!template || !template.items) return;
+    console.log("Actualizando item:", id, newData);
+    if (!template) return;
     
-    setTemplate({
+    const items = template.items || [];
+    const updatedTemplate = {
       ...template,
-      items: template.items.map(item =>
+      items: items.map(item =>
         item.id === id ? { ...item, ...newData } : item
       )
-    });
+    };
+    
+    console.log("Item actualizado, nueva plantilla:", updatedTemplate);
+    setTemplate(updatedTemplate);
   };
 
   const removeItem = (id: string) => {
-    if (!template || !template.items) return;
+    console.log("Eliminando item:", id);
+    if (!template) return;
     
-    setTemplate({
+    const items = template.items || [];
+    const updatedTemplate = {
       ...template,
-      items: template.items.filter(item => item.id !== id)
-    });
+      items: items.filter(item => item.id !== id)
+    };
+    
+    console.log("Item eliminado, nueva plantilla:", updatedTemplate);
+    setTemplate(updatedTemplate);
   };
 
   const onDragEnd = (result: any) => {
-    if (!result.destination || !template || !template.items) return;
+    console.log("Drag end:", result);
+    if (!result.destination || !template) return;
 
-    const items = Array.from(template.items);
+    const items = Array.from(template.items || []);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    setTemplate({
+    const updatedTemplate = {
       ...template,
       items: items.map((item, index) => ({
         ...item,
         order: index,
       }))
-    });
+    };
+
+    console.log("Items reordenados:", updatedTemplate);
+    setTemplate(updatedTemplate);
   };
 
   const getSongById = (songId: string) => {
@@ -258,7 +296,10 @@ const DefaultServiceTemplateManager = () => {
                   <Input
                     id="template-title"
                     value={template.title || ""}
-                    onChange={(e) => setTemplate({ ...template, title: e.target.value })}
+                    onChange={(e) => {
+                      console.log("Cambiando título:", e.target.value);
+                      setTemplate({ ...template, title: e.target.value });
+                    }}
                   />
                 </div>
                 
@@ -309,7 +350,10 @@ const DefaultServiceTemplateManager = () => {
                                       <Input
                                         placeholder="Nombre de la sección"
                                         value={item.text || ""}
-                                        onChange={(e) => updateItem(item.id, { text: e.target.value })}
+                                        onChange={(e) => {
+                                          console.log("Cambiando texto de sección:", e.target.value);
+                                          updateItem(item.id, { text: e.target.value });
+                                        }}
                                         className="flex-1"
                                       />
                                     </>
@@ -337,7 +381,10 @@ const DefaultServiceTemplateManager = () => {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => removeItem(item.id)}
+                                    onClick={() => {
+                                      console.log("Eliminando item:", item.id);
+                                      removeItem(item.id);
+                                    }}
                                     className="text-red-500 h-8 w-8"
                                   >
                                     <X className="h-4 w-4" />
@@ -356,7 +403,10 @@ const DefaultServiceTemplateManager = () => {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={addSection}
+                      onClick={() => {
+                        console.log("Botón agregar sección clickeado");
+                        addSection();
+                      }}
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       Agregar Sección
@@ -364,7 +414,10 @@ const DefaultServiceTemplateManager = () => {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => setShowSongSearch(true)}
+                      onClick={() => {
+                        console.log("Botón agregar canción clickeado");
+                        setShowSongSearch(true);
+                      }}
                     >
                       <Music className="mr-2 h-4 w-4" />
                       Agregar Canción
