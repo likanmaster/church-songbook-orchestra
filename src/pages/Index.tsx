@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Music, BookOpen, Users, Search, Plus, Sparkles, ArrowRight, Play, Heart, Clock } from "lucide-react";
@@ -7,10 +6,65 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
 import { useAuth } from "@/hooks/use-auth-context";
+import { useQuery } from "@tanstack/react-query";
+import { getAllSongs } from "@/services/song-service";
+import { getAllServices } from "@/services/service-service";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db, GROUPS_COLLECTION } from "@/hooks/use-auth-context";
 
 const Index = () => {
   const { user } = useAuth();
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
+  // Obtener canciones del usuario
+  const { data: songs = [] } = useQuery({
+    queryKey: ['user-songs', user?.id],
+    queryFn: () => getAllSongs(user?.id || ''),
+    enabled: !!user?.id,
+  });
+
+  // Obtener servicios del usuario
+  const { data: services = [] } = useQuery({
+    queryKey: ['user-services', user?.id],
+    queryFn: () => getAllServices(user?.id || ''),
+    enabled: !!user?.id,
+  });
+
+  // Obtener grupos del usuario
+  const { data: userGroups = [] } = useQuery({
+    queryKey: ['user-groups', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const allGroupsQuery = collection(db, GROUPS_COLLECTION);
+      const querySnapshot = await getDocs(allGroupsQuery);
+      
+      const groups: any[] = [];
+      querySnapshot.forEach((doc) => {
+        const groupData = doc.data();
+        const isMember = groupData.members.some(
+          (member: any) => member.userId === user.id
+        );
+        
+        if (isMember) {
+          groups.push({ id: doc.id, ...groupData });
+        }
+      });
+      
+      return groups;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Calcular estadísticas reales
+  const userSongs = songs.filter(song => song.userId === user?.id);
+  const userServices = services.filter(service => service.userId === user?.id);
+
+  const stats = {
+    songs: userSongs.length,
+    services: userServices.length,
+    groups: userGroups.length,
+  };
 
   const features = [
     {
@@ -171,21 +225,21 @@ const Index = () => {
               <div className="text-center">
                 <div className="bg-white rounded-xl p-6 shadow-sm">
                   <Music className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-blue-600">--</div>
+                  <div className="text-2xl font-bold text-blue-600">{stats.songs}</div>
                   <div className="text-sm text-muted-foreground">Canciones</div>
                 </div>
               </div>
               <div className="text-center">
                 <div className="bg-white rounded-xl p-6 shadow-sm">
                   <BookOpen className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-green-600">--</div>
+                  <div className="text-2xl font-bold text-green-600">{stats.services}</div>
                   <div className="text-sm text-muted-foreground">Servicios</div>
                 </div>
               </div>
               <div className="text-center">
                 <div className="bg-white rounded-xl p-6 shadow-sm">
                   <Users className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-purple-600">--</div>
+                  <div className="text-2xl font-bold text-purple-600">{stats.groups}</div>
                   <div className="text-sm text-muted-foreground">Grupos</div>
                 </div>
               </div>
