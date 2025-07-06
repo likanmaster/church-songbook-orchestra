@@ -1,78 +1,206 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Music, Plus, Search, Filter, Heart, Play, Clock, Grid, List } from "lucide-react";
+import { Plus, Music, Edit, Trash2, Star, Copy, Filter, X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import Navbar from "@/components/layout/Navbar";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { useAuth } from "@/hooks/use-auth-context";
-import { getAllSongs, toggleSongFavorite } from "@/services/song-service";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+import Navbar from "@/components/layout/Navbar";
+import SongImporter from "@/components/songs/SongImporter";
 import { Song } from "@/types";
-import { toast } from "sonner";
+import { getAllSongs, deleteSong, toggleSongFavorite, updateSongPublicStatus, copySongToUserAccount } from "@/services/song-service";
+import { useAuth } from "@/hooks/use-auth-context";
 
-const Songs = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+const SongsPage = () => {
   const [songs, setSongs] = useState<Song[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selectedKey, setSelectedKey] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedStyle, setSelectedStyle] = useState<string>("all");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const { toast } = useToast();
   const { user } = useAuth();
+  const [copyingSong, setCopyingSong] = useState<string | null>(null);
+
+  // Filtrar solo canciones del usuario actual
+  const userOwnedSongs = songs.filter(song => song.userId === user?.id);
+
+  // Get unique keys, categories, and styles from user's songs only
+  const uniqueKeys = [...new Set(userOwnedSongs.filter(song => song.key).map(song => song.key))].sort();
+  const uniqueCategories = [...new Set(userOwnedSongs.flatMap(song => song.categories || []))].sort();
+  const uniqueStyles = [...new Set(userOwnedSongs.filter(song => song.style).map(song => song.style))].sort();
 
   useEffect(() => {
     loadSongs();
   }, [user]);
 
   const loadSongs = async () => {
+    setIsLoading(true);
+    try {
+      const songsData = await getAllSongs(user?.id || '');
+      setSongs(songsData);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load songs",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleFavorite = async (song: Song, favorite: boolean) => {
+    try {
+      await toggleSongFavorite(song.id, favorite, user?.id || '');
+      setSongs(
+        songs.map((s) =>
+          s.id === song.id ? { ...s, isFavorite: favorite } : s
+        )
+      );
+      toast({
+        title: "Success",
+        description: `Song ${favorite ? 'added to' : 'removed from'} favorites`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to toggle favorite",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const togglePublic = async (song: Song, isPublic: boolean) => {
+    try {
+      await updateSongPublicStatus(song.id, isPublic, user?.id || '');
+      setSongs(
+        songs.map((s) =>
+          s.id === song.id ? { ...s, isPublic } : s
+        )
+      );
+      toast({
+        title: "Success",
+        description: `Song is now ${isPublic ? 'public' : 'private'}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update public status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (songId: string) => {
+    try {
+      await deleteSong(songId, user?.id || '');
+      setSongs(songs.filter((s) => s.id !== songId));
+      toast({
+        title: "Success",
+        description: "Song deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete song",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopySong = async (songId: string) => {
     if (!user?.id) {
-      setLoading(false);
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para copiar canciones",
+        variant: "destructive"
+      });
       return;
     }
 
+    setCopyingSong(songId);
     try {
-      setLoading(true);
-      const songsData = await getAllSongs(user.id);
-      setSongs(songsData);
+      const copiedSong = await copySongToUserAccount(songId, user.id);
+      setSongs([...songs, copiedSong]);
+      toast({
+        title: "Canción copiada",
+        description: "La canción ha sido copiada a tu biblioteca exitosamente."
+      });
     } catch (error) {
-      console.error("Error loading songs:", error);
-      toast.error("Error al cargar las canciones");
+      console.error("Error al copiar la canción:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo copiar la canción. Intente nuevamente.",
+        variant: "destructive"
+      });
     } finally {
-      setLoading(false);
+      setCopyingSong(null);
     }
   };
 
-  const handleToggleFavorite = async (songId: string, currentFavorite: boolean) => {
-    if (!user?.id) return;
-
-    try {
-      await toggleSongFavorite(songId, !currentFavorite, user.id);
-      setSongs(songs.map(song => 
-        song.id === songId 
-          ? { ...song, isFavorite: !currentFavorite }
-          : song
-      ));
-      toast.success(!currentFavorite ? "Agregado a favoritos" : "Removido de favoritos");
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
-      toast.error("Error al actualizar favoritos");
-    }
+  const clearAllFilters = () => {
+    setSearch("");
+    setSelectedKey("all");
+    setSelectedCategory("all");
+    setSelectedStyle("all");
+    setShowFavoritesOnly(false);
   };
 
-  const filteredSongs = songs.filter(song =>
-    song.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (song.author && song.author.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Filtrar solo las canciones del usuario
+  const filteredSongs = userOwnedSongs.filter((song) => {
+    // Search filter
+    const matchesSearch = song.title.toLowerCase().includes(search.toLowerCase()) ||
+                         (song.author && song.author.toLowerCase().includes(search.toLowerCase()));
+    
+    // Key filter
+    const matchesKey = selectedKey === "all" || song.key === selectedKey;
+    
+    // Category filter
+    const matchesCategory = selectedCategory === "all" || 
+                           (song.categories && song.categories.includes(selectedCategory));
+    
+    // Style filter
+    const matchesStyle = selectedStyle === "all" || song.style === selectedStyle;
+    
+    // Favorites filter
+    const matchesFavorites = !showFavoritesOnly || song.isFavorite;
+    
+    return matchesSearch && matchesKey && matchesCategory && matchesStyle && matchesFavorites;
+  });
 
-  if (loading) {
+  // Helper to render star rating
+  const renderStarRating = (rating: number = 0) => {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <div className="flex items-center mt-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star 
+            key={star} 
+            className={`h-3 w-3 ${star <= rating ? "fill-yellow-500 text-yellow-500" : "text-gray-300"}`} 
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const hasActiveFilters = search || selectedKey !== "all" || selectedCategory !== "all" || selectedStyle !== "all" || showFavoritesOnly;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
         <Navbar />
-        <main className="container mx-auto px-4 py-8">
-          <div className="text-center py-12">
-            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-8 shadow-lg border border-white/20 max-w-md mx-auto">
-              <Music className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
-              <h3 className="text-lg font-semibold mb-2">Cargando canciones...</h3>
+        <main className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Cargando canciones...</p>
             </div>
           </div>
         </main>
@@ -81,217 +209,294 @@ const Songs = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-8">
-        {/* Header Section */}
-        <div className="text-center mb-8">
-          <div className="relative mb-6">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-green-600/20 blur-3xl -z-10"></div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 bg-clip-text text-transparent mb-2">
-              Biblioteca Musical
-            </h1>
+      <main className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-bold">Mis Canciones</h1>
+          <div className="flex gap-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Importar
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <SongImporter />
+              </DialogContent>
+            </Dialog>
+            <Button asChild>
+              <Link to="/songs/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Añadir Canción
+              </Link>
+            </Button>
           </div>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Organiza, busca y gestiona todas tus canciones en un solo lugar
-          </p>
         </div>
-
-        {/* Action Bar */}
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 mb-8 shadow-lg border border-white/20">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex-1 max-w-md">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Buscar canciones, artistas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white/70 border-white/30 focus:bg-white transition-colors"
-                />
-              </div>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtros y Búsqueda
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Search Input */}
+            <div>
+              <Label htmlFor="search">Buscar canción:</Label>
+              <Input
+                type="text"
+                id="search"
+                placeholder="Buscar por título o autor..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
             
-            <div className="flex items-center gap-2">
-              <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              
-              <Separator orientation="vertical" className="h-6 mx-2" />
-              
-              <Button variant="outline" size="sm">
-                <Filter className="mr-2 h-4 w-4" />
-                Filtros
-              </Button>
-              
-              <Button asChild className="group">
-                <Link to="/songs/new">
-                  <Plus className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform" />
-                  Nueva Canción
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
+            {/* Filters Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Key Filter */}
+              <div>
+                <Label>Tonalidad:</Label>
+                <Select value={selectedKey} onValueChange={setSelectedKey}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas las tonalidades" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las tonalidades</SelectItem>
+                    {uniqueKeys.map((key) => (
+                      <SelectItem key={key} value={key}>
+                        {key}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-        {/* Songs Grid/List */}
-        {viewMode === "grid" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSongs.map((song) => (
-              <Card key={song.id} className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-1">
-                        {song.title}
-                      </CardTitle>
-                      <CardDescription className="mt-1">
-                        {song.author || "Autor desconocido"}
-                      </CardDescription>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`${song.isFavorite ? 'text-red-500' : 'text-muted-foreground'} hover:text-red-500 transition-colors`}
-                      onClick={() => handleToggleFavorite(song.id, song.isFavorite)}
-                    >
-                      <Heart className={`h-4 w-4 ${song.isFavorite ? 'fill-current' : ''}`} />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex gap-2">
-                      {song.key && (
-                        <Badge variant="secondary" className="text-xs">
-                          {song.key}
-                        </Badge>
-                      )}
-                      {song.style && (
-                        <Badge variant="outline" className="text-xs">
-                          {song.style}
-                        </Badge>
-                      )}
-                    </div>
-                    {song.duration && (
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Clock className="mr-1 h-3 w-3" />
-                        {song.duration}
+              {/* Category Filter */}
+              <div>
+                <Label>Categoría:</Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas las categorías" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las categorías</SelectItem>
+                    {uniqueCategories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Style Filter */}
+              <div>
+                <Label>Estilo musical:</Label>
+                <Select value={selectedStyle} onValueChange={setSelectedStyle}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos los estilos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estilos</SelectItem>
+                    {uniqueStyles.map((style) => (
+                      <SelectItem key={style} value={style}>
+                        {style}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Favorites Filter */}
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="favorites-only"
+                  checked={showFavoritesOnly}
+                  onCheckedChange={setShowFavoritesOnly}
+                />
+                <Label htmlFor="favorites-only">Solo favoritas</Label>
+              </div>
+
+              {/* Clear Filters Button */}
+              <div className="flex items-end">
+                {hasActiveFilters && (
+                  <Button
+                    variant="outline"
+                    onClick={clearAllFilters}
+                    className="w-full"
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Limpiar filtros
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Active Filters Display */}
+            {hasActiveFilters && (
+              <div className="flex flex-wrap gap-2">
+                <span className="text-sm text-muted-foreground">Filtros activos:</span>
+                {search && (
+                  <Badge variant="secondary" className="gap-1">
+                    Búsqueda: "{search}"
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSearch("")} />
+                  </Badge>
+                )}
+                {selectedKey !== "all" && (
+                  <Badge variant="secondary" className="gap-1">
+                    Tonalidad: {selectedKey}
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedKey("all")} />
+                  </Badge>
+                )}
+                {selectedCategory !== "all" && (
+                  <Badge variant="secondary" className="gap-1">
+                    Categoría: {selectedCategory}
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedCategory("all")} />
+                  </Badge>
+                )}
+                {selectedStyle !== "all" && (
+                  <Badge variant="secondary" className="gap-1">
+                    Estilo: {selectedStyle}
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedStyle("all")} />
+                  </Badge>
+                )}
+                {showFavoritesOnly && (
+                  <Badge variant="secondary" className="gap-1">
+                    Solo favoritas
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => setShowFavoritesOnly(false)} />
+                  </Badge>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Lista de Canciones
+              <Badge variant="secondary" className="ml-2">
+                {userOwnedSongs.length} {userOwnedSongs.length === 1 ? 'canción' : 'canciones'}
+              </Badge>
+              {filteredSongs.length !== userOwnedSongs.length && (
+                <span className="text-sm text-muted-foreground ml-2">
+                  ({filteredSongs.length} mostradas)
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {filteredSongs.length === 0 ? (
+              <div className="text-center py-8">
+                <Music className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">
+                  {hasActiveFilters ? "No se encontraron canciones con los filtros aplicados" : "No tienes canciones aún"}
+                </p>
+                {hasActiveFilters && (
+                  <Button variant="outline" onClick={clearAllFilters} className="mt-2">
+                    <X className="mr-2 h-4 w-4" />
+                    Limpiar filtros
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredSongs.map((song) => (
+                  <Card key={song.id} className="overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg">{song.title}</CardTitle>
+                          <p className="text-sm text-muted-foreground">{song.author}</p>
+                          {renderStarRating(song.rating || 0)}
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => toggleFavorite(song, !song.isFavorite)}
+                          >
+                            {song.isFavorite ? (
+                              <Star className="text-yellow-500 h-4 w-4 fill-yellow-500" />
+                            ) : (
+                              <Star className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button size="sm" className="flex-1 group/play">
-                      <Play className="mr-2 h-3 w-3 group-hover/play:scale-110 transition-transform" />
-                      Reproducir
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to={`/songs/${song.id}`}>
-                        Editar
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredSongs.map((song) => (
-              <Card key={song.id} className="group hover:shadow-md transition-all duration-200 border-0 bg-white/90 backdrop-blur-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg group-hover:scale-105 transition-transform">
-                        <Music className="h-4 w-4 text-white" />
+                    </CardHeader>
+                    
+                    <CardContent className="pt-0">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center">
+                          <Label htmlFor={`public-${song.id}`} className="mr-2 text-xs">
+                            {song.isPublic ? "Pública" : "Privada"}
+                          </Label>
+                          <Switch 
+                            id={`public-${song.id}`}
+                            checked={song.isPublic || false}
+                            onCheckedChange={(checked) => togglePublic(song, checked)}
+                          />
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
-                          {song.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {song.author || "Autor desconocido"}
-                        </p>
-                      </div>
-                      <div className="hidden md:flex items-center gap-2">
+                      
+                      <div className="flex flex-wrap gap-1 mt-2">
                         {song.key && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="outline" className="text-xs">
                             {song.key}
                           </Badge>
                         )}
-                        {song.style && (
-                          <Badge variant="outline" className="text-xs">
-                            {song.style}
-                          </Badge>
+                        {song.categories && song.categories.length > 0 && (
+                          song.categories.map((category, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-xs">
+                              {category}
+                            </Badge>
+                          ))
                         )}
                       </div>
-                      {song.duration && (
-                        <div className="hidden sm:flex items-center text-xs text-muted-foreground">
-                          <Clock className="mr-1 h-3 w-3" />
-                          {song.duration}
-                        </div>
-                      )}
-                    </div>
+                    </CardContent>
                     
-                    <div className="flex items-center gap-2">
+                    <CardFooter className="flex justify-between pt-2">
+                      <div className="flex space-x-1">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/songs/${song.id}`}>
+                            <Music className="mr-2 h-4 w-4" />
+                            Ver
+                          </Link>
+                        </Button>
+                        
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/songs/${song.id}/edit`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </Link>
+                        </Button>
+                      </div>
+                      
                       <Button
                         variant="ghost"
                         size="sm"
-                        className={`${song.isFavorite ? 'text-red-500' : 'text-muted-foreground'} hover:text-red-500`}
-                        onClick={() => handleToggleFavorite(song.id, song.isFavorite)}
+                        onClick={() => handleDelete(song.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-100"
                       >
-                        <Heart className={`h-4 w-4 ${song.isFavorite ? 'fill-current' : ''}`} />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
-                        <Play className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link to={`/songs/${song.id}`}>
-                          Editar
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Empty State */}
-        {filteredSongs.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-8 shadow-lg border border-white/20 max-w-md mx-auto">
-              <Music className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No se encontraron canciones</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchTerm ? "Intenta con otros términos de búsqueda" : "Comienza agregando tu primera canción"}
-              </p>
-              <Button asChild>
-                <Link to="/songs/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Agregar Canción
-                </Link>
-              </Button>
-            </div>
-          </div>
-        )}
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
 };
 
-export default Songs;
+export default SongsPage;

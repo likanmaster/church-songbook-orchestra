@@ -1,247 +1,221 @@
 
-import { useState } from "react";
-import { User, Mail, Phone, MapPin, Calendar, Settings, Edit, Save, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth-context";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User, Music, Heart, Upload, BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { getAuth, updateProfile } from "firebase/auth";
 import Navbar from "@/components/layout/Navbar";
-import { Separator } from "@/components/ui/separator";
+import { getAllSongs } from "@/services/song-service";
+import { getAllServices } from "@/services/service-service";
+import { Song, Service } from "@/types";
+import { useQuery } from "@tanstack/react-query";
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db, USERS_COLLECTION } from "@/hooks/use-auth-context";
 
 const Profile = () => {
+  const { user, isLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState({
-    name: "Juan Pérez",
-    email: "juan.perez@email.com",
-    phone: "+34 123 456 789",
-    location: "Madrid, España",
-    joinDate: "Enero 2024",
-    bio: "Músico y director de alabanza con más de 10 años de experiencia en ministerios cristianos."
+  const [username, setUsername] = useState(user?.username || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // Obtener canciones del usuario
+  const { data: songs = [], isLoading: songsLoading } = useQuery({
+    queryKey: ['songs', user?.id],
+    queryFn: () => getAllSongs(user?.id || ''),
+    enabled: !!user?.id,
   });
 
-  const stats = [
-    { label: "Canciones Creadas", value: 24, color: "text-blue-600" },
-    { label: "Servicios Planificados", value: 15, color: "text-green-600" },
-    { label: "Grupos Activos", value: 3, color: "text-purple-600" },
-    { label: "Colaboraciones", value: 8, color: "text-orange-600" }
-  ];
+  // Obtener servicios del usuario
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
+    queryKey: ['services', user?.id],
+    queryFn: () => getAllServices(user?.id || ''),
+    enabled: !!user?.id,
+  });
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // Here you would save the profile data
+  // Calcular estadísticas reales
+  const userSongs = songs.filter(song => song.userId === user?.id);
+  const favoriteSongs = songs.filter(song => song.isFavorite && song.userId === user?.id);
+  const userServices = services.filter(service => service.userId === user?.id);
+
+  const stats = {
+    songs: userSongs.length,
+    favorites: favoriteSongs.length,
+    services: userServices.length,
   };
 
-  const handleCancel = () => {
-    setIsEditing(false);
-    // Reset form data if needed
+  useEffect(() => {
+    if (user) {
+      setUsername(user.username || "");
+      setEmail(user.email || "");
+      if (user.photoURL) {
+        setAvatarUrl(user.photoURL);
+      }
+    }
+  }, [user]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mt-8">Loading...</div>
+      </div>
+    );
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setAvatarUrl(imageUrl);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      
+      if (currentUser) {
+        // Actualizar Firebase Auth
+        await updateProfile(currentUser, {
+          displayName: username,
+          photoURL: avatarUrl || undefined
+        });
+
+        // Actualizar documento de usuario en Firestore
+        const userDocRef = doc(db, USERS_COLLECTION, currentUser.uid);
+        await updateDoc(userDocRef, {
+          username: username,
+          photoURL: avatarUrl || null,
+          updatedAt: serverTimestamp()
+        });
+
+        toast.success("Perfil actualizado correctamente");
+        setIsEditing(false);
+      }
+    } catch (error) {
+      console.error("Error al actualizar perfil:", error);
+      toast.error("Error al actualizar perfil");
+    }
+  };
+
+  const getUserInitials = () => {
+    if (username) {
+      return username.split(' ').map(name => name[0]).join('').toUpperCase().slice(0, 2);
+    }
+    return user?.email?.[0]?.toUpperCase() || 'U';
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
-      
-      <main className="container mx-auto px-4 py-8">
-        {/* Header Section */}
-        <div className="text-center mb-8">
-          <div className="relative mb-6">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-green-600/20 blur-3xl -z-10"></div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 bg-clip-text text-transparent mb-2">
-              Mi Perfil
-            </h1>
-          </div>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Gestiona tu información personal y configuración de cuenta
-          </p>
-        </div>
+      <div className="container max-w-2xl py-8 space-y-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-4">
+            <div className="relative group">
+              <Avatar className="h-20 w-20">
+                {avatarUrl ? (
+                  <AvatarImage src={avatarUrl} className="object-cover" />
+                ) : (
+                  <AvatarFallback className="text-lg font-semibold">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              <label 
+                htmlFor="avatar-upload" 
+                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+              >
+                <Upload className="h-6 w-6 text-white" />
+              </label>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            </div>
+            <div>
+              <CardTitle>{username || "Usuario"}</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Gestiona tu información personal
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {(songsLoading || servicesLoading) ? (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">Cargando estadísticas...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="p-4 flex flex-col items-center justify-center text-center">
+                  <Music className="h-8 w-8 mb-2 text-primary" />
+                  <h3 className="text-2xl font-bold">{stats.songs}</h3>
+                  <p className="text-sm text-muted-foreground">Canciones</p>
+                </Card>
+                <Card className="p-4 flex flex-col items-center justify-center text-center">
+                  <Heart className="h-8 w-8 mb-2 text-primary" />
+                  <h3 className="text-2xl font-bold">{stats.favorites}</h3>
+                  <p className="text-sm text-muted-foreground">Favoritos</p>
+                </Card>
+                <Card className="p-4 flex flex-col items-center justify-center text-center">
+                  <BookOpen className="h-8 w-8 mb-2 text-primary" />
+                  <h3 className="text-2xl font-bold">{stats.services}</h3>
+                  <p className="text-sm text-muted-foreground">Servicios</p>
+                </Card>
+              </div>
+            )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Profile Card */}
-          <div className="lg:col-span-1">
-            <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-              <CardHeader className="text-center pb-2">
-                <div className="relative mb-4">
-                  <Avatar className="w-24 h-24 mx-auto border-4 border-white shadow-lg">
-                    <AvatarImage src="" />
-                    <AvatarFallback className="text-2xl bg-gradient-to-br from-blue-500 to-purple-500 text-white">
-                      {profile.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 rounded-full"
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                </div>
-                <CardTitle className="text-xl">{profile.name}</CardTitle>
-                <CardDescription>{profile.email}</CardDescription>
-                <Badge className="mt-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white">
-                  Miembro Activo
-                </Badge>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  {profile.phone}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  {profile.location}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  Miembro desde {profile.joinDate}
-                </div>
-                
-                <Separator />
-                
-                <div>
-                  <h4 className="font-medium mb-2">Biografía</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {profile.bio}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Nombre de usuario</Label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={!isEditing}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={true}
+                />
+                {isEditing && (
+                  <p className="text-xs text-muted-foreground">
+                    El email no se puede cambiar directamente por razones de seguridad.
                   </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Stats Card */}
-            <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm mt-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Estadísticas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  {stats.map((stat, index) => (
-                    <div key={index} className="text-center p-3 rounded-lg bg-slate-50">
-                      <div className={`text-2xl font-bold ${stat.color}`}>
-                        {stat.value}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {stat.label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Profile Form */}
-          <div className="lg:col-span-2">
-            <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-xl">Información Personal</CardTitle>
-                    <CardDescription>
-                      Actualiza tu información personal y preferencias
-                    </CardDescription>
-                  </div>
-                  {!isEditing ? (
-                    <Button onClick={() => setIsEditing(true)} className="group">
-                      <Edit className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
-                      Editar
+                )}
+              </div>
+              <div className="pt-4 flex justify-end gap-2">
+                {isEditing ? (
+                  <>
+                    <Button variant="outline" onClick={() => setIsEditing(false)}>
+                      Cancelar
                     </Button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button onClick={handleSave} size="sm">
-                        <Save className="mr-2 h-4 w-4" />
-                        Guardar
-                      </Button>
-                      <Button onClick={handleCancel} variant="outline" size="sm">
-                        <X className="mr-2 h-4 w-4" />
-                        Cancelar
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nombre Completo</Label>
-                    <Input
-                      id="name"
-                      value={profile.name}
-                      disabled={!isEditing}
-                      onChange={(e) => setProfile({...profile, name: e.target.value})}
-                      className={!isEditing ? "bg-slate-50" : ""}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Correo Electrónico</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profile.email}
-                      disabled={!isEditing}
-                      onChange={(e) => setProfile({...profile, email: e.target.value})}
-                      className={!isEditing ? "bg-slate-50" : ""}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Teléfono</Label>
-                    <Input
-                      id="phone"
-                      value={profile.phone}
-                      disabled={!isEditing}
-                      onChange={(e) => setProfile({...profile, phone: e.target.value})}
-                      className={!isEditing ? "bg-slate-50" : ""}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="location">Ubicación</Label>
-                    <Input
-                      id="location"
-                      value={profile.location}
-                      disabled={!isEditing}
-                      onChange={(e) => setProfile({...profile, location: e.target.value})}
-                      className={!isEditing ? "bg-slate-50" : ""}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Biografía</Label>
-                  <textarea
-                    id="bio"
-                    rows={4}
-                    value={profile.bio}
-                    disabled={!isEditing}
-                    onChange={(e) => setProfile({...profile, bio: e.target.value})}
-                    className={`w-full px-3 py-2 border border-input rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                      !isEditing ? "bg-slate-50" : ""
-                    }`}
-                    placeholder="Cuéntanos un poco sobre ti..."
-                  />
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Configuración de Cuenta</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button variant="outline" className="justify-start">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Cambiar Contraseña
-                    </Button>
-                    <Button variant="outline" className="justify-start">
-                      <User className="mr-2 h-4 w-4" />
-                      Privacidad
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
+                    <Button onClick={handleSaveProfile}>Guardar</Button>
+                  </>
+                ) : (
+                  <Button onClick={() => setIsEditing(true)}>Editar</Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -1,214 +1,300 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Users, Plus, Search, Settings, UserPlus, Music, Calendar, Filter } from "lucide-react";
+import { Plus, Users, Search, Music, BookOpen, UserPlus, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Navbar from "@/components/layout/Navbar";
-import { Separator } from "@/components/ui/separator";
+import { Group } from "@/types";
+import { useAuth } from "@/hooks/use-auth-context";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { db, GROUPS_COLLECTION } from "@/hooks/use-auth-context";
+import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const Groups = () => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
+  
+  useEffect(() => {
+    const fetchGroups = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        const groupsQuery = query(
+          collection(db, GROUPS_COLLECTION),
+          where("members", "array-contains-any", [{ userId: user.id }])
+        );
+        
+        // Como la consulta anterior no funciona con array de objetos,
+        // obtenemos todos los grupos y filtramos manualmente
+        const allGroupsQuery = collection(db, GROUPS_COLLECTION);
+        const querySnapshot = await getDocs(allGroupsQuery);
+        
+        const userGroups: Group[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          const groupData = doc.data();
+          // Verificar si el usuario es miembro del grupo
+          const isMember = groupData.members.some(
+            (member: any) => member.userId === user.id
+          );
+          
+          if (isMember) {
+            userGroups.push({
+              id: doc.id,
+              ...groupData,
+              createdAt: groupData.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+              updatedAt: groupData.updatedAt?.toDate()?.toISOString() || new Date().toISOString(),
+            } as Group);
+          }
+        });
+        
+        setGroups(userGroups);
+      } catch (error) {
+        console.error("Error al obtener grupos:", error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los grupos",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchGroups();
+  }, [user, toast]);
 
-  // Mock data - replace with real data
-  const groups = [
-    {
-      id: 1,
-      name: "Ministerio de Alabanza",
-      description: "Grupo principal de música y adoración",
-      membersCount: 12,
-      role: "Admin",
-      lastActivity: "Hace 2 horas",
-      songsCount: 45,
-      servicesCount: 8
-    },
-    {
-      id: 2,
-      name: "Jóvenes en Acción",
-      description: "Ministerio juvenil - música contemporánea",
-      membersCount: 8,
-      role: "Miembro",
-      lastActivity: "Hace 1 día",
-      songsCount: 23,
-      servicesCount: 3
-    },
-    {
-      id: 3,
-      name: "Coro de Niños",
-      description: "Grupo musical para el ministerio infantil",
-      membersCount: 15,
-      role: "Moderador",
-      lastActivity: "Hace 3 días",
-      songsCount: 18,
-      servicesCount: 5
-    }
-  ];
+  // Filtrar grupos basados en búsqueda
+  const filteredGroups = groups.filter((group) => {
+    return group.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+           (group.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
+  });
 
-  const filteredGroups = groups.filter(group =>
-    group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    group.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "Admin": return "bg-red-100 text-red-800";
-      case "Moderador": return "bg-blue-100 text-blue-800";
-      case "Miembro": return "bg-green-100 text-green-800";
-      default: return "bg-gray-100 text-gray-800";
+  const isUserAdmin = (group: Group) => {
+    return group.members.some(member => member.userId === user?.id && member.role === 'admin');
+  };
+  
+  const handleDeleteGroup = async () => {
+    if (!groupToDelete) return;
+    
+    try {
+      // Verificar si el usuario es administrador
+      if (!isUserAdmin(groupToDelete)) {
+        toast({
+          title: "Error",
+          description: "Solo los administradores pueden eliminar grupos",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Eliminar el grupo
+      await deleteDoc(doc(db, GROUPS_COLLECTION, groupToDelete.id));
+      
+      // Actualizar la lista de grupos
+      setGroups(groups.filter(group => group.id !== groupToDelete.id));
+      
+      toast({
+        title: "Grupo eliminado",
+        description: "El grupo ha sido eliminado exitosamente",
+      });
+      
+      // Cerrar el diálogo
+      setShowDeleteDialog(false);
+      setGroupToDelete(null);
+    } catch (error) {
+      console.error("Error al eliminar el grupo:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el grupo",
+        variant: "destructive",
+      });
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-8">
-        {/* Header Section */}
-        <div className="text-center mb-8">
-          <div className="relative mb-6">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 via-blue-600/20 to-green-600/20 blur-3xl -z-10"></div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 bg-clip-text text-transparent mb-2">
-              Grupos Musicales
-            </h1>
-          </div>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Colabora con tu equipo musical y organiza servicios en conjunto
-          </p>
+      <main className="container mx-auto px-4 py-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">Mis Grupos</h1>
+          <Button asChild className="mt-4 sm:mt-0">
+            <Link to="/groups/new">
+              <Plus className="mr-2 h-4 w-4" /> Crear Grupo
+            </Link>
+          </Button>
         </div>
 
-        {/* Action Bar */}
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 mb-8 shadow-lg border border-white/20">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex-1 max-w-md">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Buscar grupos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white/70 border-white/30 focus:bg-white transition-colors"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <Filter className="mr-2 h-4 w-4" />
-                Filtros
-              </Button>
-              
-              <Button asChild className="group">
-                <Link to="/groups/new">
-                  <Plus className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform" />
-                  Crear Grupo
-                </Link>
-              </Button>
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Buscar grupos por nombre o descripción..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Cargando grupos...</p>
             </div>
           </div>
-        </div>
-
-        {/* Groups Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredGroups.map((group) => (
-            <Card key={group.id} className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between mb-2">
-                  <Badge className={`text-xs ${getRoleColor(group.role)}`}>
-                    {group.role}
-                  </Badge>
-                  <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </div>
-                <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-1">
-                  {group.name}
-                </CardTitle>
-                <CardDescription className="line-clamp-2">
-                  {group.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4 mb-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      {group.membersCount} miembros
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredGroups.map((group) => (
+                <Card key={group.id} className="overflow-hidden">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center">
+                          {group.name}
+                          {isUserAdmin(group) && (
+                            <Badge variant="outline" className="ml-2 bg-primary/10 text-primary">
+                              Admin
+                            </Badge>
+                          )}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {group.description}
+                        </p>
+                      </div>
+                      
+                      {isUserAdmin(group) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                          onClick={() => {
+                            setGroupToDelete(group);
+                            setShowDeleteDialog(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {group.lastActivity}
-                    </div>
-                  </div>
+                  </CardHeader>
                   
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Music className="h-4 w-4" />
-                      {group.songsCount} canciones
+                  <CardContent className="pb-3">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{group.members.length} miembros</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {group.servicesCount} servicios
-                    </div>
-                  </div>
 
-                  {/* Members Preview */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex -space-x-2">
-                      {[1, 2, 3].map((i) => (
-                        <Avatar key={i} className="w-6 h-6 border-2 border-white">
+                    <div className="flex -space-x-2 overflow-hidden mb-4">
+                      {group.members.slice(0, 5).map((member) => (
+                        <Avatar key={member.id} className="border-2 border-background h-8 w-8">
                           <AvatarFallback className="text-xs">
-                            {String.fromCharCode(65 + i)}
+                            {member.username.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                       ))}
-                      {group.membersCount > 3 && (
-                        <div className="w-6 h-6 rounded-full bg-muted border-2 border-white flex items-center justify-center">
-                          <span className="text-xs text-muted-foreground">+{group.membersCount - 3}</span>
+                      {group.members.length > 5 && (
+                        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-muted text-xs font-medium">
+                          +{group.members.length - 5}
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button size="sm" className="flex-1" asChild>
-                    <Link to={`/groups/${group.id}`}>
-                      Abrir Grupo
-                    </Link>
-                  </Button>
-                  {group.role === "Admin" && (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to={`/groups/${group.id}/invite`}>
-                        <UserPlus className="h-4 w-4" />
+
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div className="flex items-center gap-1">
+                        <Music className="h-4 w-4 text-primary" />
+                        <span className="text-sm">{group.sharedSongs?.length || 0} canciones</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <BookOpen className="h-4 w-4 text-primary" />
+                        <span className="text-sm">{group.sharedServices?.length || 0} servicios</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                  
+                  <CardFooter className="flex flex-col space-y-2 pt-2">
+                    <Button asChild variant="default" className="w-full">
+                      <Link to={`/groups/${group.id}`}>
+                        <Users className="mr-2 h-4 w-4" />
+                        Ver Grupo
                       </Link>
                     </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredGroups.length === 0 && (
-          <div className="text-center py-12">
-            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-8 shadow-lg border border-white/20 max-w-md mx-auto">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No se encontraron grupos</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchTerm ? "Intenta con otros términos de búsqueda" : "Comienza creando tu primer grupo musical"}
-              </p>
-              <Button asChild>
-                <Link to="/groups/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Crear Grupo
-                </Link>
-              </Button>
+                    {isUserAdmin(group) && (
+                      <Button asChild variant="outline" className="w-full">
+                        <Link to={`/groups/${group.id}/invite`}>
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Invitar Miembros
+                        </Link>
+                      </Button>
+                    )}
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
-          </div>
+            
+            {filteredGroups.length === 0 && !isLoading && (
+              <div className="text-center py-12">
+                <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-medium mb-2">No se encontraron grupos</h3>
+                <p className="text-muted-foreground mb-6">
+                  {searchQuery ? "No hay grupos que coincidan con tu búsqueda." : "Crea un nuevo grupo para compartir canciones y servicios."}
+                </p>
+                <Button asChild>
+                  <Link to="/groups/new">
+                    <Plus className="mr-2 h-4 w-4" /> Crear Grupo
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </>
         )}
+        
+        {/* Diálogo de confirmación para eliminar grupo */}
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Eliminar grupo</DialogTitle>
+              <DialogDescription>
+                ¿Estás seguro de que deseas eliminar el grupo "{groupToDelete?.name}"?
+                Esta acción no se puede deshacer y se perderán todas las compartidas.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteGroup}>
+                Eliminar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
