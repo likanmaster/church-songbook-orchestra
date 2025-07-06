@@ -1,446 +1,261 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Calendar, Plus, Edit, Trash2, Eye, Music, User, FolderOpen, Folder } from "lucide-react";
-import { format } from "date-fns";
+
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { BookOpen, Plus, Search, Calendar, Clock, Users, Filter, Grid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import Navbar from "@/components/layout/Navbar";
-import ServiceGroupManager from "@/components/services/ServiceGroupManager";
-import { Service, ServiceGroup } from "@/types";
-import { 
-  getAllServices, 
-  deleteService, 
-  updateService,
-  getAllServiceGroups,
-  createServiceGroup,
-  updateServiceGroup,
-  deleteServiceGroup
-} from "@/services/service-service";
-import { useAuth } from "@/hooks/use-auth-context";
+import { Separator } from "@/components/ui/separator";
 
-const ServicesPage = () => {
-  const [services, setServices] = useState<Service[]>([]);
-  const [serviceGroups, setServiceGroups] = useState<ServiceGroup[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [serviceToDelete, setServiceToDelete] = useState<string | null>(null);
-  const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const { user } = useAuth();
+const Services = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  useEffect(() => {
-    console.log("🔄 [ServicesPage] useEffect ejecutado, user:", user?.id);
-    if (user?.id) {
-      loadData();
+  // Mock data - replace with real data
+  const services = [
+    {
+      id: 1,
+      title: "Servicio Dominical - Mañana",
+      date: "2024-07-07",
+      time: "10:00 AM",
+      duration: "90 min",
+      songsCount: 8,
+      status: "Programado"
+    },
+    {
+      id: 2,
+      title: "Reunión de Jóvenes",
+      date: "2024-07-05",
+      time: "7:00 PM",
+      duration: "60 min",
+      songsCount: 5,
+      status: "Completado"
+    },
+    {
+      id: 3,
+      title: "Servicio Especial - Navidad",
+      date: "2024-12-25",
+      time: "6:00 PM",
+      duration: "120 min",
+      songsCount: 12,
+      status: "Borrador"
     }
-  }, [user]);
+  ];
 
-  const loadData = async () => {
-    console.log("🔄 [ServicesPage] loadData iniciado");
-    setIsLoading(true);
-    try {
-      console.log("🔄 [ServicesPage] Cargando datos para usuario:", user?.id);
-      
-      if (!user?.id) {
-        console.warn("⚠️ [ServicesPage] No hay usuario logueado");
-        return;
-      }
-      
-      console.log("📊 [ServicesPage] Llamando a getAllServices...");
-      const servicesData = await getAllServices(user.id);
-      console.log("📊 [ServicesPage] Servicios obtenidos:", servicesData.length);
-      
-      console.log("🏷️ [ServicesPage] Llamando a getAllServiceGroups...");
-      const groupsData = await getAllServiceGroups(user.id);
-      console.log("🏷️ [ServicesPage] Grupos obtenidos:", groupsData.length, groupsData);
-      
-      setServices(servicesData);
-      setServiceGroups(groupsData);
-      
-      console.log("✅ [ServicesPage] Estado actualizado - Servicios:", servicesData.length, "Grupos:", groupsData.length);
-    } catch (error) {
-      console.error("❌ [ServicesPage] Error al cargar los datos:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los datos",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+  const filteredServices = services.filter(service =>
+    service.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Programado": return "bg-blue-100 text-blue-800";
+      case "Completado": return "bg-green-100 text-green-800";
+      case "Borrador": return "bg-yellow-100 text-yellow-800";
+      default: return "bg-gray-100 text-gray-800";
     }
   };
-
-  const confirmDelete = async () => {
-    if (!serviceToDelete) return;
-    
-    try {
-      await deleteService(serviceToDelete, user?.id || '');
-      
-      setServices((prev) => prev.filter((service) => service.id !== serviceToDelete));
-      
-      toast({
-        title: "Éxito",
-        description: "Servicio eliminado correctamente",
-      });
-    } catch (error) {
-      console.error("Error al eliminar el servicio:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar el servicio",
-        variant: "destructive",
-      });
-    } finally {
-      setServiceToDelete(null);
-    }
-  };
-
-  const handleMoveToGroup = async (serviceId: string, groupId: string | null) => {
-    try {
-      await updateService(serviceId, { groupId }, user?.id || '');
-      setServices(prev => 
-        prev.map(service => 
-          service.id === serviceId 
-            ? { ...service, groupId } 
-            : service
-        )
-      );
-      
-      toast({
-        title: "Éxito",
-        description: groupId ? "Servicio movido al grupo" : "Servicio desagrupado",
-      });
-    } catch (error) {
-      console.error("Error al mover servicio:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo mover el servicio",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCreateGroup = async (groupData: Omit<ServiceGroup, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      console.log("➕ [ServicesPage] handleCreateGroup llamado con:", groupData);
-      console.log("👤 [ServicesPage] Usuario actual:", user?.id);
-      
-      if (!user?.id) {
-        throw new Error("No hay usuario logueado");
-      }
-      
-      const newGroup = await createServiceGroup(groupData, user.id);
-      console.log("✅ [ServicesPage] Grupo creado exitosamente:", newGroup);
-      
-      setServiceGroups(prev => {
-        const updated = [newGroup, ...prev];
-        console.log("📋 [ServicesPage] Estado de grupos actualizado:", updated);
-        return updated;
-      });
-      
-      // Recargar datos para verificar persistencia
-      console.log("🔄 [ServicesPage] Recargando datos después de crear grupo...");
-      setTimeout(() => {
-        loadData();
-      }, 1000);
-      
-    } catch (error) {
-      console.error("❌ [ServicesPage] Error al crear grupo:", error);
-      throw error;
-    }
-  };
-
-  const handleUpdateGroup = async (id: string, groupData: Partial<ServiceGroup>) => {
-    try {
-      await updateServiceGroup(id, groupData, user?.id || '');
-      setServiceGroups(prev => 
-        prev.map(group => 
-          group.id === id 
-            ? { ...group, ...groupData, updatedAt: new Date().toISOString() }
-            : group
-        )
-      );
-    } catch (error) {
-      console.error("Error al actualizar grupo:", error);
-      throw error;
-    }
-  };
-
-  const handleDeleteGroup = async (id: string) => {
-    try {
-      await deleteServiceGroup(id, user?.id || '');
-      setServiceGroups(prev => prev.filter(group => group.id !== id));
-      // Actualizar servicios para remover el groupId
-      setServices(prev => 
-        prev.map(service => 
-          service.groupId === id 
-            ? { ...service, groupId: null }
-            : service
-        )
-      );
-    } catch (error) {
-      console.error("Error al eliminar grupo:", error);
-      throw error;
-    }
-  };
-
-  const getGroupedServices = () => {
-    if (selectedGroupId === "all") {
-      return services;
-    } else if (selectedGroupId === "ungrouped") {
-      return services.filter(service => !service.groupId);
-    } else {
-      return services.filter(service => service.groupId === selectedGroupId);
-    }
-  };
-
-  const getGroupById = (id: string) => serviceGroups.find(group => group.id === id);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-4 text-muted-foreground">Cargando servicios...</p>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-green-50">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Servicios</h1>
-          <Button asChild>
-            <Link to="/services/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Nuevo Servicio
-            </Link>
-          </Button>
+      <main className="container mx-auto px-4 py-8">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 via-blue-600/20 to-purple-600/20 blur-3xl -z-10"></div>
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              Servicios y Eventos
+            </h1>
+          </div>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Planifica y organiza todos tus servicios religiosos con facilidad
+          </p>
         </div>
 
-        <Tabs defaultValue="services" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="services">Mis Servicios</TabsTrigger>
-            <TabsTrigger value="groups">Gestionar Grupos</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="services" className="space-y-6">
-            {services.length > 0 && (
-              <div className="flex items-center gap-4">
-                <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-                  <SelectTrigger className="w-64">
-                    <SelectValue placeholder="Filtrar por grupo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los servicios</SelectItem>
-                    <SelectItem value="ungrouped">Sin agrupar</SelectItem>
-                    {serviceGroups.map((group) => (
-                      <SelectItem key={group.id} value={group.id}>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: group.color }}
-                          />
-                          {group.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        {/* Action Bar */}
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 mb-8 shadow-lg border border-white/20">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex-1 max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Buscar servicios..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-white/70 border-white/30 focus:bg-white transition-colors"
+                />
               </div>
-            )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              
+              <Separator orientation="vertical" className="h-6 mx-2" />
+              
+              <Button variant="outline" size="sm">
+                <Filter className="mr-2 h-4 w-4" />
+                Filtros
+              </Button>
+              
+              <Button asChild className="group">
+                <Link to="/services/new">
+                  <Plus className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform" />
+                  Nuevo Servicio
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
 
-            {services.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="font-medium text-lg mb-2">No hay servicios</h3>
-                <p className="text-muted-foreground text-center mb-6">
-                  Aún no has creado ningún servicio. Comienza creando tu primer servicio.
-                </p>
-                <Button asChild>
-                  <Link to="/services/new">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Crear Servicio
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {selectedGroupId !== "all" && selectedGroupId !== "ungrouped" && (
-                  <div className="flex items-center gap-2 mb-4">
-                    <div 
-                      className="w-4 h-4 rounded-full" 
-                      style={{ backgroundColor: getGroupById(selectedGroupId)?.color }}
-                    />
-                    <h2 className="text-xl font-semibold">
-                      {getGroupById(selectedGroupId)?.name}
-                    </h2>
+        {/* Services Grid/List */}
+        {viewMode === "grid" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredServices.map((service) => (
+              <Card key={service.id} className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/90 backdrop-blur-sm">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <Badge className={`text-xs ${getStatusColor(service.status)}`}>
+                      {service.status}
+                    </Badge>
                   </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {getGroupedServices().map((service) => (
-                    <Card key={service.id} className="overflow-hidden">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center gap-2">
-                            <Badge className="mb-2" variant="outline">
-                              {format(new Date(service.date), "dd MMM yyyy")}
-                            </Badge>
-                            {service.groupId && selectedGroupId === "all" && (
-                              <Badge 
-                                variant="secondary" 
-                                className="mb-2 text-xs"
-                                style={{ 
-                                  backgroundColor: getGroupById(service.groupId)?.color + '20',
-                                  color: getGroupById(service.groupId)?.color 
-                                }}
-                              >
-                                {getGroupById(service.groupId)?.name}
-                              </Badge>
-                            )}
+                  <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-2">
+                    {service.title}
+                  </CardTitle>
+                  <CardDescription className="flex items-center gap-2 mt-2">
+                    <Calendar className="h-4 w-4" />
+                    {new Date(service.date).toLocaleDateString('es-ES', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        {service.time}
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Users className="h-4 w-4" />
+                        {service.songsCount} canciones
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Duración: {service.duration}
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="flex-1" asChild>
+                      <Link to={`/services/${service.id}`}>
+                        Ver Detalle
+                      </Link>
+                    </Button>
+                    <Button size="sm" asChild>
+                      <Link to={`/services/${service.id}/edit`}>
+                        Editar
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredServices.map((service) => (
+              <Card key={service.id} className="group hover:shadow-md transition-all duration-200 border-0 bg-white/90 backdrop-blur-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="p-2 bg-gradient-to-br from-green-500 to-blue-500 rounded-lg group-hover:scale-105 transition-transform">
+                        <BookOpen className="h-4 w-4 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
+                            {service.title}
+                          </h3>
+                          <Badge className={`text-xs ${getStatusColor(service.status)}`}>
+                            {service.status}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(service.date).toLocaleDateString('es-ES')}
                           </div>
                           <div className="flex items-center gap-1">
-                            <Select
-                              value={service.groupId || "none"}
-                              onValueChange={(value) => 
-                                handleMoveToGroup(service.id, value === "none" ? null : value)
-                              }
-                            >
-                              <SelectTrigger className="w-8 h-8 p-0">
-                                <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">Sin grupo</SelectItem>
-                                {serviceGroups.map((group) => (
-                                  <SelectItem key={group.id} value={group.id}>
-                                    <div className="flex items-center gap-2">
-                                      <div 
-                                        className="w-3 h-3 rounded-full" 
-                                        style={{ backgroundColor: group.color }}
-                                      />
-                                      {group.name}
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 rounded-full"
-                                  onClick={() => setServiceToDelete(service.id)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Esta acción no se puede deshacer. Se eliminará el servicio
-                                    permanentemente.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel onClick={() => setServiceToDelete(null)}>
-                                    Cancelar
-                                  </AlertDialogCancel>
-                                  <AlertDialogAction onClick={confirmDelete}>
-                                    Eliminar
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                            <Clock className="h-3 w-3" />
+                            {service.time}
+                          </div>
+                          <div className="hidden sm:flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {service.songsCount} canciones
                           </div>
                         </div>
-                        <CardTitle>{service.title}</CardTitle>
-                        {service.theme && <CardDescription>{service.theme}</CardDescription>}
-                      </CardHeader>
-                      
-                      <CardContent className="pb-2">
-                        <div className="space-y-2">
-                          {service.preacher && (
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">{service.preacher}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2">
-                            <Music className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">{service.songs?.length || 0} canciones</span>
-                          </div>
-                          {service.notes && (
-                            <p className="text-sm text-muted-foreground line-clamp-2 italic">
-                              "{service.notes}"
-                            </p>
-                          )}
-                        </div>
-                      </CardContent>
-                      
-                      <CardFooter className="pt-2">
-                        <div className="flex justify-between w-full gap-2">
-                          <Button variant="outline" size="sm" asChild className="flex-1">
-                            <Link to={`/services/${service.id}/edit`}>
-                              <Edit className="mr-1 h-4 w-4" /> Editar
-                            </Link>
-                          </Button>
-                          <Button variant="default" size="sm" asChild className="flex-1">
-                            <Link to={`/services/${service.id}`}>
-                              <Eye className="mr-1 h-4 w-4" /> Ver
-                            </Link>
-                          </Button>
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-          </TabsContent>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/services/${service.id}`}>
+                          Ver
+                        </Link>
+                      </Button>
+                      <Button size="sm" asChild>
+                        <Link to={`/services/${service.id}/edit`}>
+                          Editar
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-          <TabsContent value="groups">
-            <ServiceGroupManager
-              groups={serviceGroups}
-              onCreateGroup={handleCreateGroup}
-              onUpdateGroup={handleUpdateGroup}
-              onDeleteGroup={handleDeleteGroup}
-            />
-          </TabsContent>
-        </Tabs>
+        {/* Empty State */}
+        {filteredServices.length === 0 && (
+          <div className="text-center py-12">
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-8 shadow-lg border border-white/20 max-w-md mx-auto">
+              <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No se encontraron servicios</h3>
+              <p className="text-muted-foreground mb-4">
+                {searchTerm ? "Intenta con otros términos de búsqueda" : "Comienza creando tu primer servicio"}
+              </p>
+              <Button asChild>
+                <Link to="/services/new">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Crear Servicio
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
 };
 
-export default ServicesPage;
+export default Services;
