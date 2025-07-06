@@ -1,318 +1,214 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Music, FileText, Clock, Search, Star } from "lucide-react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Music, BookOpen, Users, Search, Plus, Sparkles, ArrowRight, Play, Heart, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
 import { useAuth } from "@/hooks/use-auth-context";
-import { db, SONGS_COLLECTION, SERVICES_COLLECTION } from "@/hooks/use-auth-context";
-import { collection, query, where, getDocs, limit, getDoc, doc } from "firebase/firestore";
-import { Service, Song } from "@/types";
 
 const Index = () => {
   const { user } = useAuth();
-  const [recentSongs, setRecentSongs] = useState<Song[]>([]);
-  const [recentServices, setRecentServices] = useState<Service[]>([]);
-  const [isLoadingSongs, setIsLoadingSongs] = useState(true);
-  const [isLoadingServices, setIsLoadingServices] = useState(true);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchRecentSongs = async () => {
-      if (!user?.id) return;
-      
-      setIsLoadingSongs(true);
-      try {
-        // Modificado para evitar usar orderBy que requiere un índice compuesto
-        const songsQuery = query(
-          collection(db, SONGS_COLLECTION),
-          where("userId", "==", user.id),
-          limit(10) // Obtenemos más canciones para luego ordenarlas manualmente
-        );
-
-        const querySnapshot = await getDocs(songsQuery);
-        const songs: Song[] = [];
-        
-        querySnapshot.forEach((doc) => {
-          const songData = doc.data();
-          songs.push({
-            id: doc.id,
-            title: songData.title || "",
-            author: songData.author || "",
-            key: songData.key || "",
-            lyrics: songData.lyrics || "",
-            tempo: songData.tempo || null,
-            tags: songData.tags || [],
-            categories: songData.categories || [],
-            createdAt: songData.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
-            updatedAt: songData.updatedAt?.toDate()?.toISOString() || new Date().toISOString(),
-            userId: songData.userId || "",
-            isFavorite: songData.isFavorite || false,
-            style: songData.style || null,
-            duration: songData.duration || null,
-            notes: songData.notes || null,
-            isPublic: songData.isPublic || false,
-            sharedWith: songData.sharedWith || []
-          });
-        });
-        
-        // Ordenamos las canciones manualmente por fecha de actualización (más recientes primero)
-        songs.sort((a, b) => 
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        );
-        
-        // Limitamos a 3 canciones después de ordenar
-        setRecentSongs(songs.slice(0, 3));
-      } catch (error) {
-        console.error("Error al cargar canciones recientes:", error);
-      } finally {
-        setIsLoadingSongs(false);
-      }
-    };
-
-    const fetchRecentServices = async () => {
-      if (!user?.id) return;
-      
-      setIsLoadingServices(true);
-      try {
-        // Modificado para evitar usar orderBy que requiere un índice compuesto
-        const servicesQuery = query(
-          collection(db, SERVICES_COLLECTION),
-          where("userId", "==", user.id),
-          limit(10) // Obtenemos más servicios para luego ordenarlos manualmente
-        );
-
-        const querySnapshot = await getDocs(servicesQuery);
-        const services: Service[] = [];
-        
-        querySnapshot.forEach((doc) => {
-          const serviceData = doc.data();
-          services.push({
-            id: doc.id,
-            title: serviceData.title || "",
-            date: serviceData.date || new Date().toISOString().split('T')[0],
-            theme: serviceData.theme || null,
-            preacher: serviceData.preacher || null,
-            notes: serviceData.notes || null,
-            songs: serviceData.songs || [],
-            createdAt: serviceData.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
-            updatedAt: serviceData.updatedAt?.toDate()?.toISOString() || new Date().toISOString(),
-            userId: serviceData.userId || "",
-            sections: serviceData.sections || [],
-            isPublic: serviceData.isPublic || false,
-            sharedWith: serviceData.sharedWith || []
-          });
-        });
-        
-        // Ordenamos los servicios manualmente por fecha de actualización (más recientes primero)
-        services.sort((a, b) => 
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        );
-        
-        // Limitamos a 3 servicios después de ordenar
-        setRecentServices(services.slice(0, 3));
-      } catch (error) {
-        console.error("Error al cargar servicios recientes:", error);
-      } finally {
-        setIsLoadingServices(false);
-      }
-    };
-
-    if (user?.id) {
-      fetchRecentSongs();
-      fetchRecentServices();
+  const features = [
+    {
+      id: "songs",
+      title: "Gestión de Canciones",
+      description: "Organiza y administra tu repertorio musical con facilidad",
+      icon: Music,
+      color: "bg-gradient-to-br from-blue-500 to-blue-600",
+      iconBg: "bg-blue-100 text-blue-600",
+      path: "/songs",
+      stats: "500+ canciones"
+    },
+    {
+      id: "services",
+      title: "Planificación de Servicios",
+      description: "Crea y organiza servicios con plantillas personalizables",
+      icon: BookOpen,
+      color: "bg-gradient-to-br from-green-500 to-green-600",
+      iconBg: "bg-green-100 text-green-600",
+      path: "/services",
+      stats: "Plantillas automáticas"
+    },
+    {
+      id: "groups",
+      title: "Colaboración en Grupos",
+      description: "Trabaja en equipo y comparte contenido musical",
+      icon: Users,
+      color: "bg-gradient-to-br from-purple-500 to-purple-600",
+      iconBg: "bg-purple-100 text-purple-600",
+      path: "/groups",
+      stats: "Tiempo real"
+    },
+    {
+      id: "explore",
+      title: "Explorar Contenido",
+      description: "Descubre nueva música y servicios de la comunidad",
+      icon: Search,
+      color: "bg-gradient-to-br from-orange-500 to-orange-600",
+      iconBg: "bg-orange-100 text-orange-600",
+      path: "/search",
+      stats: "Descubre más"
     }
-  }, [user?.id]);
+  ];
+
+  const quickActions = [
+    { title: "Nueva Canción", icon: Music, path: "/songs/new", color: "text-blue-600" },
+    { title: "Nuevo Servicio", icon: Plus, path: "/services/new", color: "text-green-600" },
+    { title: "Explorar", icon: Search, path: "/search", color: "text-purple-600" }
+  ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6">
-        <section className="mb-12">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">¡Bienvenido a Church Songbook!</h1>
-              <p className="text-muted-foreground">Tu herramienta completa para músicos de iglesia</p>
+      <main className="container mx-auto px-4 py-8 space-y-12">
+        {/* Hero Section */}
+        <section className="text-center space-y-6 py-12">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-green-600/20 blur-3xl -z-10"></div>
+            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 bg-clip-text text-transparent">
+              Church Songbook
+            </h1>
+          </div>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            La herramienta completa para organizar, planificar y compartir música en tu iglesia con elegancia y simplicidad
+          </p>
+          
+          {user ? (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <div className="flex gap-3">
+                {quickActions.map((action) => (
+                  <Link key={action.path} to={action.path}>
+                    <Button className="group relative overflow-hidden" size="lg">
+                      <action.icon className={`mr-2 h-4 w-4 ${action.color} group-hover:scale-110 transition-transform`} />
+                      {action.title}
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
+                ))}
+              </div>
             </div>
-            <div className="mt-4 sm:mt-0 flex flex-wrap gap-2">
-              <Button asChild>
-                <Link to="/songs/new">
-                  <Plus className="mr-2 h-4 w-4" /> Nueva Canción
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link to="/services/new">
-                  <Plus className="mr-2 h-4 w-4" /> Nuevo Servicio
-                </Link>
-              </Button>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/register">
+                <Button size="lg" className="group">
+                  <Sparkles className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
+                  Comenzar Gratis
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+              <Link to="/login">
+                <Button variant="outline" size="lg">
+                  Iniciar Sesión
+                </Button>
+              </Link>
             </div>
+          )}
+        </section>
+
+        {/* Features Grid */}
+        <section className="space-y-8">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold mb-4">Funcionalidades Principales</h2>
+            <p className="text-muted-foreground text-lg">Todo lo que necesitas para gestionar la música de tu iglesia</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-gradient-to-br from-primary/10 to-primary/20 dark:from-primary/20 dark:to-primary/30 border-none shadow-md">
-              <CardHeader className="pb-2">
-                <Music className="h-12 w-12 text-primary mb-2" />
-                <CardTitle>Biblioteca de Canciones</CardTitle>
-                <CardDescription>Organiza todas tus canciones con detalles completos</CardDescription>
-              </CardHeader>
-              <CardFooter>
-                <Button asChild variant="secondary" className="w-full">
-                  <Link to="/songs">Ver Canciones</Link>
-                </Button>
-              </CardFooter>
-            </Card>
-            
-            <Card className="bg-gradient-to-br from-primary/10 to-primary/20 dark:from-primary/20 dark:to-primary/30 border-none shadow-md">
-              <CardHeader className="pb-2">
-                <FileText className="h-12 w-12 text-primary mb-2" />
-                <CardTitle>Generador de Servicios</CardTitle>
-                <CardDescription>Crea listas de canciones para tus servicios</CardDescription>
-              </CardHeader>
-              <CardFooter>
-                <Button asChild variant="secondary" className="w-full">
-                  <Link to="/services">Ver Servicios</Link>
-                </Button>
-              </CardFooter>
-            </Card>
-            
-            <Card className="bg-gradient-to-br from-primary/10 to-primary/20 dark:from-primary/20 dark:to-primary/30 border-none shadow-md">
-              <CardHeader className="pb-2">
-                <Search className="h-12 w-12 text-primary mb-2" />
-                <CardTitle>Búsqueda Avanzada</CardTitle>
-                <CardDescription>Encuentra canciones por tonalidad, tempo, estilo y más</CardDescription>
-              </CardHeader>
-              <CardFooter>
-                <Button asChild variant="secondary" className="w-full">
-                  <Link to="/search">Buscar Canciones</Link>
-                </Button>
-              </CardFooter>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {features.map((feature) => (
+              <Card 
+                key={feature.id}
+                className={`group cursor-pointer border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 ${
+                  hoveredCard === feature.id ? 'scale-105' : ''
+                }`}
+                onMouseEnter={() => setHoveredCard(feature.id)}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
+                <div className={`h-2 ${feature.color} rounded-t-lg`}></div>
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl ${feature.iconBg} group-hover:scale-110 transition-transform`}>
+                      <feature.icon className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1">
+                      <CardTitle className="text-xl group-hover:text-primary transition-colors">
+                        {feature.title}
+                      </CardTitle>
+                      <Badge variant="secondary" className="mt-1">
+                        {feature.stats}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base leading-relaxed mb-4">
+                    {feature.description}
+                  </CardDescription>
+                  <Link to={feature.path}>
+                    <Button variant="ghost" className="group/btn w-full justify-between">
+                      Explorar
+                      <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </section>
 
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Canciones Recientes</h2>
-            <Button variant="ghost" asChild>
-              <Link to="/songs">Ver Todas</Link>
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {isLoadingSongs ? (
-              // Skeleton loaders mientras se cargan las canciones
-              Array(3).fill(0).map((_, index) => (
-                <Card key={`song-skeleton-${index}`}>
-                  <CardHeader>
-                    <Skeleton className="h-5 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-8 w-24 rounded-md" />
-                  </CardContent>
-                  <CardFooter>
-                    <Skeleton className="h-8 w-full" />
-                  </CardFooter>
-                </Card>
-              ))
-            ) : recentSongs.length > 0 ? (
-              recentSongs.map((song) => (
-                <Card key={song.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{song.title}</CardTitle>
-                    <CardDescription>{song.author}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center text-sm">
-                      <span className="px-2 py-1 bg-secondary rounded-md mr-2">
-                        Tonalidad: {song.key}
-                      </span>
-                      {song.isFavorite && (
-                        <span className="text-yellow-500">
-                          <Star className="h-4 w-4 inline fill-yellow-500 stroke-yellow-500" /> Favorito
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button asChild variant="ghost" size="sm" className="w-full">
-                      <Link to={`/songs/${song.id}`}>Ver Detalles</Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full text-center p-6">
-                <p className="text-muted-foreground mb-4">No has creado ninguna canción todavía</p>
-                <Button asChild>
-                  <Link to="/songs/new">
-                    <Plus className="mr-2 h-4 w-4" /> Crear Primera Canción
-                  </Link>
-                </Button>
+        {/* Stats Section */}
+        {user && (
+          <section className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold mb-2">Tu Actividad</h3>
+              <p className="text-muted-foreground">Resumen de tu contenido musical</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <Music className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-blue-600">--</div>
+                  <div className="text-sm text-muted-foreground">Canciones</div>
+                </div>
               </div>
-            )}
-          </div>
-        </section>
-        
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Servicios Recientes</h2>
-            <Button variant="ghost" asChild>
-              <Link to="/services">Ver Todos</Link>
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {isLoadingServices ? (
-              // Skeleton loaders mientras se cargan los servicios
-              Array(3).fill(0).map((_, index) => (
-                <Card key={`service-skeleton-${index}`}>
-                  <CardHeader>
-                    <Skeleton className="h-5 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-4 w-1/3" />
-                  </CardContent>
-                  <CardFooter>
-                    <Skeleton className="h-8 w-full" />
-                  </CardFooter>
-                </Card>
-              ))
-            ) : recentServices.length > 0 ? (
-              recentServices.map((service) => (
-                <Card key={service.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{service.title}</CardTitle>
-                    <CardDescription>
-                      <Clock className="inline h-4 w-4 mr-1" />
-                      {new Date(service.date).toLocaleDateString()}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">{service.songs.length} canciones</p>
-                  </CardContent>
-                  <CardFooter>
-                    <Button asChild variant="ghost" size="sm" className="w-full">
-                      <Link to={`/services/${service.id}`}>Ver Detalles</Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full text-center p-6">
-                <p className="text-muted-foreground mb-4">No has creado ningún servicio todavía</p>
-                <Button asChild>
-                  <Link to="/services/new">
-                    <Plus className="mr-2 h-4 w-4" /> Crear Primer Servicio
-                  </Link>
-                </Button>
+              <div className="text-center">
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <BookOpen className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-green-600">--</div>
+                  <div className="text-sm text-muted-foreground">Servicios</div>
+                </div>
               </div>
-            )}
-          </div>
-        </section>
+              <div className="text-center">
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <Users className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-purple-600">--</div>
+                  <div className="text-sm text-muted-foreground">Grupos</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* CTA Section */}
+        {!user && (
+          <section className="text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl p-12">
+            <h3 className="text-3xl font-bold mb-4">¿Listo para comenzar?</h3>
+            <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
+              Únete a miles de iglesias que ya organizan su música de forma profesional
+            </p>
+            <Link to="/register">
+              <Button size="lg" variant="secondary" className="group">
+                <Sparkles className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
+                Crear Cuenta Gratuita
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          </section>
+        )}
       </main>
     </div>
   );
