@@ -51,6 +51,7 @@ const ServiceForm = () => {
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [songsLibrary, setSongsLibrary] = useState<Song[]>([]);
+  const [showSongSearch, setShowSongSearch] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -325,6 +326,7 @@ const ServiceForm = () => {
         data: { ...song, serviceNotes: "" }
       };
       setServiceItems([...serviceItems, newItem]);
+      setShowSongSearch(false);
     } else {
       toast({
         title: "Advertencia",
@@ -483,16 +485,6 @@ const ServiceForm = () => {
             
             <div>
               <h3 className="text-xl font-semibold mb-4">Contenido del Servicio</h3>
-
-              <div id="song-search-container" style={{ display: 'none' }} className="mb-4">
-                <SongSearch onSelect={(song) => {
-                  addSong(song);
-                  const searchContainer = document.getElementById('song-search-container');
-                  if (searchContainer) {
-                    searchContainer.style.display = 'none';
-                  }
-                }} />
-              </div>
               
               <DragDropContext onDragEnd={onDragEnd}>
                 <Droppable droppableId="service-items">
@@ -585,22 +577,30 @@ const ServiceForm = () => {
                 </Droppable>
               </DragDropContext>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 mb-4">
                 <Button type="button" variant="outline" size="sm" onClick={addSection}>
                   <FileText className="mr-2 h-4 w-4" />
                   Agregar Sección
                 </Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => {
-                  // Mostrar el buscador de canciones
-                  const searchContainer = document.getElementById('song-search-container');
-                  if (searchContainer) {
-                    searchContainer.style.display = searchContainer.style.display === 'none' ? 'block' : 'none';
-                  }
-                }}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowSongSearch(true)}>
                   <Music className="mr-2 h-4 w-4" />
                   Agregar Canción
                 </Button>
               </div>
+
+              {showSongSearch && (
+                <div className="mb-4 p-4 border rounded-lg bg-muted">
+                  <SongSearch onSelect={addSong} />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowSongSearch(false)}
+                    className="mt-2"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter>

@@ -137,7 +137,7 @@ const DefaultServiceTemplateManager = () => {
     const newItem: DefaultServiceTemplateItem = {
       id: uuidv4(),
       type: 'section',
-      text: "",
+      text: "Nueva sección",
       order: template.items.length
     };
     
@@ -361,6 +361,7 @@ const DefaultServiceTemplateManager = () => {
                       <FileText className="mr-2 h-4 w-4" />
                       Agregar Sección
                     </Button>
+                    {/* 
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -369,6 +370,7 @@ const DefaultServiceTemplateManager = () => {
                       <Music className="mr-2 h-4 w-4" />
                       Agregar Canción
                     </Button>
+                    */}
                   </div>
                 </div>
                 
