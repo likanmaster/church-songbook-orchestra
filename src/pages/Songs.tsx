@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Music, Plus, Search, Filter, Heart, Play, Clock, Grid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,46 +8,77 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/use-auth-context";
+import { getAllSongs, toggleSongFavorite } from "@/services/song-service";
+import { Song } from "@/types";
+import { toast } from "sonner";
 
 const Songs = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  // Mock data - replace with real data
-  const songs = [
-    {
-      id: 1,
-      title: "Amazing Grace",
-      artist: "John Newton",
-      key: "G",
-      style: "Himno",
-      duration: "4:30",
-      favorite: true
-    },
-    {
-      id: 2,
-      title: "How Great Thou Art",
-      artist: "Carl Boberg",
-      key: "C",
-      style: "Adoración",
-      duration: "3:45",
-      favorite: false
-    },
-    {
-      id: 3,
-      title: "Blessed Be Your Name",
-      artist: "Matt Redman",
-      key: "A",
-      style: "Contemporáneo",
-      duration: "4:15",
-      favorite: true
+  useEffect(() => {
+    loadSongs();
+  }, [user]);
+
+  const loadSongs = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
     }
-  ];
+
+    try {
+      setLoading(true);
+      const songsData = await getAllSongs(user.id);
+      setSongs(songsData);
+    } catch (error) {
+      console.error("Error loading songs:", error);
+      toast.error("Error al cargar las canciones");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleFavorite = async (songId: string, currentFavorite: boolean) => {
+    if (!user?.id) return;
+
+    try {
+      await toggleSongFavorite(songId, !currentFavorite, user.id);
+      setSongs(songs.map(song => 
+        song.id === songId 
+          ? { ...song, isFavorite: !currentFavorite }
+          : song
+      ));
+      toast.success(!currentFavorite ? "Agregado a favoritos" : "Removido de favoritos");
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      toast.error("Error al actualizar favoritos");
+    }
+  };
 
   const filteredSongs = songs.filter(song =>
     song.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    song.artist.toLowerCase().includes(searchTerm.toLowerCase())
+    (song.author && song.author.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-8 shadow-lg border border-white/20 max-w-md mx-auto">
+              <Music className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
+              <h3 className="text-lg font-semibold mb-2">Cargando canciones...</h3>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
@@ -127,32 +158,39 @@ const Songs = () => {
                         {song.title}
                       </CardTitle>
                       <CardDescription className="mt-1">
-                        {song.artist}
+                        {song.author || "Autor desconocido"}
                       </CardDescription>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`${song.favorite ? 'text-red-500' : 'text-muted-foreground'} hover:text-red-500 transition-colors`}
+                      className={`${song.isFavorite ? 'text-red-500' : 'text-muted-foreground'} hover:text-red-500 transition-colors`}
+                      onClick={() => handleToggleFavorite(song.id, song.isFavorite)}
                     >
-                      <Heart className={`h-4 w-4 ${song.favorite ? 'fill-current' : ''}`} />
+                      <Heart className={`h-4 w-4 ${song.isFavorite ? 'fill-current' : ''}`} />
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {song.key}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {song.style}
-                      </Badge>
+                      {song.key && (
+                        <Badge variant="secondary" className="text-xs">
+                          {song.key}
+                        </Badge>
+                      )}
+                      {song.style && (
+                        <Badge variant="outline" className="text-xs">
+                          {song.style}
+                        </Badge>
+                      )}
                     </div>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Clock className="mr-1 h-3 w-3" />
-                      {song.duration}
-                    </div>
+                    {song.duration && (
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Clock className="mr-1 h-3 w-3" />
+                        {song.duration}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex gap-2">
@@ -185,30 +223,37 @@ const Songs = () => {
                           {song.title}
                         </h3>
                         <p className="text-sm text-muted-foreground truncate">
-                          {song.artist}
+                          {song.author || "Autor desconocido"}
                         </p>
                       </div>
                       <div className="hidden md:flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {song.key}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {song.style}
-                        </Badge>
+                        {song.key && (
+                          <Badge variant="secondary" className="text-xs">
+                            {song.key}
+                          </Badge>
+                        )}
+                        {song.style && (
+                          <Badge variant="outline" className="text-xs">
+                            {song.style}
+                          </Badge>
+                        )}
                       </div>
-                      <div className="hidden sm:flex items-center text-xs text-muted-foreground">
-                        <Clock className="mr-1 h-3 w-3" />
-                        {song.duration}
-                      </div>
+                      {song.duration && (
+                        <div className="hidden sm:flex items-center text-xs text-muted-foreground">
+                          <Clock className="mr-1 h-3 w-3" />
+                          {song.duration}
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className={`${song.favorite ? 'text-red-500' : 'text-muted-foreground'} hover:text-red-500`}
+                        className={`${song.isFavorite ? 'text-red-500' : 'text-muted-foreground'} hover:text-red-500`}
+                        onClick={() => handleToggleFavorite(song.id, song.isFavorite)}
                       >
-                        <Heart className={`h-4 w-4 ${song.favorite ? 'fill-current' : ''}`} />
+                        <Heart className={`h-4 w-4 ${song.isFavorite ? 'fill-current' : ''}`} />
                       </Button>
                       <Button variant="ghost" size="sm">
                         <Play className="h-4 w-4" />
@@ -227,7 +272,7 @@ const Songs = () => {
         )}
 
         {/* Empty State */}
-        {filteredSongs.length === 0 && (
+        {filteredSongs.length === 0 && !loading && (
           <div className="text-center py-12">
             <div className="bg-white/80 backdrop-blur-md rounded-2xl p-8 shadow-lg border border-white/20 max-w-md mx-auto">
               <Music className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
