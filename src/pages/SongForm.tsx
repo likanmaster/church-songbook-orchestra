@@ -56,6 +56,7 @@ interface SongFormData {
   duration: string;
   notes: string;
   isFavorite: boolean;
+  categories: string;
 }
 
 const SongForm = () => {
@@ -63,13 +64,11 @@ const SongForm = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<"edit" | "view">(id ? "view" : "edit");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [song, setSong] = useState<Song | null>(null);
   const [isLoading, setIsLoading] = useState(id ? true : false);
   const [isSaving, setIsSaving] = useState(false);
-  const [availableCategories, setAvailableCategories] = useState<{id: string, name: string}[]>([]);
   const [userMusicStyles, setUserMusicStyles] = useState<string[]>([]);
   const [editorMode, setEditorMode] = useState<"rich" | "simple">("rich");
   const isNewSong = !id;
@@ -87,7 +86,8 @@ const SongForm = () => {
       style: "",
       duration: "",
       notes: "",
-      isFavorite: false
+      isFavorite: false,
+      categories: ""
     }
   });
   
@@ -95,10 +95,6 @@ const SongForm = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Caregar categorías disponibles
-        const categories = await getAllCategories();
-        setAvailableCategories(categories);
-        
         // Cargar estilos musicales del usuario
         if (user) {
           const styles = await getUserMusicStyles(user.id);
@@ -121,9 +117,9 @@ const SongForm = () => {
               style: fetchedSong.style || "",
               duration: fetchedSong.duration?.toString() || "",
               notes: fetchedSong.notes || "",
-              isFavorite: fetchedSong.isFavorite
+              isFavorite: fetchedSong.isFavorite,
+              categories: (fetchedSong.categories || []).join(", ")
             });
-            setSelectedCategories(fetchedSong.categories || []);
             setTags(fetchedSong.tags || []);
           } else {
             toast.error("No se encontró la canción");
@@ -147,7 +143,8 @@ const SongForm = () => {
               style: "",
               duration: "",
               notes: "",
-              isFavorite: false
+              isFavorite: false,
+              categories: ""
             });
             
             console.log("📥 [SongForm] Datos importados cargados:", {
@@ -200,10 +197,16 @@ const SongForm = () => {
   const handleSubmit = async (data: SongFormData) => {
     setIsSaving(true);
     try {
+      // Convertir categorías de string a array
+      const categoriesArray = data.categories
+        .split(',')
+        .map(cat => cat.trim())
+        .filter(cat => cat.length > 0);
+      
       // Preparar los datos completos de la canción
       const songData: Partial<Song> = {
         ...data,
-        categories: selectedCategories,
+        categories: categoriesArray,
         tags,
         tempo: data.tempo ? parseInt(data.tempo) : undefined,
         duration: data.duration ? parseInt(data.duration) : undefined,
@@ -225,14 +228,6 @@ const SongForm = () => {
       toast.error("Error al guardar la canción");
     } finally {
       setIsSaving(false);
-    }
-  };
-  
-  const handleCategoryToggle = (category: string) => {
-    if (selectedCategories.includes(category)) {
-      setSelectedCategories(selectedCategories.filter(cat => cat !== category));
-    } else {
-      setSelectedCategories([...selectedCategories, category]);
     }
   };
   
@@ -258,7 +253,10 @@ const SongForm = () => {
     style: form.getValues("style"),
     duration: form.getValues("duration") ? parseInt(form.getValues("duration")) : undefined,
     notes: form.getValues("notes"),
-    categories: selectedCategories,
+    categories: form.getValues("categories")
+      .split(',')
+      .map(cat => cat.trim())
+      .filter(cat => cat.length > 0),
     tags,
     isFavorite: form.getValues("isFavorite"),
     createdAt: song?.createdAt || new Date().toISOString(),
@@ -619,33 +617,24 @@ const SongForm = () => {
                   
                   <Card className="mb-6">
                     <CardContent className="pt-6">
-                      <h3 className="text-lg font-medium mb-4">Categorías</h3>
-                      <div className="space-y-2">
-                        {availableCategories.map((category) => (
-                          <div
-                            key={category.id}
-                            className={`p-2 rounded-md cursor-pointer border transition-colors ${
-                              selectedCategories.includes(category.name)
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-secondary border-transparent hover:border-primary/50"
-                            }`}
-                            onClick={() => handleCategoryToggle(category.name)}
-                          >
-                            {category.name}
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {selectedCategories.length > 0 && (
-                        <>
-                          <Separator className="my-4" />
-                          <div className="flex flex-wrap gap-2">
-                            {selectedCategories.map((category) => (
-                              <Badge key={category} variant="outline">{category}</Badge>
-                            ))}
-                          </div>
-                        </>
-                      )}
+                      <FormField
+                        control={form.control}
+                        name="categories"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Categorías</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Ej: adoración, júbilo, navideña (separadas por comas)"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Ingresa las categorías separadas por comas
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
                     </CardContent>
                   </Card>
                   
