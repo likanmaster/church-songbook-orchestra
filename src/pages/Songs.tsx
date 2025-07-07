@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Music, Edit, Trash2, Star, Copy, Filter, X, Upload } from "lucide-react";
+import { Plus, Music, Edit, Trash2, Star, Copy, Filter, X, Upload, List, Grid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import Navbar from "@/components/layout/Navbar";
 import SongImporter from "@/components/songs/SongImporter";
 import { Song } from "@/types";
@@ -25,6 +26,7 @@ const SongsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStyle, setSelectedStyle] = useState<string>("all");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const { toast } = useToast();
   const { user } = useAuth();
   const [copyingSong, setCopyingSong] = useState<string | null>(null);
@@ -257,7 +259,7 @@ const SongsPage = () => {
             </div>
             
             {/* Filters Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               {/* Key Filter */}
               <div>
                 <Label>Tonalidad:</Label>
@@ -320,6 +322,24 @@ const SongsPage = () => {
                   onCheckedChange={setShowFavoritesOnly}
                 />
                 <Label htmlFor="favorites-only">Solo favoritas</Label>
+              </div>
+
+              {/* View Mode Toggle */}
+              <div>
+                <Label>Vista:</Label>
+                <ToggleGroup 
+                  type="single" 
+                  value={viewMode} 
+                  onValueChange={(value) => value && setViewMode(value as "cards" | "list")}
+                  className="justify-start"
+                >
+                  <ToggleGroupItem value="cards" aria-label="Vista de tarjetas">
+                    <Grid className="h-4 w-4" />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="list" aria-label="Vista de lista">
+                    <List className="h-4 w-4" />
+                  </ToggleGroupItem>
+                </ToggleGroup>
               </div>
 
               {/* Clear Filters Button */}
@@ -404,7 +424,7 @@ const SongsPage = () => {
                   </Button>
                 )}
               </div>
-            ) : (
+            ) : viewMode === "cards" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredSongs.map((song) => (
                   <Card key={song.id} className="overflow-hidden">
@@ -489,6 +509,84 @@ const SongsPage = () => {
                       </Button>
                     </CardFooter>
                   </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredSongs.map((song) => (
+                  <div key={song.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50">
+                    <div className="flex items-center space-x-4 flex-1">
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{song.title}</h3>
+                        <p className="text-sm text-muted-foreground">{song.author}</p>
+                      </div>
+                      
+                      {song.key && (
+                        <Badge variant="outline" className="text-xs">
+                          {song.key}
+                        </Badge>
+                      )}
+                      
+                      {song.categories && song.categories.length > 0 && (
+                        <div className="flex gap-1">
+                          {song.categories.slice(0, 2).map((category, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-xs">
+                              {category}
+                            </Badge>
+                          ))}
+                          {song.categories.length > 2 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{song.categories.length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => toggleFavorite(song, !song.isFavorite)}
+                        >
+                          {song.isFavorite ? (
+                            <Star className="text-yellow-500 h-4 w-4 fill-yellow-500" />
+                          ) : (
+                            <Star className="h-4 w-4" />
+                          )}
+                        </Button>
+                        
+                        <Switch 
+                          checked={song.isPublic || false}
+                          onCheckedChange={(checked) => togglePublic(song, checked)}
+                          size="sm"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-1 ml-4">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/songs/${song.id}`}>
+                          <Music className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/songs/${song.id}/edit`}>
+                          <Edit className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(song.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
