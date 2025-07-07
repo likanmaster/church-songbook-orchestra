@@ -559,7 +559,6 @@ const SongsPage = () => {
                         <Switch 
                           checked={song.isPublic || false}
                           onCheckedChange={(checked) => togglePublic(song, checked)}
-                          size="sm"
                         />
                       </div>
                     </div>
