@@ -492,7 +492,7 @@ const SongsPage = () => {
                         </Button>
                         
                         <Button variant="outline" size="sm" asChild>
-                          <Link to={`/songs/${song.id}/edit`}>
+                          <Link to={`/songs/edit/${song.id}`}>
                             <Edit className="mr-2 h-4 w-4" />
                             Editar
                           </Link>
@@ -571,7 +571,7 @@ const SongsPage = () => {
                       </Button>
                       
                       <Button variant="outline" size="sm" asChild>
-                        <Link to={`/songs/${song.id}/edit`}>
+                        <Link to={`/songs/edit/${song.id}`}>
                           <Edit className="h-4 w-4" />
                         </Link>
                       </Button>

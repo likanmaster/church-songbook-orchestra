@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, X, GripVertical, Music, FileText } from "lucide-react";
+import { Plus, X, GripVertical, Music, FileText, Shuffle } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,10 +26,11 @@ import { format } from "date-fns";
 import { DatePicker } from "@/components/ui/date-picker";
 import Navbar from "@/components/layout/Navbar";
 import SongSearch from "@/components/SongSearch";
+import RandomSongByStyleModal from "@/components/services/RandomSongByStyleModal";
 import { Service, ServiceSong, ServiceSection, Song, ServiceGroup } from "@/types";
 import { getServiceById, createService, updateService, getAllServiceGroups } from "@/services/service-service";
 import { getAllSongs } from "@/services/song-service";
-import { getUserDefaultServiceTemplate } from "@/services/user-service";
+import { getUserDefaultServiceTemplate, getUserMusicStyles } from "@/services/user-service";
 import { useAuth } from "@/hooks/use-auth-context";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -52,6 +53,7 @@ const ServiceForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [songsLibrary, setSongsLibrary] = useState<Song[]>([]);
   const [showSongSearch, setShowSongSearch] = useState(false);
+  const [userMusicStyles, setUserMusicStyles] = useState<string[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -62,6 +64,7 @@ const ServiceForm = () => {
     if (user?.id) {
       loadServiceGroups();
       loadSongsLibrary();
+      loadUserMusicStyles();
     }
   }, [user]);
 
@@ -97,6 +100,19 @@ const ServiceForm = () => {
       setServiceGroups(groups);
     } catch (error) {
       console.error("❌ [ServiceForm] Error al cargar grupos:", error);
+    }
+  };
+
+  const loadUserMusicStyles = async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log("🎼 [ServiceForm] Cargando estilos musicales del usuario...");
+      const styles = await getUserMusicStyles(user.id);
+      console.log("🎼 [ServiceForm] Estilos cargados:", styles);
+      setUserMusicStyles(styles);
+    } catch (error) {
+      console.error("❌ [ServiceForm] Error al cargar estilos musicales:", error);
     }
   };
 
@@ -586,6 +602,11 @@ const ServiceForm = () => {
                   <Music className="mr-2 h-4 w-4" />
                   Agregar Canción
                 </Button>
+                <RandomSongByStyleModal
+                  songs={songsLibrary}
+                  userMusicStyles={userMusicStyles}
+                  onSongSelect={addSong}
+                />
               </div>
 
               {showSongSearch && (
