@@ -414,100 +414,7 @@ const ServiceForm = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Columna Izquierda - Información Básica */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Información del Servicio</CardTitle>
-                <CardDescription>
-                  Detalles básicos del servicio
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="title">Título</Label>
-                  <Input
-                    type="text"
-                    id="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="date">Fecha</Label>
-                  <DatePicker
-                    id="date"
-                    value={date}
-                    onValueChange={setDate}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="theme">Tema (opcional)</Label>
-                  <Input
-                    type="text"
-                    id="theme"
-                    value={theme}
-                    onChange={(e) => setTheme(e.target.value)}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="preacher">Predicador (opcional)</Label>
-                  <Input
-                    type="text"
-                    id="preacher"
-                    value={preacher}
-                    onChange={(e) => setPreacher(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="group">Grupo de Servicio (opcional)</Label>
-                  <Select value={groupId || "none"} onValueChange={(value) => {
-                    console.log("📋 [ServiceForm] Seleccionando grupo:", value);
-                    setGroupId(value === "none" ? null : value);
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar grupo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin grupo</SelectItem>
-                      {serviceGroups.map((group) => (
-                        <SelectItem key={group.id} value={group.id}>
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: group.color }}
-                            />
-                            {group.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="notes">Notas (opcional)</Label>
-                  <Textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={4}
-                  />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button onClick={handleSubmit} disabled={isLoading} className="w-full">
-                  {isLoading ? "Guardando..." : "Guardar Servicio"}
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-
-          {/* Columna Derecha - Contenido del Servicio */}
+          {/* Columna Izquierda - Contenido del Servicio */}
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -638,6 +545,99 @@ const ServiceForm = () => {
                   </div>
                 )}
               </CardContent>
+            </Card>
+          </div>
+
+          {/* Columna Derecha - Información Básica */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Información del Servicio</CardTitle>
+                <CardDescription>
+                  Detalles básicos del servicio
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Título</Label>
+                  <Input
+                    type="text"
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="date">Fecha</Label>
+                  <DatePicker
+                    id="date"
+                    value={date}
+                    onValueChange={setDate}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="theme">Tema (opcional)</Label>
+                  <Input
+                    type="text"
+                    id="theme"
+                    value={theme}
+                    onChange={(e) => setTheme(e.target.value)}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="preacher">Predicador (opcional)</Label>
+                  <Input
+                    type="text"
+                    id="preacher"
+                    value={preacher}
+                    onChange={(e) => setPreacher(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="group">Grupo de Servicio (opcional)</Label>
+                  <Select value={groupId || "none"} onValueChange={(value) => {
+                    console.log("📋 [ServiceForm] Seleccionando grupo:", value);
+                    setGroupId(value === "none" ? null : value);
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar grupo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin grupo</SelectItem>
+                      {serviceGroups.map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: group.color }}
+                            />
+                            {group.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="notes">Notas (opcional)</Label>
+                  <Textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button onClick={handleSubmit} disabled={isLoading} className="w-full">
+                  {isLoading ? "Guardando..." : "Guardar Servicio"}
+                </Button>
+              </CardFooter>
             </Card>
           </div>
         </div>
