@@ -361,6 +361,57 @@ const ServiceForm = () => {
     setServiceItems([...serviceItems, newItem]);
   };
 
+  const createRandomService = () => {
+    if (songsLibrary.length === 0) {
+      toast({
+        title: "Error",
+        description: "No hay canciones disponibles para crear un servicio aleatorio",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const sectionNames = [
+      "Bienvenida",
+      "Adoración",
+      "Ofrenda",
+      "Predicación",
+      "Llamado",
+      "Despedida"
+    ];
+
+    const newItems: ServiceItem[] = [];
+    let order = 0;
+
+    // Crear patrón: sección -> canción -> sección -> canción
+    for (let i = 0; i < sectionNames.length; i++) {
+      // Agregar sección
+      newItems.push({
+        id: `section-${uuidv4()}`,
+        type: 'section',
+        order: order++,
+        data: { text: sectionNames[i] }
+      });
+
+      // Agregar canción aleatoria después de cada sección (excepto la última)
+      if (i < sectionNames.length - 1) {
+        const randomSong = songsLibrary[Math.floor(Math.random() * songsLibrary.length)];
+        newItems.push({
+          id: `song-${randomSong.id}-${order}`,
+          type: 'song',
+          order: order++,
+          data: { ...randomSong, serviceNotes: "" }
+        });
+      }
+    }
+
+    setServiceItems(newItems);
+    toast({
+      title: "Servicio creado",
+      description: `Se ha creado un servicio aleatorio con ${newItems.length} elementos`,
+    });
+  };
+
   const updateItem = (id: string, newData: any) => {
     setServiceItems(serviceItems.map(item => 
       item.id === id ? { ...item, data: { ...item.data, ...newData } } : item
@@ -529,6 +580,10 @@ const ServiceForm = () => {
                     userMusicStyles={userMusicStyles}
                     onSongSelect={addSong}
                   />
+                  <Button type="button" variant="outline" size="sm" onClick={createRandomService}>
+                    <Shuffle className="mr-2 h-4 w-4" />
+                    Crear Servicio Aleatorio
+                  </Button>
                 </div>
 
                 {showSongSearch && (
