@@ -371,30 +371,40 @@ const ServiceForm = () => {
       return;
     }
 
-    const sectionNames = [
-      "Bienvenida",
-      "Adoración",
-      "Ofrenda",
-      "Predicación",
-      "Llamado",
-      "Despedida"
-    ];
+    if (serviceItems.length === 0) {
+      toast({
+        title: "Error",
+        description: "No hay elementos en el servicio. Agrega algunas secciones primero",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const newItems: ServiceItem[] = [];
     let order = 0;
 
-    // Crear patrón: sección -> canción -> sección -> canción
-    for (let i = 0; i < sectionNames.length; i++) {
-      // Agregar sección
+    // Obtener solo las secciones existentes
+    const existingSections = serviceItems.filter(item => item.type === 'section');
+    
+    if (existingSections.length === 0) {
+      toast({
+        title: "Error",
+        description: "No hay secciones en el servicio",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Intercalar secciones existentes con canciones aleatorias
+    for (let i = 0; i < existingSections.length; i++) {
+      // Agregar la sección existente
       newItems.push({
-        id: `section-${uuidv4()}`,
-        type: 'section',
-        order: order++,
-        data: { text: sectionNames[i] }
+        ...existingSections[i],
+        order: order++
       });
 
       // Agregar canción aleatoria después de cada sección (excepto la última)
-      if (i < sectionNames.length - 1) {
+      if (i < existingSections.length - 1) {
         const randomSong = songsLibrary[Math.floor(Math.random() * songsLibrary.length)];
         newItems.push({
           id: `song-${randomSong.id}-${order}`,
