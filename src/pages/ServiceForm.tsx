@@ -413,223 +413,234 @@ const ServiceForm = () => {
           <h1 className="text-3xl font-bold">{isEditing ? "Editar Servicio" : "Nuevo Servicio"}</h1>
         </div>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>{isEditing ? "Editar los detalles del servicio" : "Ingrese los detalles del servicio"}</CardTitle>
-            <CardDescription>
-              Completa el formulario para {isEditing ? "actualizar" : "crear"} un nuevo servicio.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="title">Título</Label>
-                <Input
-                  type="text"
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="date">Fecha</Label>
-                <DatePicker
-                  id="date"
-                  value={date}
-                  onValueChange={setDate}
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="theme">Tema (opcional)</Label>
-                <Input
-                  type="text"
-                  id="theme"
-                  value={theme}
-                  onChange={(e) => setTheme(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="preacher">Predicador (opcional)</Label>
-                <Input
-                  type="text"
-                  id="preacher"
-                  value={preacher}
-                  onChange={(e) => setPreacher(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="group">Grupo de Servicio (opcional)</Label>
-              <Select value={groupId || "none"} onValueChange={(value) => {
-                console.log("📋 [ServiceForm] Seleccionando grupo:", value);
-                setGroupId(value === "none" ? null : value);
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar grupo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin grupo</SelectItem>
-                  {serviceGroups.map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: group.color }}
-                        />
-                        {group.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="notes">Notas (opcional)</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </div>
-            
-            <Separator />
-            
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Contenido del Servicio</h3>
-              
-              <DragDropContext onDragEnd={onDragEnd}>
-                <Droppable droppableId="service-items">
-                  {(provided) => (
-                    <div
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
-                      className="space-y-2 mb-4"
-                    >
-                      {serviceItems.map((item, index) => (
-                        <Draggable key={item.id} draggableId={item.id} index={index}>
-                          {(provided) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className="flex items-center gap-3 p-3 bg-secondary rounded-md"
-                            >
-                              <div {...provided.dragHandleProps} className="cursor-grab">
-                                <GripVertical className="h-4 w-4 text-muted-foreground" />
-                              </div>
-                              
-                              <div className="flex-1">
-                                {item.type === 'song' ? (
-                                  <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                      <Music className="h-4 w-4 text-blue-500" />
-                                      <span className="font-medium">{(item.data as Song).title}</span>
-                                      {(item.data as Song).key && (
-                                        <Badge variant="outline">{(item.data as Song).key}</Badge>
-                                      )}
-                                    </div>
-                                    <Input
-                                      placeholder="Notas para esta canción..."
-                                      value={(item.data as Song & { serviceNotes?: string }).serviceNotes || ""}
-                                      onChange={(e) => updateItem(item.id, { serviceNotes: e.target.value })}
-                                      className="text-sm h-8"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                      <FileText className="h-4 w-4 text-green-500" />
-                                      <span className="text-sm text-muted-foreground">Sección</span>
-                                    </div>
-                                    <Input
-                                      placeholder="Nombre de la sección (ej: Bienvenida, Ofrenda, etc.)"
-                                      value={(item.data as { text: string }).text}
-                                      onChange={(e) => updateItem(item.id, { text: e.target.value })}
-                                      className="text-sm h-8"
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-8 w-8 rounded-full text-red-500 hover:bg-red-100"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Esta acción no se puede deshacer. Se eliminará este elemento
-                                      del servicio permanentemente.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancelar
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => removeItem(item.id)}>
-                                      Eliminar
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
-
-              <div className="flex gap-2 mb-4">
-                <Button type="button" variant="outline" size="sm" onClick={addSection}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Agregar Sección
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => setShowSongSearch(true)}>
-                  <Music className="mr-2 h-4 w-4" />
-                  Agregar Canción
-                </Button>
-                <RandomSongByStyleModal
-                  songs={songsLibrary}
-                  userMusicStyles={userMusicStyles}
-                  onSongSelect={addSong}
-                />
-              </div>
-
-              {showSongSearch && (
-                <div className="mb-4 p-4 border rounded-lg bg-muted">
-                  <SongSearch onSelect={addSong} />
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setShowSongSearch(false)}
-                    className="mt-2"
-                  >
-                    Cancelar
-                  </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Columna Izquierda - Información Básica */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Información del Servicio</CardTitle>
+                <CardDescription>
+                  Detalles básicos del servicio
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Título</Label>
+                  <Input
+                    type="text"
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
                 </div>
-              )}
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={handleSubmit} disabled={isLoading}>
-              {isLoading ? "Guardando..." : "Guardar Servicio"}
-            </Button>
-          </CardFooter>
-        </Card>
+                
+                <div>
+                  <Label htmlFor="date">Fecha</Label>
+                  <DatePicker
+                    id="date"
+                    value={date}
+                    onValueChange={setDate}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="theme">Tema (opcional)</Label>
+                  <Input
+                    type="text"
+                    id="theme"
+                    value={theme}
+                    onChange={(e) => setTheme(e.target.value)}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="preacher">Predicador (opcional)</Label>
+                  <Input
+                    type="text"
+                    id="preacher"
+                    value={preacher}
+                    onChange={(e) => setPreacher(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="group">Grupo de Servicio (opcional)</Label>
+                  <Select value={groupId || "none"} onValueChange={(value) => {
+                    console.log("📋 [ServiceForm] Seleccionando grupo:", value);
+                    setGroupId(value === "none" ? null : value);
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar grupo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin grupo</SelectItem>
+                      {serviceGroups.map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: group.color }}
+                            />
+                            {group.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="notes">Notas (opcional)</Label>
+                  <Textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button onClick={handleSubmit} disabled={isLoading} className="w-full">
+                  {isLoading ? "Guardando..." : "Guardar Servicio"}
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+
+          {/* Columna Derecha - Contenido del Servicio */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Contenido del Servicio</CardTitle>
+                <CardDescription>
+                  Agrega canciones y secciones para organizar tu servicio
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <DragDropContext onDragEnd={onDragEnd}>
+                  <Droppable droppableId="service-items">
+                    {(provided) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className="space-y-2 mb-4"
+                      >
+                        {serviceItems.map((item, index) => (
+                          <Draggable key={item.id} draggableId={item.id} index={index}>
+                            {(provided) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className="flex items-center gap-3 p-3 bg-secondary rounded-md"
+                              >
+                                <div {...provided.dragHandleProps} className="cursor-grab">
+                                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                                
+                                <div className="flex-1">
+                                  {item.type === 'song' ? (
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <Music className="h-4 w-4 text-blue-500" />
+                                        <span className="font-medium">{(item.data as Song).title}</span>
+                                        {(item.data as Song).key && (
+                                          <Badge variant="outline">{(item.data as Song).key}</Badge>
+                                        )}
+                                      </div>
+                                      <Input
+                                        placeholder="Notas para esta canción..."
+                                        value={(item.data as Song & { serviceNotes?: string }).serviceNotes || ""}
+                                        onChange={(e) => updateItem(item.id, { serviceNotes: e.target.value })}
+                                        className="text-sm h-8"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <FileText className="h-4 w-4 text-green-500" />
+                                        <span className="text-sm text-muted-foreground">Sección</span>
+                                      </div>
+                                      <Input
+                                        placeholder="Nombre de la sección (ej: Bienvenida, Ofrenda, etc.)"
+                                        value={(item.data as { text: string }).text}
+                                        onChange={(e) => updateItem(item.id, { text: e.target.value })}
+                                        className="text-sm h-8"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-8 w-8 rounded-full text-red-500 hover:bg-red-100"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Esta acción no se puede deshacer. Se eliminará este elemento
+                                        del servicio permanentemente.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>
+                                        Cancelar
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => removeItem(item.id)}>
+                                        Eliminar
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Button type="button" variant="outline" size="sm" onClick={addSection}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Agregar Sección
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowSongSearch(true)}>
+                    <Music className="mr-2 h-4 w-4" />
+                    Agregar Canción
+                  </Button>
+                  <RandomSongByStyleModal
+                    songs={songsLibrary}
+                    userMusicStyles={userMusicStyles}
+                    onSongSelect={addSong}
+                  />
+                </div>
+
+                {showSongSearch && (
+                  <div className="mb-4 p-4 border rounded-lg bg-muted">
+                    <SongSearch onSelect={addSong} />
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setShowSongSearch(false)}
+                      className="mt-2"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </main>
     </div>
   );
