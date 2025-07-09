@@ -21,6 +21,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -53,6 +61,8 @@ const ServiceForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [songsLibrary, setSongsLibrary] = useState<Song[]>([]);
   const [showSongSearch, setShowSongSearch] = useState(false);
+  const [showRandomServiceModal, setShowRandomServiceModal] = useState(false);
+  const [intermediateSongs, setIntermediateSongs] = useState(1);
   const [userMusicStyles, setUserMusicStyles] = useState<string[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -361,7 +371,7 @@ const ServiceForm = () => {
     setServiceItems([...serviceItems, newItem]);
   };
 
-  const createRandomService = () => {
+  const createRandomService = (songsPerSection: number) => {
     if (songsLibrary.length === 0) {
       toast({
         title: "Error",
@@ -403,23 +413,30 @@ const ServiceForm = () => {
         order: order++
       });
 
-      // Agregar canción aleatoria después de cada sección (excepto la última)
+      // Agregar el número especificado de canciones después de cada sección (excepto la última)
       if (i < existingSections.length - 1) {
-        const randomSong = songsLibrary[Math.floor(Math.random() * songsLibrary.length)];
-        newItems.push({
-          id: `song-${randomSong.id}-${order}`,
-          type: 'song',
-          order: order++,
-          data: { ...randomSong, serviceNotes: "" }
-        });
+        for (let j = 0; j < songsPerSection; j++) {
+          const randomSong = songsLibrary[Math.floor(Math.random() * songsLibrary.length)];
+          newItems.push({
+            id: `song-${randomSong.id}-${order}`,
+            type: 'song',
+            order: order++,
+            data: { ...randomSong, serviceNotes: "" }
+          });
+        }
       }
     }
 
     setServiceItems(newItems);
+    setShowRandomServiceModal(false);
     toast({
       title: "Servicio creado",
       description: `Se ha creado un servicio aleatorio con ${newItems.length} elementos`,
     });
+  };
+
+  const handleRandomServiceClick = () => {
+    setShowRandomServiceModal(true);
   };
 
   const updateItem = (id: string, newData: any) => {
@@ -579,7 +596,7 @@ const ServiceForm = () => {
                     userMusicStyles={userMusicStyles}
                     onSongSelect={addSong}
                   />
-                  <Button type="button" variant="outline" size="sm" onClick={createRandomService}>
+                  <Button type="button" variant="outline" size="sm" onClick={handleRandomServiceClick}>
                     <Shuffle className="mr-2 h-4 w-4" />
                     Crear Servicio Aleatorio
                   </Button>
@@ -695,6 +712,48 @@ const ServiceForm = () => {
             </Card>
           </div>
         </div>
+        
+        {/* Modal para crear servicio aleatorio */}
+        <Dialog open={showRandomServiceModal} onOpenChange={setShowRandomServiceModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Crear Servicio Aleatorio</DialogTitle>
+              <DialogDescription>
+                Selecciona cuántas canciones quieres entre cada sección
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="intermediate-songs">Canciones intermedias</Label>
+                <Select value={intermediateSongs.toString()} onValueChange={(value) => setIntermediateSongs(parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar cantidad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 canción</SelectItem>
+                    <SelectItem value="2">2 canciones</SelectItem>
+                    <SelectItem value="3">3 canciones</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowRandomServiceModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={() => createRandomService(intermediateSongs)}
+              >
+                Crear Servicio
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
