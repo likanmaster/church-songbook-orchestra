@@ -507,32 +507,21 @@ const ServiceForm = () => {
                                 
                                 <div className="flex-1">
                                   {item.type === 'song' ? (
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2">
-                                        <Music className="h-4 w-4 text-blue-500" />
-                                        <span className="font-medium">{(item.data as Song).title}</span>
-                                        {(item.data as Song).key && (
-                                          <Badge variant="outline">{(item.data as Song).key}</Badge>
-                                        )}
-                                      </div>
-                                      <Input
-                                        placeholder="Notas para esta canción..."
-                                        value={(item.data as Song & { serviceNotes?: string }).serviceNotes || ""}
-                                        onChange={(e) => updateItem(item.id, { serviceNotes: e.target.value })}
-                                        className="text-sm h-8"
-                                      />
+                                    <div className="flex items-center gap-2">
+                                      <Music className="h-4 w-4 text-blue-500" />
+                                      <span className="font-medium">{(item.data as Song).title}</span>
+                                      {(item.data as Song).key && (
+                                        <Badge variant="outline">{(item.data as Song).key}</Badge>
+                                      )}
                                     </div>
                                   ) : (
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2">
-                                        <FileText className="h-4 w-4 text-green-500" />
-                                        <span className="text-sm text-muted-foreground">Sección</span>
-                                      </div>
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4 text-green-500" />
                                       <Input
                                         placeholder="Nombre de la sección (ej: Bienvenida, Ofrenda, etc.)"
                                         value={(item.data as { text: string }).text}
                                         onChange={(e) => updateItem(item.id, { text: e.target.value })}
-                                        className="text-sm h-8"
+                                        className="text-sm h-8 border-none bg-transparent p-0 focus-visible:ring-0"
                                       />
                                     </div>
                                   )}
