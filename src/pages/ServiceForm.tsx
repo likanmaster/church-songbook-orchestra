@@ -390,7 +390,18 @@ const ServiceForm = () => {
       return;
     }
 
+    // Agrupar canciones por estilo musical
+    const songsByStyle: { [key: string]: Song[] } = {};
+    songsLibrary.forEach(song => {
+      const style = song.style || 'Sin estilo';
+      if (!songsByStyle[style]) {
+        songsByStyle[style] = [];
+      }
+      songsByStyle[style].push(song);
+    });
+
     const newItems: ServiceItem[] = [];
+    const usedSongIds = new Set<string>();
     let order = 0;
 
     // Obtener solo las secciones existentes
@@ -405,6 +416,46 @@ const ServiceForm = () => {
       return;
     }
 
+    // Función para obtener canciones del mismo estilo sin repetir
+    const getSongsForSection = (count: number): Song[] => {
+      const selectedSongs: Song[] = [];
+      const availableStyles = Object.keys(songsByStyle);
+      
+      // Intentar encontrar un estilo con suficientes canciones disponibles
+      let bestStyle = '';
+      let maxAvailable = 0;
+      
+      for (const style of availableStyles) {
+        const availableSongs = songsByStyle[style].filter(song => !usedSongIds.has(song.id));
+        if (availableSongs.length > maxAvailable) {
+          maxAvailable = availableSongs.length;
+          bestStyle = style;
+        }
+      }
+      
+      // Si encontramos un estilo con canciones suficientes, usarlo
+      if (bestStyle && maxAvailable >= count) {
+        const availableSongs = songsByStyle[bestStyle].filter(song => !usedSongIds.has(song.id));
+        for (let i = 0; i < count && i < availableSongs.length; i++) {
+          const randomIndex = Math.floor(Math.random() * availableSongs.length);
+          const selectedSong = availableSongs.splice(randomIndex, 1)[0];
+          selectedSongs.push(selectedSong);
+          usedSongIds.add(selectedSong.id);
+        }
+      } else {
+        // Si no hay suficientes del mismo estilo, usar canciones disponibles
+        const allAvailableSongs = songsLibrary.filter(song => !usedSongIds.has(song.id));
+        for (let i = 0; i < count && i < allAvailableSongs.length; i++) {
+          const randomIndex = Math.floor(Math.random() * allAvailableSongs.length);
+          const selectedSong = allAvailableSongs.splice(randomIndex, 1)[0];
+          selectedSongs.push(selectedSong);
+          usedSongIds.add(selectedSong.id);
+        }
+      }
+      
+      return selectedSongs;
+    };
+
     // Intercalar secciones existentes con canciones aleatorias
     for (let i = 0; i < existingSections.length; i++) {
       // Agregar la sección existente
@@ -415,15 +466,16 @@ const ServiceForm = () => {
 
       // Agregar el número especificado de canciones después de cada sección (excepto la última)
       if (i < existingSections.length - 1) {
-        for (let j = 0; j < songsPerSection; j++) {
-          const randomSong = songsLibrary[Math.floor(Math.random() * songsLibrary.length)];
+        const songsForThisSection = getSongsForSection(songsPerSection);
+        
+        songsForThisSection.forEach(song => {
           newItems.push({
-            id: `song-${randomSong.id}-${order}`,
+            id: `song-${song.id}-${order}`,
             type: 'song',
             order: order++,
-            data: { ...randomSong, serviceNotes: "" }
+            data: { ...song, serviceNotes: "" }
           });
-        }
+        });
       }
     }
 

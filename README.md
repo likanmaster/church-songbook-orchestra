@@ -10,6 +10,10 @@ Bienvenido a **Church Songbook**, una aplicación web diseñada para músicos e 
 ### 🎶 Biblioteca de Canciones
 - Agrega, edita y elimina canciones.
 - Guarda información detallada: título, autor, tonalidad, tempo, estilo, duración, categorías, etiquetas y favoritos.
+- **Importador de Canciones**: Importa canciones desde archivos de texto con formato automático.
+- **Transposición de Tonalidades**: Cambia la tonalidad de las canciones automáticamente.
+- **Editor Enriquecido**: Editor de texto con formato para letras y acordes.
+- **Botón Canción Aleatoria**: Selecciona una canción aleatoria de tu biblioteca.
 - Busca canciones rápidamente por nombre, autor u otros filtros.
 - Marca canciones como favoritas para tener acceso inmediato.
 
@@ -19,6 +23,8 @@ Bienvenido a **Church Songbook**, una aplicación web diseñada para músicos e 
 - Añade canciones a cada servicio en el orden deseado.
 - Añade secciones de texto descriptivo para introducir partes especiales del servicio.
 - Organiza el orden de los elementos del servicio con "drag & drop".
+- **Generador de Servicios Aleatorios**: Crea servicios automáticamente intercalando secciones predefinidas con canciones aleatorias (1-3 canciones por sección), priorizando que las canciones consecutivas tengan el mismo estilo musical.
+- **Plantillas de Servicios**: Configura plantillas predeterminadas con secciones base que se pueden reutilizar.
 - Edita servicios existentes o elimina los que ya no sean necesarios.
 
 ### 🔍 Búsqueda Avanzada
@@ -27,8 +33,11 @@ Bienvenido a **Church Songbook**, una aplicación web diseñada para músicos e 
 
 ### 👥 Grupos
 - Crea grupos de usuarios (ej. equipos de alabanza).
-- Invita miembros a los grupos.
+- Invita miembros a los grupos mediante códigos únicos.
+- **Chat de Grupo**: Comunícate con los miembros del grupo en tiempo real.
+- **Notificaciones de Ensayo**: Envía notificaciones de ensayo a todos los miembros del grupo.
 - Visualiza detalles del grupo, miembros, canciones compartidas y servicios asociados.
+- Gestión de roles (administrador/miembro) con permisos diferenciados.
 
 ### 🙍‍♂️ Perfil de usuario
 - Accede y edita tu información de usuario.
@@ -40,6 +49,19 @@ Bienvenido a **Church Songbook**, una aplicación web diseñada para músicos e 
 
 ### 🔔 Notificaciones
 - Recibe notificaciones al ser invitado a un grupo o sobre cambios importantes en los servicios.
+- Notificaciones de ensayos programados por los administradores de grupo.
+- Sistema de notificaciones en tiempo real con campana de notificaciones.
+
+### ⚙️ Configuraciones Avanzadas
+- **Gestión de Estilos Musicales**: Configura estilos musicales personalizados para categorizar mejor tus canciones.
+- **Plantillas de Servicios por Defecto**: Define plantillas predeterminadas que se cargan automáticamente al crear nuevos servicios.
+- **Grupos de Servicios**: Organiza tus servicios en grupos temáticos con colores personalizados.
+
+### 🎯 Funciones Especiales
+- **Previsualización de Servicios**: Ve cómo se verá tu servicio antes de guardarlo.
+- **Selección de Canciones por Estilo**: Encuentra canciones aleatorias filtradas por estilo musical.
+- **Editor de Secciones**: Crea y edita secciones personalizadas para tus servicios.
+- **Gestión de Miembros**: Administra permisos y elimina miembros de grupos con confirmación.
 
 ---
 
