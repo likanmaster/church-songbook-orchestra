@@ -16,6 +16,7 @@ import Navbar from "@/components/layout/Navbar";
 import SongImporter from "@/components/songs/SongImporter";
 import { Song } from "@/types";
 import { getAllSongs, deleteSong, toggleSongFavorite, updateSongPublicStatus, copySongToUserAccount, updateSong } from "@/services/song-service";
+import { getUserMusicStyles } from "@/services/user-service";
 import CustomStyleSelect from "@/components/songs/CustomStyleSelect";
 import { useAuth } from "@/hooks/use-auth-context";
 
@@ -28,6 +29,7 @@ const SongsPage = () => {
   const [selectedStyle, setSelectedStyle] = useState<string>("all");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
+  const [userMusicStyles, setUserMusicStyles] = useState<string[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   const [copyingSong, setCopyingSong] = useState<string | null>(null);
@@ -38,10 +40,16 @@ const SongsPage = () => {
   // Get unique keys, categories, and styles from user's songs only
   const uniqueKeys = [...new Set(userOwnedSongs.filter(song => song.key).map(song => song.key))].sort();
   const uniqueCategories = [...new Set(userOwnedSongs.flatMap(song => song.categories || []))].sort();
-  const uniqueStyles = [...new Set(userOwnedSongs.filter(song => song.style).map(song => song.style))].sort();
+  const songsStyles = [...new Set(userOwnedSongs.filter(song => song.style).map(song => song.style))];
+  
+  // Combinar estilos de canciones con estilos del usuario, eliminando duplicados
+  const allAvailableStyles = [...new Set([...userMusicStyles, ...songsStyles])].sort();
 
   useEffect(() => {
-    loadSongs();
+    if (user) {
+      loadSongs();
+      loadUserMusicStyles();
+    }
   }, [user]);
 
   const loadSongs = async () => {
@@ -57,6 +65,17 @@ const SongsPage = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadUserMusicStyles = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const styles = await getUserMusicStyles(user.id);
+      setUserMusicStyles(styles);
+    } catch (error) {
+      console.error("Error loading user music styles:", error);
     }
   };
 
@@ -326,7 +345,7 @@ const SongsPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos los estilos</SelectItem>
-                    {uniqueStyles.map((style) => (
+                    {allAvailableStyles.map((style) => (
                       <SelectItem key={style} value={style}>
                         {style}
                       </SelectItem>
@@ -497,14 +516,14 @@ const SongsPage = () => {
                           <Badge variant="default" className="text-xs">
                             {song.style}
                           </Badge>
-                        ) : uniqueStyles.length > 0 ? (
+                        ) : allAvailableStyles.length > 0 ? (
                           <div className="w-32">
                             <Select onValueChange={(style) => handleStyleChange(song.id, style)}>
                               <SelectTrigger className="h-6 text-xs">
                                 <SelectValue placeholder="Asignar estilo" />
                               </SelectTrigger>
                               <SelectContent>
-                                {uniqueStyles.map((style) => (
+                                {allAvailableStyles.map((style) => (
                                   <SelectItem key={style} value={style} className="text-xs">
                                     {style}
                                   </SelectItem>
@@ -576,14 +595,14 @@ const SongsPage = () => {
                          <Badge variant="default" className="text-xs">
                            {song.style}
                          </Badge>
-                       ) : uniqueStyles.length > 0 ? (
+                       ) : allAvailableStyles.length > 0 ? (
                          <div className="w-32">
                            <Select onValueChange={(style) => handleStyleChange(song.id, style)}>
                              <SelectTrigger className="h-6 text-xs">
                                <SelectValue placeholder="Asignar estilo" />
                              </SelectTrigger>
                              <SelectContent>
-                               {uniqueStyles.map((style) => (
+                               {allAvailableStyles.map((style) => (
                                  <SelectItem key={style} value={style} className="text-xs">
                                    {style}
                                  </SelectItem>
