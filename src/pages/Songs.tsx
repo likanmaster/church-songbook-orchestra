@@ -15,7 +15,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import Navbar from "@/components/layout/Navbar";
 import SongImporter from "@/components/songs/SongImporter";
 import { Song } from "@/types";
-import { getAllSongs, deleteSong, toggleSongFavorite, updateSongPublicStatus, copySongToUserAccount } from "@/services/song-service";
+import { getAllSongs, deleteSong, toggleSongFavorite, updateSongPublicStatus, copySongToUserAccount, updateSong } from "@/services/song-service";
+import CustomStyleSelect from "@/components/songs/CustomStyleSelect";
 import { useAuth } from "@/hooks/use-auth-context";
 
 const SongsPage = () => {
@@ -145,6 +146,26 @@ const SongsPage = () => {
       });
     } finally {
       setCopyingSong(null);
+    }
+  };
+
+  const handleStyleChange = async (songId: string, style: string | null) => {
+    if (!user?.id) return;
+    
+    try {
+      const updatedSong = await updateSong(songId, { style }, user.id);
+      setSongs(songs.map(s => s.id === songId ? updatedSong : s));
+      toast({
+        title: "Estilo actualizado",
+        description: "El estilo musical ha sido guardado exitosamente."
+      });
+    } catch (error) {
+      console.error("Error al actualizar estilo:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estilo musical.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -472,10 +493,18 @@ const SongsPage = () => {
                             {song.key}
                           </Badge>
                         )}
-                        {song.style && (
+                        {song.style ? (
                           <Badge variant="default" className="text-xs">
                             {song.style}
                           </Badge>
+                        ) : (
+                          <div className="w-32">
+                            <CustomStyleSelect 
+                              value={null}
+                              onChange={(style) => handleStyleChange(song.id, style)}
+                              placeholder="Asignar estilo"
+                            />
+                          </div>
                         )}
                         {song.categories && song.categories.length > 0 && (
                           song.categories.map((category, idx) => (
@@ -532,11 +561,19 @@ const SongsPage = () => {
                         </Badge>
                       )}
                       
-                      {song.style && (
-                        <Badge variant="default" className="text-xs">
-                          {song.style}
-                        </Badge>
-                      )}
+                       {song.style ? (
+                         <Badge variant="default" className="text-xs">
+                           {song.style}
+                         </Badge>
+                       ) : (
+                         <div className="w-32">
+                           <CustomStyleSelect 
+                             value={null}
+                             onChange={(style) => handleStyleChange(song.id, style)}
+                             placeholder="Asignar estilo"
+                           />
+                         </div>
+                       )}
                       
                       {song.categories && song.categories.length > 0 && (
                         <div className="flex gap-1">
