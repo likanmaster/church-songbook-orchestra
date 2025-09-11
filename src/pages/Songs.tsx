@@ -472,6 +472,11 @@ const SongsPage = () => {
                             {song.key}
                           </Badge>
                         )}
+                        {song.style && (
+                          <Badge variant="default" className="text-xs">
+                            {song.style}
+                          </Badge>
+                        )}
                         {song.categories && song.categories.length > 0 && (
                           song.categories.map((category, idx) => (
                             <Badge key={idx} variant="secondary" className="text-xs">
@@ -524,6 +529,12 @@ const SongsPage = () => {
                       {song.key && (
                         <Badge variant="outline" className="text-xs">
                           {song.key}
+                        </Badge>
+                      )}
+                      
+                      {song.style && (
+                        <Badge variant="default" className="text-xs">
+                          {song.style}
                         </Badge>
                       )}
                       
