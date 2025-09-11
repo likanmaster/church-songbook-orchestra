@@ -497,14 +497,25 @@ const SongsPage = () => {
                           <Badge variant="default" className="text-xs">
                             {song.style}
                           </Badge>
-                        ) : (
+                        ) : uniqueStyles.length > 0 ? (
                           <div className="w-32">
-                            <CustomStyleSelect 
-                              value={null}
-                              onChange={(style) => handleStyleChange(song.id, style)}
-                              placeholder="Asignar estilo"
-                            />
+                            <Select onValueChange={(style) => handleStyleChange(song.id, style)}>
+                              <SelectTrigger className="h-6 text-xs">
+                                <SelectValue placeholder="Asignar estilo" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {uniqueStyles.map((style) => (
+                                  <SelectItem key={style} value={style} className="text-xs">
+                                    {style}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">
+                            Sin estilo
+                          </Badge>
                         )}
                         {song.categories && song.categories.length > 0 && (
                           song.categories.map((category, idx) => (
@@ -565,14 +576,25 @@ const SongsPage = () => {
                          <Badge variant="default" className="text-xs">
                            {song.style}
                          </Badge>
-                       ) : (
+                       ) : uniqueStyles.length > 0 ? (
                          <div className="w-32">
-                           <CustomStyleSelect 
-                             value={null}
-                             onChange={(style) => handleStyleChange(song.id, style)}
-                             placeholder="Asignar estilo"
-                           />
+                           <Select onValueChange={(style) => handleStyleChange(song.id, style)}>
+                             <SelectTrigger className="h-6 text-xs">
+                               <SelectValue placeholder="Asignar estilo" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               {uniqueStyles.map((style) => (
+                                 <SelectItem key={style} value={style} className="text-xs">
+                                   {style}
+                                 </SelectItem>
+                               ))}
+                             </SelectContent>
+                           </Select>
                          </div>
+                       ) : (
+                         <Badge variant="outline" className="text-xs text-muted-foreground">
+                           Sin estilo
+                         </Badge>
                        )}
                       
                       {song.categories && song.categories.length > 0 && (
