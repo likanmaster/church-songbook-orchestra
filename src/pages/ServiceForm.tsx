@@ -416,51 +416,65 @@ const ServiceForm = () => {
       return;
     }
 
-    // Función para obtener canciones variando los estilos musicales
-    const usedStylesInCurrentSection = new Set<string>();
+    // Función para obtener canciones del mismo estilo para una sección
+    let lastSectionStyle = '';
     
     const getSongsForSection = (count: number): Song[] => {
       const selectedSongs: Song[] = [];
       const availableStyles = Object.keys(songsByStyle);
       
-      // Reiniciar los estilos usados en esta sección
-      usedStylesInCurrentSection.clear();
+      // Filtrar estilos disponibles que no sean el último usado
+      const availableStylesFiltered = availableStyles.filter(style => style !== lastSectionStyle);
+      const stylesToUse = availableStylesFiltered.length > 0 ? availableStylesFiltered : availableStyles;
       
-      for (let i = 0; i < count; i++) {
-        // Intentar encontrar una canción de un estilo diferente al ya usado en esta sección
-        let selectedSong: Song | null = null;
-        
-        // Primero, intentar encontrar estilos no usados en esta sección
-        for (const style of availableStyles) {
-          if (usedStylesInCurrentSection.has(style)) continue;
-          
+      // Elegir un estilo aleatorio para toda la sección
+      let selectedStyle = '';
+      let maxAvailable = 0;
+      
+      // Encontrar el estilo con más canciones disponibles
+      for (const style of stylesToUse) {
+        const availableSongs = songsByStyle[style].filter(song => !usedSongIds.has(song.id));
+        if (availableSongs.length >= count && availableSongs.length > maxAvailable) {
+          maxAvailable = availableSongs.length;
+          selectedStyle = style;
+        }
+      }
+      
+      // Si no encontramos un estilo con suficientes canciones, usar el que tenga más disponibles
+      if (!selectedStyle) {
+        for (const style of stylesToUse) {
           const availableSongs = songsByStyle[style].filter(song => !usedSongIds.has(song.id));
-          if (availableSongs.length > 0) {
-            const randomIndex = Math.floor(Math.random() * availableSongs.length);
-            selectedSong = availableSongs[randomIndex];
-            usedStylesInCurrentSection.add(style);
-            break;
+          if (availableSongs.length > maxAvailable) {
+            maxAvailable = availableSongs.length;
+            selectedStyle = style;
           }
         }
+      }
+      
+      // Si encontramos un estilo, seleccionar canciones de ese estilo
+      if (selectedStyle && songsByStyle[selectedStyle]) {
+        const availableSongs = songsByStyle[selectedStyle].filter(song => !usedSongIds.has(song.id));
+        const songsToSelect = Math.min(count, availableSongs.length);
         
-        // Si no encontramos un estilo nuevo, usar cualquier canción disponible
-        if (!selectedSong) {
-          const allAvailableSongs = songsLibrary.filter(song => !usedSongIds.has(song.id));
-          if (allAvailableSongs.length > 0) {
-            const randomIndex = Math.floor(Math.random() * allAvailableSongs.length);
-            selectedSong = allAvailableSongs[randomIndex];
-            if (selectedSong.style) {
-              usedStylesInCurrentSection.add(selectedSong.style);
-            }
-          }
-        }
-        
-        if (selectedSong) {
+        for (let i = 0; i < songsToSelect; i++) {
+          const randomIndex = Math.floor(Math.random() * availableSongs.length);
+          const selectedSong = availableSongs.splice(randomIndex, 1)[0];
           selectedSongs.push(selectedSong);
           usedSongIds.add(selectedSong.id);
-        } else {
-          break; // No hay más canciones disponibles
         }
+        
+        lastSectionStyle = selectedStyle;
+      }
+      
+      // Si no se completó la sección con el estilo elegido, completar con canciones aleatorias
+      while (selectedSongs.length < count) {
+        const allAvailableSongs = songsLibrary.filter(song => !usedSongIds.has(song.id));
+        if (allAvailableSongs.length === 0) break;
+        
+        const randomIndex = Math.floor(Math.random() * allAvailableSongs.length);
+        const selectedSong = allAvailableSongs[randomIndex];
+        selectedSongs.push(selectedSong);
+        usedSongIds.add(selectedSong.id);
       }
       
       return selectedSongs;
