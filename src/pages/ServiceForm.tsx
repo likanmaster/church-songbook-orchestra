@@ -416,40 +416,50 @@ const ServiceForm = () => {
       return;
     }
 
-    // Función para obtener canciones del mismo estilo sin repetir
+    // Función para obtener canciones variando los estilos musicales
+    const usedStylesInCurrentSection = new Set<string>();
+    
     const getSongsForSection = (count: number): Song[] => {
       const selectedSongs: Song[] = [];
       const availableStyles = Object.keys(songsByStyle);
       
-      // Intentar encontrar un estilo con suficientes canciones disponibles
-      let bestStyle = '';
-      let maxAvailable = 0;
+      // Reiniciar los estilos usados en esta sección
+      usedStylesInCurrentSection.clear();
       
-      for (const style of availableStyles) {
-        const availableSongs = songsByStyle[style].filter(song => !usedSongIds.has(song.id));
-        if (availableSongs.length > maxAvailable) {
-          maxAvailable = availableSongs.length;
-          bestStyle = style;
+      for (let i = 0; i < count; i++) {
+        // Intentar encontrar una canción de un estilo diferente al ya usado en esta sección
+        let selectedSong: Song | null = null;
+        
+        // Primero, intentar encontrar estilos no usados en esta sección
+        for (const style of availableStyles) {
+          if (usedStylesInCurrentSection.has(style)) continue;
+          
+          const availableSongs = songsByStyle[style].filter(song => !usedSongIds.has(song.id));
+          if (availableSongs.length > 0) {
+            const randomIndex = Math.floor(Math.random() * availableSongs.length);
+            selectedSong = availableSongs[randomIndex];
+            usedStylesInCurrentSection.add(style);
+            break;
+          }
         }
-      }
-      
-      // Si encontramos un estilo con canciones suficientes, usarlo
-      if (bestStyle && maxAvailable >= count) {
-        const availableSongs = songsByStyle[bestStyle].filter(song => !usedSongIds.has(song.id));
-        for (let i = 0; i < count && i < availableSongs.length; i++) {
-          const randomIndex = Math.floor(Math.random() * availableSongs.length);
-          const selectedSong = availableSongs.splice(randomIndex, 1)[0];
+        
+        // Si no encontramos un estilo nuevo, usar cualquier canción disponible
+        if (!selectedSong) {
+          const allAvailableSongs = songsLibrary.filter(song => !usedSongIds.has(song.id));
+          if (allAvailableSongs.length > 0) {
+            const randomIndex = Math.floor(Math.random() * allAvailableSongs.length);
+            selectedSong = allAvailableSongs[randomIndex];
+            if (selectedSong.style) {
+              usedStylesInCurrentSection.add(selectedSong.style);
+            }
+          }
+        }
+        
+        if (selectedSong) {
           selectedSongs.push(selectedSong);
           usedSongIds.add(selectedSong.id);
-        }
-      } else {
-        // Si no hay suficientes del mismo estilo, usar canciones disponibles
-        const allAvailableSongs = songsLibrary.filter(song => !usedSongIds.has(song.id));
-        for (let i = 0; i < count && i < allAvailableSongs.length; i++) {
-          const randomIndex = Math.floor(Math.random() * allAvailableSongs.length);
-          const selectedSong = allAvailableSongs.splice(randomIndex, 1)[0];
-          selectedSongs.push(selectedSong);
-          usedSongIds.add(selectedSong.id);
+        } else {
+          break; // No hay más canciones disponibles
         }
       }
       
