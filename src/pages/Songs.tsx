@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Music, Edit, Trash2, Star, Copy, Filter, X, Upload, List, Grid } from "lucide-react";
+import { Plus, Music, Edit, Trash2, Star, Copy, Filter, X, Upload, Download, List, Grid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import Navbar from "@/components/layout/Navbar";
 import SongImporter from "@/components/songs/SongImporter";
+import SongExporter from "@/components/songs/SongExporter";
 import { Song } from "@/types";
 import { getAllSongs, deleteSong, toggleSongFavorite, updateSongPublicStatus, copySongToUserAccount, updateSong } from "@/services/song-service";
 import { getUserMusicStyles } from "@/services/user-service";
@@ -267,6 +268,17 @@ const SongsPage = () => {
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <SongImporter />
+              </DialogContent>
+            </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Download className="mr-2 h-4 w-4" />
+                  Exportar
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl">
+                <SongExporter songs={userOwnedSongs} />
               </DialogContent>
             </Dialog>
             <Button asChild>
