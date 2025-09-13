@@ -63,7 +63,11 @@ const SongForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
-  const [mode, setMode] = useState<"edit" | "view">(id ? "view" : "edit");
+  const [mode, setMode] = useState<"edit" | "view">(() => {
+    if (!id) return "edit"; // Nueva canción siempre en modo edición
+    if (searchParams.get('edit') === 'true') return "edit"; // Edición directa
+    return "view"; // Vista por defecto
+  });
   const [newTagInput, setNewTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [song, setSong] = useState<Song | null>(null);

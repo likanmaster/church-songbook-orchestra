@@ -61,14 +61,6 @@ const App = () => {
                   } 
                 />
                 <Route 
-                  path="/songs/edit/:id" 
-                  element={
-                    <AuthGuard>
-                      <SongForm />
-                    </AuthGuard>
-                  } 
-                />
-                <Route 
                   path="/songs/:id" 
                   element={
                     <AuthGuard>
