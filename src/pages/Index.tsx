@@ -116,47 +116,51 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+    <div className="min-h-screen bg-gradient-soft">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-8 space-y-12">
+      <main className="container mx-auto px-4 py-8 space-y-16">
         {/* Hero Section */}
-        <section className="text-center space-y-6 py-12">
+        <section className="text-center space-y-8 py-16">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-green-600/20 blur-3xl -z-10"></div>
-            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 bg-clip-text text-transparent">
+            <div className="absolute inset-0 bg-gradient-primary opacity-20 blur-3xl -z-10 animate-float"></div>
+            <h1 className="text-5xl md:text-7xl font-bold text-gradient animate-fade-in">
               Music Team
             </h1>
           </div>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-light">
             La herramienta completa para organizar, planificar y compartir música en tu iglesia con elegancia y simplicidad
           </p>
           
           {user ? (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <div className="flex gap-3">
-                {quickActions.map((action) => (
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+              <div className="flex flex-wrap gap-4 justify-center">
+                {quickActions.map((action, index) => (
                   <Link key={action.path} to={action.path}>
-                    <Button className="group relative overflow-hidden" size="lg">
-                      <action.icon className={`mr-2 h-4 w-4 ${action.color} group-hover:scale-110 transition-transform`} />
+                    <Button 
+                      className="group btn-glow interactive-lift rounded-2xl px-8 py-4 text-lg font-medium" 
+                      size="lg"
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <action.icon className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
                       {action.title}
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
                     </Button>
                   </Link>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <Link to="/register">
-                <Button size="lg" className="group">
-                  <Sparkles className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
+                <Button size="lg" className="group btn-glow interactive-lift bg-gradient-primary hover:bg-gradient-primary rounded-2xl px-8 py-4 text-lg font-medium">
+                  <Sparkles className="mr-3 h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
                   Comenzar Gratis
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </Button>
               </Link>
               <Link to="/login">
-                <Button variant="outline" size="lg">
+                <Button variant="outline" size="lg" className="interactive-lift rounded-2xl px-8 py-4 text-lg font-medium border-2">
                   Iniciar Sesión
                 </Button>
               </Link>
@@ -165,46 +169,47 @@ const Index = () => {
         </section>
 
         {/* Features Grid */}
-        <section className="space-y-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold mb-4">Funcionalidades Principales</h2>
-            <p className="text-muted-foreground text-lg">Todo lo que necesitas para gestionar la música de tu iglesia</p>
+        <section className="space-y-12">
+          <div className="text-center space-y-4">
+            <h2 className="text-4xl md:text-5xl font-bold text-gradient">Funcionalidades Principales</h2>
+            <p className="text-muted-foreground text-xl max-w-2xl mx-auto">Todo lo que necesitas para gestionar la música de tu iglesia</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {features.map((feature) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {features.map((feature, index) => (
               <Card 
                 key={feature.id}
-                className={`group cursor-pointer border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 ${
-                  hoveredCard === feature.id ? 'scale-105' : ''
+                className={`card-modern group cursor-pointer overflow-hidden relative ${
+                  hoveredCard === feature.id ? 'scale-105 shadow-2xl' : ''
                 }`}
                 onMouseEnter={() => setHoveredCard(feature.id)}
                 onMouseLeave={() => setHoveredCard(null)}
+                style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className={`h-2 ${feature.color} rounded-t-lg`}></div>
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${feature.iconBg} group-hover:scale-110 transition-transform`}>
-                      <feature.icon className="h-6 w-6" />
+                <div className={`h-1 ${feature.color} absolute top-0 left-0 right-0`}></div>
+                <CardHeader className="pb-6 pt-8">
+                  <div className="flex items-start gap-6">
+                    <div className={`p-4 rounded-2xl ${feature.iconBg} group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                      <feature.icon className="h-7 w-7" />
                     </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-xl group-hover:text-primary transition-colors">
+                    <div className="flex-1 space-y-3">
+                      <CardTitle className="text-2xl font-bold group-hover:text-primary transition-colors duration-300">
                         {feature.title}
                       </CardTitle>
-                      <Badge variant="secondary" className="mt-1">
+                      <Badge variant="secondary" className="text-sm px-3 py-1 rounded-full font-medium">
                         {feature.stats}
                       </Badge>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base leading-relaxed mb-4">
+                <CardContent className="space-y-6">
+                  <CardDescription className="text-lg leading-relaxed text-muted-foreground">
                     {feature.description}
                   </CardDescription>
                   <Link to={feature.path}>
-                    <Button variant="ghost" className="group/btn w-full justify-between">
+                    <Button variant="ghost" className="group/btn w-full justify-between interactive-lift rounded-xl h-12 text-base font-medium">
                       Explorar
-                      <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+                      <ArrowRight className="h-5 w-5 group-hover/btn:translate-x-2 transition-transform duration-300" />
                     </Button>
                   </Link>
                 </CardContent>
@@ -215,32 +220,32 @@ const Index = () => {
 
         {/* Stats Section */}
         {user && (
-          <section className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8">
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold mb-2">Tu Actividad</h3>
-              <p className="text-muted-foreground">Resumen de tu contenido musical</p>
+          <section className="glass rounded-3xl p-10 border border-white/20">
+            <div className="text-center mb-10 space-y-4">
+              <h3 className="text-3xl md:text-4xl font-bold text-gradient">Tu Actividad</h3>
+              <p className="text-muted-foreground text-lg">Resumen de tu contenido musical</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <Music className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-blue-600">{stats.songs}</div>
-                  <div className="text-sm text-muted-foreground">Canciones</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="text-center group">
+                <div className="card-modern p-8 space-y-4 interactive-scale">
+                  <Music className="h-12 w-12 text-primary mx-auto group-hover:scale-110 transition-transform duration-300" />
+                  <div className="text-4xl font-bold text-primary">{stats.songs}</div>
+                  <div className="text-lg font-medium text-muted-foreground">Canciones</div>
                 </div>
               </div>
-              <div className="text-center">
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <BookOpen className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-green-600">{stats.services}</div>
-                  <div className="text-sm text-muted-foreground">Servicios</div>
+              <div className="text-center group">
+                <div className="card-modern p-8 space-y-4 interactive-scale">
+                  <BookOpen className="h-12 w-12 text-accent mx-auto group-hover:scale-110 transition-transform duration-300" />
+                  <div className="text-4xl font-bold text-accent">{stats.services}</div>
+                  <div className="text-lg font-medium text-muted-foreground">Servicios</div>
                 </div>
               </div>
-              <div className="text-center">
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <Users className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-purple-600">{stats.groups}</div>
-                  <div className="text-sm text-muted-foreground">Grupos</div>
+              <div className="text-center group">
+                <div className="card-modern p-8 space-y-4 interactive-scale">
+                  <Users className="h-12 w-12 text-secondary mx-auto group-hover:scale-110 transition-transform duration-300" />
+                  <div className="text-4xl font-bold text-secondary">{stats.groups}</div>
+                  <div className="text-lg font-medium text-muted-foreground">Grupos</div>
                 </div>
               </div>
             </div>
@@ -249,18 +254,21 @@ const Index = () => {
 
         {/* CTA Section */}
         {!user && (
-          <section className="text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl p-12">
-            <h3 className="text-3xl font-bold mb-4">¿Listo para comenzar?</h3>
-            <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
-              Únete a miles de iglesias que ya organizan su música de forma profesional
-            </p>
-            <Link to="/register">
-              <Button size="lg" variant="secondary" className="group">
-                <Sparkles className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
-                Crear Cuenta Gratuita
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
+          <section className="text-center bg-gradient-primary text-white rounded-3xl p-16 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-secondary opacity-20 animate-float"></div>
+            <div className="relative z-10 space-y-6">
+              <h3 className="text-4xl md:text-5xl font-bold mb-6">¿Listo para comenzar?</h3>
+              <p className="text-primary-light text-xl mb-10 max-w-3xl mx-auto leading-relaxed">
+                Únete a miles de iglesias que ya organizan su música de forma profesional
+              </p>
+              <Link to="/register">
+                <Button size="lg" variant="secondary" className="group btn-glow interactive-lift rounded-2xl px-10 py-6 text-lg font-medium">
+                  <Sparkles className="mr-3 h-6 w-6 group-hover:rotate-12 transition-transform duration-300" />
+                  Crear Cuenta Gratuita
+                  <ArrowRight className="ml-3 h-6 w-6 group-hover:translate-x-2 transition-transform duration-300" />
+                </Button>
+              </Link>
+            </div>
           </section>
         )}
       </main>
