@@ -404,21 +404,30 @@ export const getAllCategories = async (): Promise<Category[]> => {
 
 // Copiar una canción pública o compartida a la cuenta del usuario
 export const copySongToUserAccount = async (songId: string, userId: string): Promise<Song> => {
+  console.log("copySongToUserAccount iniciado:", { songId, userId });
   try {
     // Obtener la canción original
+    console.log("Obteniendo canción original...");
     const originalSongDoc = await getDoc(doc(db, SONGS_COLLECTION, songId));
     
     if (!originalSongDoc.exists()) {
+      console.log("Canción no encontrada:", songId);
       throw new Error("La canción no existe");
     }
     
+    console.log("Canción encontrada, obteniendo datos...");
     const originalSongData = originalSongDoc.data();
+    console.log("Datos de la canción original:", originalSongData);
     
     // Verificar que la canción es pública o está compartida con el usuario
+    console.log("Verificando permisos de copia...");
     const canCopy = originalSongData.isPublic || 
                     (originalSongData.sharedWith && originalSongData.sharedWith.includes(userId));
     
+    console.log("Permisos:", { isPublic: originalSongData.isPublic, sharedWith: originalSongData.sharedWith, canCopy });
+    
     if (!canCopy) {
+      console.log("Sin permisos para copiar");
       throw new Error("No tienes permiso para copiar esta canción");
     }
     
@@ -443,6 +452,7 @@ export const copySongToUserAccount = async (songId: string, userId: string): Pro
       rating: 0, // Reiniciar la puntuación
     };
     
+    console.log("Creando nueva canción...");
     // Crear la nueva canción
     const docRef = await addDoc(collection(db, SONGS_COLLECTION), {
       ...newSongData,
@@ -450,12 +460,17 @@ export const copySongToUserAccount = async (songId: string, userId: string): Pro
       updatedAt: serverTimestamp()
     });
     
+    console.log("Nueva canción creada con ID:", docRef.id);
+    
     // Actualizar el array de canciones del usuario
+    console.log("Actualizando usuario...");
     const userRef = doc(db, USERS_COLLECTION, userId);
     await updateDoc(userRef, {
       songs: arrayUnion(docRef.id),
       updatedAt: serverTimestamp()
     });
+    
+    console.log("Usuario actualizado exitosamente");
     
     // Construimos un objeto Song con los datos que acabamos de guardar
     const newSong: Song = {
@@ -481,9 +496,10 @@ export const copySongToUserAccount = async (songId: string, userId: string): Pro
       rating: 0
     };
     
+    console.log("Canción copiada exitosamente:", newSong);
     return newSong;
   } catch (error) {
-    console.error("Error al copiar canción:", error);
+    console.error("Error en copySongToUserAccount:", error);
     throw error;
   }
 };

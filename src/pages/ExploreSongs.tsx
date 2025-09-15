@@ -87,7 +87,10 @@ const ExploreSongs = () => {
   }, []);
 
   const handleCopySong = async (songId: string) => {
+    console.log("Iniciando copia de canción:", songId, "Usuario:", user?.id);
+    
     if (!user?.id) {
+      console.log("Usuario no autenticado");
       toast({
         title: "Error",
         description: "Debes iniciar sesión para copiar canciones",
@@ -97,20 +100,32 @@ const ExploreSongs = () => {
     }
 
     setCopyingSong(songId);
+    console.log("Estado de copiado establecido para:", songId);
+    
     try {
-      await copySongToUserAccount(songId, user.id);
+      console.log("Llamando a copySongToUserAccount...");
+      const copiedSong = await copySongToUserAccount(songId, user.id);
+      console.log("Canción copiada exitosamente:", copiedSong);
+      
       toast({
         title: "Canción copiada",
         description: "La canción ha sido copiada a tu biblioteca exitosamente."
       });
     } catch (error) {
       console.error("Error al copiar la canción:", error);
+      
+      let errorMessage = "No se pudo copiar la canción. Intente nuevamente.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "No se pudo copiar la canción. Intente nuevamente.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
+      console.log("Finalizando copia, limpiando estado");
       setCopyingSong(null);
     }
   };
