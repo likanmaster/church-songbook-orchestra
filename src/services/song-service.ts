@@ -452,10 +452,15 @@ export const copySongToUserAccount = async (songId: string, userId: string): Pro
       rating: 0, // Reiniciar la puntuación
     };
     
+    // Filtrar campos undefined para evitar errores de Firebase
+    const cleanedData = Object.fromEntries(
+      Object.entries(newSongData).filter(([_, v]) => v != null)
+    );
+    
     console.log("Creando nueva canción...");
     // Crear la nueva canción
     const docRef = await addDoc(collection(db, SONGS_COLLECTION), {
-      ...newSongData,
+      ...cleanedData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
