@@ -1,20 +1,26 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Music, Search, Star, User } from "lucide-react";
+import { Music, Search, Star, User, Copy } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import { db, SONGS_COLLECTION, USERS_COLLECTION } from "@/hooks/use-auth-context";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { Song } from "@/types";
+import { copySongToUserAccount } from "@/services/song-service";
+import { useAuth } from "@/hooks/use-auth-context";
 
 const ExploreSongs = () => {
   const [songs, setSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [copyingSong, setCopyingSong] = useState<string | null>(null);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchPublicSongs = async () => {
@@ -79,6 +85,35 @@ const ExploreSongs = () => {
 
     fetchPublicSongs();
   }, []);
+
+  const handleCopySong = async (songId: string) => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para copiar canciones",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCopyingSong(songId);
+    try {
+      await copySongToUserAccount(songId, user.id);
+      toast({
+        title: "Canción copiada",
+        description: "La canción ha sido copiada a tu biblioteca exitosamente."
+      });
+    } catch (error) {
+      console.error("Error al copiar la canción:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo copiar la canción. Intente nuevamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setCopyingSong(null);
+    }
+  };
 
   const filteredSongs = songs.filter(song =>
     song.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -169,10 +204,22 @@ const ExploreSongs = () => {
                     </div>
                   )}
                 </CardContent>
-                <CardFooter>
-                  <Button asChild variant="outline" size="sm" className="w-full">
+                <CardFooter className="flex gap-2">
+                  <Button asChild variant="outline" size="sm" className="flex-1">
                     <Link to={`/songs/${song.id}`}>Ver Canción</Link>
                   </Button>
+                  {user && song.userId !== user.id && (
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      onClick={() => handleCopySong(song.id)}
+                      disabled={copyingSong === song.id}
+                      className="flex-1"
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      {copyingSong === song.id ? 'Copiando...' : 'Copiar'}
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
             ))
