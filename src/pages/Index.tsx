@@ -175,7 +175,7 @@ const Index = () => {
             <p className="text-muted-foreground text-xl max-w-2xl mx-auto">Todo lo que necesitas para gestionar la música de tu iglesia</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {features.map((feature, index) => (
               <Card 
                 key={feature.id}
@@ -226,7 +226,7 @@ const Index = () => {
               <p className="text-muted-foreground text-lg">Resumen de tu contenido musical</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
               <div className="text-center group">
                 <div className="card-modern p-8 space-y-4 interactive-scale">
                   <Music className="h-12 w-12 text-primary mx-auto group-hover:scale-110 transition-transform duration-300" />

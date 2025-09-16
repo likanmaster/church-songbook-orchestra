@@ -256,35 +256,38 @@ const SongsPage = () => {
       <Navbar />
       
       <main className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-bold">Mis Canciones</h1>
-          <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <h1 className="text-2xl sm:text-3xl font-bold">Mis Canciones</h1>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" className="w-full sm:w-auto">
                   <Upload className="mr-2 h-4 w-4" />
-                  Importar
+                  <span className="hidden sm:inline">Importar</span>
+                  <span className="sm:hidden">Import</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="max-w-lg mx-4">
                 <SongImporter />
               </DialogContent>
             </Dialog>
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" className="w-full sm:w-auto">
                   <Download className="mr-2 h-4 w-4" />
-                  Exportar
+                  <span className="hidden sm:inline">Exportar</span>
+                  <span className="sm:hidden">Export</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-3xl">
+              <DialogContent className="max-w-3xl mx-4">
                 <SongExporter songs={userOwnedSongs} />
               </DialogContent>
             </Dialog>
-            <Button asChild>
+            <Button asChild className="w-full sm:w-auto">
               <Link to="/songs/new">
                 <Plus className="mr-2 h-4 w-4" />
-                Añadir Canción
+                <span className="hidden sm:inline">Añadir Canción</span>
+                <span className="sm:hidden">Nueva</span>
               </Link>
             </Button>
           </div>
@@ -311,7 +314,7 @@ const SongsPage = () => {
             </div>
             
             {/* Filters Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {/* Key Filter */}
               <div>
                 <Label>Tonalidad:</Label>
@@ -367,43 +370,47 @@ const SongsPage = () => {
               </div>
 
               {/* Favorites Filter */}
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="favorites-only"
-                  checked={showFavoritesOnly}
-                  onCheckedChange={setShowFavoritesOnly}
-                />
-                <Label htmlFor="favorites-only">Solo favoritas</Label>
+              <div className="col-span-1 sm:col-span-2 lg:col-span-1 xl:col-span-1">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="favorites-only"
+                    checked={showFavoritesOnly}
+                    onCheckedChange={setShowFavoritesOnly}
+                  />
+                  <Label htmlFor="favorites-only" className="text-sm">Solo favoritas</Label>
+                </div>
               </div>
 
               {/* View Mode Toggle */}
-              <div>
-                <Label>Vista:</Label>
+              <div className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-1">
+                <Label className="text-sm">Vista:</Label>
                 <ToggleGroup 
                   type="single" 
                   value={viewMode} 
                   onValueChange={(value) => value && setViewMode(value as "cards" | "list")}
-                  className="justify-start"
+                  className="justify-start mt-1"
                 >
-                  <ToggleGroupItem value="cards" aria-label="Vista de tarjetas">
+                  <ToggleGroupItem value="cards" aria-label="Vista de tarjetas" className="px-2">
                     <Grid className="h-4 w-4" />
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="list" aria-label="Vista de lista">
+                  <ToggleGroupItem value="list" aria-label="Vista de lista" className="px-2">
                     <List className="h-4 w-4" />
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
 
               {/* Clear Filters Button */}
-              <div className="flex items-end">
+              <div className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-1 flex items-end">
                 {hasActiveFilters && (
                   <Button
                     variant="outline"
                     onClick={clearAllFilters}
                     className="w-full"
+                    size="sm"
                   >
                     <X className="mr-2 h-4 w-4" />
-                    Limpiar filtros
+                    <span className="hidden sm:inline">Limpiar filtros</span>
+                    <span className="sm:hidden">Limpiar</span>
                   </Button>
                 )}
               </div>

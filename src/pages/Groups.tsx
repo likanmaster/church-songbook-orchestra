@@ -170,7 +170,7 @@ const Groups = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredGroups.map((group) => (
                 <Card key={group.id} className="overflow-hidden">
                   <CardHeader className="pb-3">
@@ -238,18 +238,20 @@ const Groups = () => {
                     </div>
                   </CardContent>
                   
-                  <CardFooter className="flex flex-col space-y-2 pt-2">
+                  <CardFooter className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 pt-2">
                     <Button asChild variant="default" className="w-full">
                       <Link to={`/groups/${group.id}`}>
                         <Users className="mr-2 h-4 w-4" />
-                        Ver Grupo
+                        <span className="hidden sm:inline">Ver Grupo</span>
+                        <span className="sm:hidden">Ver</span>
                       </Link>
                     </Button>
                     {isUserAdmin(group) && (
                       <Button asChild variant="outline" className="w-full">
                         <Link to={`/groups/${group.id}/invite`}>
                           <UserPlus className="mr-2 h-4 w-4" />
-                          Invitar Miembros
+                          <span className="hidden sm:inline">Invitar</span>
+                          <span className="sm:hidden">+</span>
                         </Link>
                       </Button>
                     )}
