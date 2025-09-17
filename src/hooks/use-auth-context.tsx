@@ -83,7 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           updatedAt: userData.updatedAt?.toDate()?.toISOString() || new Date().toISOString(),
           photoURL: userData.photoURL,
           songs: userData.songs || [],
-          groups: userData.groups || []
+          groups: userData.groups || [],
+          idpersonal: userData.idpersonal
         };
       }
       return null;
