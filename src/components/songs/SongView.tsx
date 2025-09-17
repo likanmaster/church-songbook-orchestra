@@ -265,256 +265,302 @@ const SongView = ({ song }: SongViewProps) => {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between bg-gradient-to-r from-song-100 to-song-200 dark:from-song-800 dark:to-song-700 p-6 rounded-xl shadow-md">
-        <div className="flex items-center">
-          <div className="bg-primary/10 p-3 rounded-full mr-5">
-            <Music className="h-10 w-10 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold mb-1">{song.title}</h1>
-            {song.author && <p className="text-muted-foreground flex items-center gap-1">
-              <User className="h-4 w-4" /> {song.author}
-            </p>}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {isOwnSong && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash className="mr-2 h-4 w-4" />
-                  Eliminar
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Esta acción eliminará permanentemente la canción "{song.title}" y sus datos asociados.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleDelete} 
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    disabled={isDeleting}
-                  >
-                    {isDeleting ? 'Eliminando...' : 'Eliminar'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          
-          {!isOwnSong && canCopySong && (
-            <Button 
-              variant="secondary" 
-              onClick={handleCopySong}
-              disabled={isCopying}
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              {isCopying ? 'Copiando...' : 'Copiar a mi biblioteca'}
-            </Button>
-          )}
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary">
-                <Share className="mr-2 h-4 w-4" />
-                Compartir
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {isLoadingGroups ? (
-                <div className="flex items-center justify-center p-4">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                  <span className="ml-2 text-sm">Cargando grupos...</span>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Hero Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-accent/5"></div>
+        <div className="relative backdrop-blur-sm border-b border-border/50">
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="flex items-start gap-6">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
+                    <Music className="h-10 w-10 text-primary-foreground" />
+                  </div>
+                  {song.isFavorite && (
+                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center">
+                      <Heart className="h-4 w-4 text-destructive fill-destructive" />
+                    </div>
+                  )}
                 </div>
-              ) : userGroups.length > 0 ? (
-                userGroups.map((group) => (
-                  <DropdownMenuItem
-                    key={group.id}
-                    onClick={() => handleShareWithGroup(group.id, group.name)}
-                  >
-                    <Users className="mr-2 h-4 w-4" />
-                    {group.name}
-                  </DropdownMenuItem>
-                ))
-              ) : (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  No perteneces a ningún grupo
-                </div>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          {song.isFavorite && (
-            <div className="bg-song-100 dark:bg-song-800 p-2 rounded-full">
-              <Heart className="h-6 w-6 text-song-500 fill-song-500" />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Nueva estructura: Letra a la izquierda y columna de información a la derecha */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Columna de la letra - más ancha (2/3) */}
-        <div className="lg:col-span-2">
-          {song.lyrics && (
-            <Card className="h-full border-song-200 dark:border-song-800 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <CardHeader className="bg-song-50/50 dark:bg-song-900/30 border-b border-song-100 dark:border-song-800">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    Letra
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Mostrar acordes</span>
-                    <Switch 
-                      checked={showChords}
-                      onCheckedChange={setShowChords}
-                    />
-                    {showChords ? (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-2 tracking-tight">
+                    {song.title}
+                  </h1>
+                  {song.author && (
+                    <p className="text-lg text-muted-foreground flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      {song.author}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-3 mt-4">
+                    {song.style && (
+                      <Badge variant="secondary" className="px-3 py-1">
+                        <Brush className="h-3 w-3 mr-1" />
+                        {song.style}
+                      </Badge>
+                    )}
+                    {song.key && (
+                      <Badge variant="outline" className="px-3 py-1">
+                        <Music2 className="h-3 w-3 mr-1" />
+                        {currentKey || song.key}
+                      </Badge>
+                    )}
+                    {song.tempo && (
+                      <Badge variant="outline" className="px-3 py-1">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {song.tempo} BPM
+                      </Badge>
                     )}
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="whitespace-pre-wrap font-sans bg-background p-4 rounded-md border border-song-100 dark:border-song-800">
-                  <ChordLyrics 
-                    lyrics={transposeLyrics(song.lyrics)}
-                    showChords={showChords}
-                    transposedKey={currentKey}
-                    originalKey={song.key}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-        
-        {/* Columna de información - más estrecha (1/3) */}
-        <div className="space-y-6">
-          {/* Información musical */}
-          <Card className="border-song-200 dark:border-song-800 shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardHeader className="bg-song-50/50 dark:bg-song-900/30 border-b border-song-100 dark:border-song-800">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Music2 className="h-5 w-5 text-primary" />
-                Información Musical
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {song.style && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Estilo</p>
-                    <p className="font-medium flex items-center gap-2">
-                      <Brush className="h-4 w-4 text-song-500" />
-                      {song.style}
-                    </p>
-                  </div>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-3">
+                {isOwnSong && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm" className="gap-2">
+                        <Trash className="h-4 w-4" />
+                        Eliminar
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción no se puede deshacer. Esta acción eliminará permanentemente la canción "{song.title}" y sus datos asociados.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleDelete} 
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          disabled={isDeleting}
+                        >
+                          {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
                 
-                {song.key && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Tonalidad</p>
-                    <div className="font-medium flex flex-col gap-2">
-                      <p className="flex items-center gap-2">
-                        <Music2 className="h-4 w-4 text-song-500" />
-                        {currentKey || song.key}
-                      </p>
+                {!isOwnSong && canCopySong && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleCopySong}
+                    disabled={isCopying}
+                    className="gap-2"
+                  >
+                    <Copy className="h-4 w-4" />
+                    {isCopying ? 'Copiando...' : 'Copiar'}
+                  </Button>
+                )}
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="default" size="sm" className="gap-2">
+                      <Share className="h-4 w-4" />
+                      Compartir
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {isLoadingGroups ? (
+                      <div className="flex items-center justify-center p-4">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                        <span className="ml-2 text-sm">Cargando grupos...</span>
+                      </div>
+                    ) : userGroups.length > 0 ? (
+                      userGroups.map((group) => (
+                        <DropdownMenuItem
+                          key={group.id}
+                          onClick={() => handleShareWithGroup(group.id, group.name)}
+                        >
+                          <Users className="mr-2 h-4 w-4" />
+                          {group.name}
+                        </DropdownMenuItem>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No perteneces a ningún grupo
+                      </div>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Lyrics Section */}
+          <div className="xl:col-span-3">
+            {song.lyrics && (
+              <Card className="overflow-hidden border-0 shadow-2xl bg-card/95 backdrop-blur-sm">
+                <CardHeader className="border-b bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <FileText className="h-4 w-4 text-primary" />
+                      </div>
+                      Letra de la canción
+                    </CardTitle>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-muted-foreground">Acordes</span>
+                        <Switch 
+                          checked={showChords}
+                          onCheckedChange={setShowChords}
+                        />
+                        {showChords ? (
+                          <Eye className="h-4 w-4 text-primary" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {song.key && (
+                    <div className="pt-4">
                       <KeyTransposer 
                         songKey={song.key} 
                         onKeyChange={setCurrentKey}
                       />
                     </div>
+                  )}
+                </CardHeader>
+                <CardContent className="p-8">
+                  <div className="relative">
+                    <div className="bg-muted/30 rounded-2xl p-6 border border-border/50">
+                      <ChordLyrics 
+                        lyrics={transposeLyrics(song.lyrics)}
+                        showChords={showChords}
+                        transposedKey={currentKey}
+                        originalKey={song.key}
+                      />
+                    </div>
                   </div>
-                )}
-                
-                {song.tempo && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Tempo</p>
-                    <p className="font-medium flex items-center gap-2">
-                      <Music2 className="h-4 w-4 text-song-500" />
-                      {song.tempo} bpm
-                    </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Musical Information */}
+            {(song.tempo || song.duration) && (
+              <Card className="border-0 shadow-xl bg-card/95 backdrop-blur-sm">
+                <CardHeader className="border-b bg-muted/30">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Music2 className="h-4 w-4 text-primary" />
+                    </div>
+                    Detalles Musicales
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    {song.tempo && (
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Music2 className="h-4 w-4" />
+                          Tempo
+                        </div>
+                        <span className="font-semibold text-foreground">{song.tempo} BPM</span>
+                      </div>
+                    )}
+                    
+                    {song.duration && (
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          Duración
+                        </div>
+                        <span className="font-semibold text-foreground">
+                          {Math.floor(Number(song.duration) / 60)}:
+                          {String(Number(song.duration) % 60).padStart(2, "0")}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-                
-                {song.duration && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Duración</p>
-                    <p className="font-medium flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-song-500" />
-                      {Math.floor(Number(song.duration) / 60)}:
-                      {String(Number(song.duration) % 60).padStart(2, "0")} minutos
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Clasificación */}
-          {(song.categories?.length > 0 || song.tags?.length > 0) && (
-            <Card className="border-song-200 dark:border-song-800 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <CardHeader className="bg-song-50/50 dark:bg-song-900/30 border-b border-song-100 dark:border-song-800">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Tag className="h-5 w-5 text-primary" />
-                  Clasificación
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-4">
-                {song.categories && song.categories.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Categorías</p>
-                    <div className="flex flex-wrap gap-2">
-                      {song.categories.map((category, index) => (
-                        <Badge key={index} variant="secondary" className="px-3 py-1 bg-song-100 dark:bg-song-800 hover:bg-song-200 dark:hover:bg-song-700 transition-colors">
-                          {category}
-                        </Badge>
-                      ))}
+            {/* Categories and Tags */}
+            {(song.categories?.length > 0 || song.tags?.length > 0) && (
+              <Card className="border-0 shadow-xl bg-card/95 backdrop-blur-sm">
+                <CardHeader className="border-b bg-muted/30">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Tag className="h-4 w-4 text-primary" />
                     </div>
-                  </div>
-                )}
-                
-                {song.tags && song.tags.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Etiquetas</p>
-                    <div className="flex flex-wrap gap-2">
-                      {song.tags.map((tag, index) => (
-                        <Badge key={index} className="px-3 py-1 bg-primary/80 hover:bg-primary transition-colors">
-                          {tag}
-                        </Badge>
-                      ))}
+                    Clasificación
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                  {song.categories && song.categories.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground">Categorías</p>
+                      <div className="flex flex-wrap gap-2">
+                        {song.categories.map((category, index) => (
+                          <Badge 
+                            key={index} 
+                            variant="secondary" 
+                            className="px-3 py-1 text-sm rounded-full hover:bg-secondary/80 transition-colors"
+                          >
+                            {category}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
+                  )}
+                  
+                  {song.tags && song.tags.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground">Etiquetas</p>
+                      <div className="flex flex-wrap gap-2">
+                        {song.tags.map((tag, index) => (
+                          <Badge 
+                            key={index} 
+                            className="px-3 py-1 text-sm rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                          >
+                            #{tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Additional Notes */}
+            {song.notes && (
+              <Card className="border-0 shadow-xl bg-card/95 backdrop-blur-sm">
+                <CardHeader className="border-b bg-muted/30">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <StickyNote className="h-4 w-4 text-primary" />
+                    </div>
+                    Notas Adicionales
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="bg-muted/30 rounded-xl p-4 border border-border/50">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {song.notes}
+                    </p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-          
-          {/* Notas Adicionales */}
-          {song.notes && (
-            <Card className="border-song-200 dark:border-song-800 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <CardHeader className="bg-song-50/50 dark:bg-song-900/30 border-b border-song-100 dark:border-song-800">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <StickyNote className="h-5 w-5 text-primary" />
-                  Notas Adicionales
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="bg-background p-4 rounded-md border border-song-100 dark:border-song-800">
-                  {song.notes}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
     </div>
