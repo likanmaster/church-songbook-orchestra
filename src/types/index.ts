@@ -139,6 +139,7 @@ export interface User {
   songs?: string[]; // IDs de canciones propias
   groups?: string[]; // IDs de grupos a los que pertenece
   musicStyles?: string[]; // Estilos musicales personalizados del usuario
+  idpersonal?: string; // ID personal único de 3 dígitos
 }
 
 export interface ServiceGroup {

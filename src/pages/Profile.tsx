@@ -200,6 +200,17 @@ const Profile = () => {
                   </p>
                 )}
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="idpersonal">ID Personal</Label>
+                <Input
+                  id="idpersonal"
+                  value={user?.idpersonal || "No asignado"}
+                  disabled={true}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Tu identificador único personal.
+                </p>
+              </div>
               <div className="pt-4 flex justify-end gap-2">
                 {isEditing ? (
                   <>
