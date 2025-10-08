@@ -111,8 +111,8 @@ Bienvenido a **Church Songbook**, una aplicación web diseñada para músicos e 
 
 ### 2. **Clonar el Proyecto**
 ```sh
-git clone <URL_DE_TU_REPOSITORIO>
-cd <NOMBRE_DEL_PROJECTO>
+git clone https://github.com/likanmaster/church-songbook-orchestra
+cd .\church-songbook-orchestra\ 
 ```
 
 ### 3. **Instalar Dependencias**
